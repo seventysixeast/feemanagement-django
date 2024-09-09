@@ -1,0 +1,23 @@
+fieldset.box {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 20px;
+    /* background-color: #f9f9f9; */
+}
+
+fieldset.box h2 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.field-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.field-box > div {
+    flex: 1;
+    margin-right: 10px;
+}

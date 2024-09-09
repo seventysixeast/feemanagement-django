@@ -1,0 +1,47 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Mobile Number List</h1>
+
+<form method="get">
+    <div>
+        <label for="class_no">Class No:</label>
+        <input type="text" name="class_no" value="{{ class_no }}">
+    </div>
+    <div>
+        <label for="section">Section:</label>
+        <input type="text" name="section" value="{{ section }}">
+    </div>
+    <div>
+        <label for="admission_date">Admission Date:</label>
+        <input type="date" name="admission_date" value="{{ admission_date }}">
+    </div>
+    <div>
+        <button type="submit">Filter</button>
+        <button type="submit" name="export" value="1">Export to CSV</button>
+    </div>
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th>Admission No</th>
+            <th>Student Name</th>
+            <th>Class</th>
+            <th>Section</th>
+            <th>Mobile No</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for student in students %}
+        <tr>
+            <td>{{ student.addmission_no }}</td>
+            <td>{{ student.student_name }}</td>
+            <td>{{ student.get_class_no }}</td>
+            <td>{{ student.get_section }}</td>
+            <td>{{ student.mobile_no }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

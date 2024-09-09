@@ -1,0 +1,17 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+  <form method="post" class="form-horizontal">
+    {{ form.media }}
+    {% csrf_token %}
+    <div class="field-box">
+      {{ form.student_name.label_tag }} {{ form.student_name }}
+      {{ form.admission_no.label_tag }} {{ form.admission_no }}
+      <input type="submit" value="Search" name="search" class="btn btn-primary" />
+    </div>
+    {{ form.as_p }}
+    <div class="btn-row">
+      <input type="submit" class="btn btn-default" value="Save" />
+    </div>
+  </form>
+{% endblock %}
