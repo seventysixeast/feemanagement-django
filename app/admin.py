@@ -34,6 +34,7 @@ from django.db.models import OuterRef, Subquery, Exists
 # from django.http import HttpResponse
 import csv
 from django.http import HttpResponse
+from datetime import datetime
 
 CLASS_CHOICES = [
         ('', 'Select the Class'),
@@ -67,6 +68,29 @@ SECTION = [
         ('I', 'I'),
         ('J', 'J'),
     ]
+MONTHS_APPL_CHOICES = [
+     ('', 'Please Select Months'),
+     ('4,5,6', '4,5,6'),
+     ('10,11,12', '10,11,12'),
+     ('1,2,3', '1,2,3'),
+     ('8', '8'),
+     ('9', '9')
+  ]
+MONTHS = [
+    ('', 'Please Select Month'),
+    ('1', 'January'),
+    ('2', 'February'),
+    ('3', 'March'),
+    ('4', 'April'),
+    ('5', 'May'),
+    ('6', 'June'),
+    ('7', 'July'),
+    ('8', 'August'),
+    ('9', 'September'),
+    ('10', 'October'),
+    ('11', 'November'),
+    ('12', 'December'),
+]
 
 # Register your models here.
 
@@ -180,13 +204,72 @@ class StudentMasterForm(forms.ModelForm):
     def clean_concession_id(self):
         concession = self.cleaned_data.get('concession_id')
         return concession.concession_id if concession else None
+    
+# Custom filter for admission_no
+class AdmissionNoFilter(admin.SimpleListFilter):
+    title = 'Admission No'
+    parameter_name = 'search_admission_no'
+
+    def lookups(self, request, model_admin):
+        return []
+
+    # def queryset(self, request, queryset):
+    #     search_admission_no = self.value()  # Get the value from the request
+    #     if search_admission_no:
+    #         return queryset.filter(addmission_no__icontains=search_admission_no)
+    #     return queryset
+
+
+# Custom filter for student_name
+class StudentNameFilter(admin.SimpleListFilter):
+    title = 'Student Name'
+    parameter_name = 'search_student_name'
+
+    def lookups(self, request, model_admin):
+        return []
+
+    # def queryset(self, request, queryset):
+    #     search_student_name = self.value()  # Get the value from the request
+    #     if search_student_name:
+    #         return queryset.filter(student_name__icontains=search_student_name)
+    #     return queryset
 
 
 
 class StudentMasterAdmin(admin.ModelAdmin):
     form = StudentMasterForm
     list_display = ('student_id', 'student_name', 'get_class_no', 'get_section', 'addmission_no', 'gender', 'birth_date', 'category', 'status', 'admission_date', 'passedout_date')
-    search_fields = ('student_name', 'addmission_no', 'aadhaar_no', 'email', 'city', 'birth_date')
+    # search_fields = ('student_name', 'addmission_no', 'aadhaar_no', 'email', 'city', 'birth_date')
+
+    # Add custom filters to the list filter
+    list_filter = (AdmissionNoFilter, StudentNameFilter)
+
+    # Override get_search_results to handle custom search logic
+    def get_search_results(self, request, queryset, search_term):
+        search_admission_no = request.GET.get('search_admission_no', None)
+        search_student_name = request.GET.get('search_student_name', None)
+
+        # Apply custom filters for admission_no and student_name
+        if search_admission_no:
+            queryset = queryset.filter(addmission_no__icontains=search_admission_no)
+        if search_student_name:
+            queryset = queryset.filter(student_name__icontains=search_student_name)
+
+        print("++++++++++ queryset +++++++++++", queryset)
+
+        # Return the modified queryset and a boolean for whether distinct is needed
+        return queryset, False
+
+    def changelist_view(self, request, extra_context=None):
+        # Adding extra context for the search fields in the template
+        extra_context = extra_context or {}
+        extra_context['search_admission_no'] = request.GET.get('search_admission_no', '')
+        extra_context['search_student_name'] = request.GET.get('search_student_name', '')
+        
+        return super().changelist_view(request, extra_context=extra_context)
+
+    # Customize the changelist template to include custom search fields
+    change_list_template = 'admin/student_master_changelist.html'
 
     def get_class_no(self, obj):
         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
@@ -838,7 +921,176 @@ class PaymentScheduleMasterAdmin(admin.ModelAdmin):
 admin.site.register(payment_schedule_master, PaymentScheduleMasterAdmin)
 
 # admin.site.register(payment_schedule_master)
-admin.site.register(specialfee_master)
+
+class SpecialFeeMasterForm(forms.ModelForm):
+    class_no = forms.ChoiceField(choices=CLASS_CHOICES, required=True)
+    student_name = forms.ChoiceField(choices=[('', 'Select Student')], required=False, label="Student Name*")
+    student_id = forms.CharField(widget=forms.HiddenInput())
+    student_class_id = forms.CharField(widget=forms.HiddenInput())
+    # added_by = forms.CharField(widget=forms.HiddenInput())
+    # updated_by = forms.CharField(widget=forms.HiddenInput())
+    months_applicable_for = forms.MultipleChoiceField(
+        choices=[],
+    )
+
+    # Generate year choices dynamically
+    current_year = datetime.now().year
+    year_choices = [(str(year), str(year)) for year in range(current_year + 1, current_year - 4, -1)]
+    year = forms.ChoiceField(choices=year_choices, required=True)
+
+    class Meta:
+        model = specialfee_master
+        # fields = ['class_no', 'student_name', 'fee_type', 'months_applicable_for', 'year', 'amount', 'added_by', 'updated_by']
+        fields = ['class_no', 'student_name', 'fee_type', 'months_applicable_for', 'year', 'amount', 'added_by', 'updated_by']
+
+    class Media:
+        js = ('app/js/specialfee_master.js',)
+
+    MONTHS = [
+        ('', 'Please Select Month'),
+        ('1', 'January'),
+        ('2', 'February'),
+        ('3', 'March'),
+        ('4', 'April'),
+        ('5', 'May'),
+        ('6', 'June'),
+        ('7', 'July'),
+        ('8', 'August'),
+        ('9', 'September'),
+        ('10', 'October'),
+        ('11', 'November'),
+        ('12', 'December')
+    ]
+
+    MONTHS_APPL_CHOICES = [
+        ('', 'Please Select Months'),
+        ('4,5,6', '4,5,6'),
+        ('10,11,12', '10,11,12'),
+        ('1,2,3', '1,2,3'),
+        ('8', '8'),
+        ('9', '9')
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super(SpecialFeeMasterForm, self).__init__(*args, **kwargs)
+
+        # Set the choices for months_applicable_for based on the initial fee_type
+        self.update_months_choices()
+
+        if 'class_no' in self.data and not self.instance.pk:  # Only validate class_no if it's a new instance
+            try:
+                class_no = int(self.data.get('class_no'))
+                current_year = datetime.now().year
+
+                # Get student_classes and filter students
+                student_classes = student_class.objects.filter(class_no=class_no).values('student_class_id', 'student_id', 'class_no', 'section')
+                student_ids = [sc['student_id'] for sc in student_classes]
+                students = student_master.objects.filter(student_id__in=student_ids, admission_date__year=current_year)
+
+                # Prepare choices for the student_name field
+                student_choices = [(f"{student.student_id}-{sc['student_class_id']}", f"{sc['class_no']} {sc['section']} {student.student_name}") 
+                                   for student in students 
+                                   for sc in student_classes 
+                                   if sc['student_id'] == student.student_id]
+
+                # Update the choices dynamically
+                self.fields['student_name'].choices = student_choices
+
+            except (ValueError, TypeError):
+                pass  # Invalid input; ignore and leave choices empty
+        elif self.instance.pk:  # Edit case
+            # pass
+            # Hide the class_no and student_name fields when editing
+            self.fields['months_applicable_for'].required = False
+            self.fields['class_no'].required = False
+            self.fields['class_no'].widget = forms.HiddenInput()
+            self.fields['student_name'].required = False
+            self.fields['student_name'].widget = forms.HiddenInput()
+
+            # Populate the student_name choices for existing instances
+            # self.fields['student_name'].choices = [(f"{self.instance.student_id}-{self.instance.student_class_id}", 
+            #                                         f"{self.instance.student_id} - {self.instance.student_class_id}")]
+
+    def update_months_choices(self):
+        fee_type = self.initial.get('fee_type', self.data.get('fee_type'))
+        if fee_type == 'bus_fees':
+            print("++++++++++++")
+            self.fields['months_applicable_for'].choices = self.MONTHS
+            # self.fields['months_applicable_for'].required = True
+        elif fee_type == 'ignore_prev_outstanding_fees':
+            print("############")
+            self.fields['months_applicable_for'].choices = []
+            self.fields['months_applicable_for'].required = False
+        else:
+            print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+            self.fields['months_applicable_for'].choices = self.MONTHS_APPL_CHOICES
+            # self.fields['months_applicable_for'].required = True
+
+        
+    def clean_months_applicable_for(self):
+        months = self.cleaned_data.get('months_applicable_for', [])
+        # Join the list into a comma-separated string
+        return ','.join(months)
+
+        # months = self.cleaned_data.get('months_applicable_for', None)
+        # print('+++++ months ++++++++', months)
+        # # If no months were selected, keep the existing value
+        # if not months:
+        #     return self.instance.months_applicable_for
+        # # Otherwise, join the selected months into a comma-separated string
+        # return ','.join(months)
+
+
+class SpecialFeeMasterAdmin(admin.ModelAdmin):
+    list_display = ("student_charge_id", "student_id", "student_class_id", "fee_type", "months_applicable_for", "year", "amount", "added_at", "updated_at")
+    form = SpecialFeeMasterForm
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('ajax/get-students/', self.admin_site.admin_view(self.get_students), name='ajax_get_students'),
+        ]
+        return custom_urls + urls
+
+    def get_students(self, request):
+        class_no = request.GET.get('class_no', '')
+        print('++++++++ class_no ++++++++++', class_no)
+        if class_no:
+            current_year = datetime.now().year
+
+            # Get the student_id, class_no, and section from the student_class model
+            student_classes = student_class.objects.filter(class_no=class_no).values('student_class_id', 'student_id', 'class_no', 'section')
+
+            # Extract student_ids
+            student_ids = [sc['student_id'] for sc in student_classes]
+
+            # Filter students from the student_master model
+            students = student_master.objects.filter(student_id__in=student_ids, admission_date__year=current_year)
+            
+            # Combine the student data with class_no and section
+            results = []
+            for student in students:
+                student_info = {
+                    'student_id': student.student_id,
+                    'student_name': student.student_name,
+                    'admission_no': student.addmission_no,
+                }
+                # Add class_no and section from the student_classes data
+                student_class_info = next(sc for sc in student_classes if sc['student_id'] == student.student_id)
+                student_info['class_id'] = student_class_info['student_class_id']
+                student_info['class_no'] = student_class_info['class_no']
+                student_info['section'] = student_class_info['section']
+                results.append(student_info)
+
+            print("++++++++ results +++++++", results)
+            return JsonResponse(results, safe=False)
+
+        return JsonResponse({'error': 'Student not found'}, status=404)
+
+
+
+admin.site.register(specialfee_master,SpecialFeeMasterAdmin)
+
     
 class ButtonWidget(forms.Widget):
     def render(self, name, value, attrs=None, renderer=None):

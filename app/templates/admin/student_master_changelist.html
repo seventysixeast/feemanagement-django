@@ -1,0 +1,11 @@
+{% extends "admin/change_list.html" %}
+
+{% block search %} 
+<div class="row">
+    <form method="GET">
+        <input type="text" name="search_admission_no" value="{{ search_admission_no }}" placeholder="Search by Admission No." />
+        <input type="text" name="search_student_name" value="{{ search_student_name }}" placeholder="Search by Student Name" />
+        <button type="submit" class="button">Search</button>
+    </form>
+</div>
+{% endblock %}

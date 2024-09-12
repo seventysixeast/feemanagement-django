@@ -1,0 +1,4 @@
+__pycache__/
+app/migrations/__pycache__/
+app/__pycache__/
+feemanagement/__pycache__/
