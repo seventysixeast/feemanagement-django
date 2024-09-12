@@ -1,0 +1,2025 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Pay Fees</title>
+  <!-- <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js">
+  </script> -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    @import "http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,600,700,300,800";
+
+    body {
+      background: #fff;
+      font-family: 'Open Sans', sans-serif;
+      color: #4e4e4e;
+      line-height: 22px
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: 600;
+      font-family: 'Open Sans', sans-serif;
+      color: #4e4e4e
+    }
+
+    h1 {
+      font-size: 46px;
+      font-weight: 700;
+      color: #444;
+      letter-spacing: -2px
+    }
+
+    h2 {
+      font-size: 24px
+    }
+
+    h3 {
+      font-size: 14px;
+      color: #777;
+      font-weight: 400;
+      line-height: 26px
+    }
+
+    h4 {
+      font-size: 16px
+    }
+
+    a {
+      color: #2a6496;
+      -webkit-transition: color 300ms, background-color 300ms;
+      -moz-transition: color 300ms, background-color 300ms;
+      -o-transition: color 300ms, background-color 300ms;
+      transition: color 300ms, background-color 300ms
+    }
+
+    a:hover,
+    a:focus {
+      color: #d43133
+    }
+
+    hr {
+      border-top: 1px solid #e5e5e5;
+      border-bottom: 1px solid #fff
+    }
+
+    .btn-primary {
+      padding: 8px 20px;
+      background: #3498db;
+      color: #fff;
+      border-radius: 4px;
+      border: 0;
+      margin-top: 10px
+    }
+
+    .btn-primary:hover,
+    .btn-primary:focus {
+      background: #2d78ae;
+      outline: 0;
+      box-shadow: none
+    }
+
+    a:hover,
+    a:focus {
+      color: #111;
+      text-decoration: none;
+      outline: 0
+    }
+
+    .center h2 {
+      font-size: 36px;
+      margin-top: 18px;
+      margin-bottom: 20px;
+      color: #c80708
+    }
+
+    .sub-heading h2 {
+      font-size: 28px;
+      margin-top: 0;
+      margin-bottom: 30px;
+      text-align: center;
+      text-decoration: underline
+    }
+
+    .red {
+      color: #c80708
+    }
+
+    .line {
+      border-bottom: dotted 1px #999;
+      max-width: 100%;
+      display: block
+    }
+
+    .center h3 {
+      font-size: 22px;
+      margin-top: 0;
+      margin-bottom: 20px
+    }
+
+    .media>.pull-left {
+      margin-right: 20px
+    }
+
+    .media>.pull-right {
+      margin-left: 20px
+    }
+
+    body>section {
+      padding: 40px 0;
+    }
+
+    .center {
+      text-align: center;
+      padding-bottom: 25px
+    }
+
+    .lead {
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 400
+    }
+
+    @-webkit-keyframes scaleIn {
+      0% {
+        opacity: 0;
+        -webkit-transform: scale(0);
+        transform: scale(0)
+      }
+
+      100% {
+        opacity: 1;
+        -webkit-transform: scale(1);
+        transform: scale(1)
+      }
+    }
+
+    @keyframes scaleIn {
+      0% {
+        opacity: 0;
+        -webkit-transform: scale(0);
+        -ms-transform: scale(0);
+        transform: scale(0)
+      }
+
+      100% {
+        opacity: 1;
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1)
+      }
+    }
+
+    .navbar>.container .navbar-brand {
+      margin-left: 0
+    }
+
+    .navbar-brand {
+      padding: 0;
+      margin: 10px 0
+    }
+
+    .navbar-logo {
+      font-size: 24px;
+      font-weight: 700;
+      margin-top: 40px;
+      margin-left: 90px
+    }
+
+    .navbar {
+      border-radius: 0;
+      margin-bottom: 0;
+      background: #274f75;
+      padding-bottom: 0
+    }
+
+    .navbar-nav {
+      margin: 5px 0
+    }
+
+    .navbar-nav>li {
+      margin-right: 20px
+    }
+
+    .navbar-inverse .navbar-nav>li>a {
+      padding: 5px 2px;
+      margin: 0;
+      border-radius: 3px;
+      color: #fff;
+      line-height: 24px;
+      display: inline-block
+    }
+
+    .navbar-inverse .navbar-nav>li>a:hover {
+      background-color: #3498db;
+      color: #fff
+    }
+
+    .navbar-inverse {
+      border: 0
+    }
+
+    .navbar-inverse .navbar-brand {
+      font-size: 24px;
+      line-height: 50px;
+      font-weight: 600;
+      color: #000
+    }
+
+    .navbar-inverse .navbar-brand .fa {
+      color: #3498db
+    }
+
+    .navbar-inverse .navbar-nav>.active>a,
+    .navbar-inverse .navbar-nav>.active>a:hover,
+    .navbar-inverse .navbar-nav>.active>a:focus,
+    .navbar-inverse .navbar-nav>.open>a,
+    .navbar-inverse .navbar-nav>.open>a:hover,
+    .navbar-inverse .navbar-nav>.open>a:focus {
+      background-color: #333;
+      color: #fff
+    }
+
+    #main-slider {
+      position: relative;
+      text-align: center
+    }
+
+    .no-margin {
+      margin: 0;
+      padding: 0
+    }
+
+    #main-slider .carousel .carousel-content {
+      margin-top: 150px
+    }
+
+    #main-slider .carousel .slide-margin {
+      margin-top: 100px
+    }
+
+    #main-slider .carousel .logo {
+      font-weight: 600;
+      margin: 20px 0;
+      padding: 0 10px;
+      border-radius: 10px;
+      border: 1px solid #9bcaec;
+      border-bottom: 0;
+      border-right: 0;
+      box-shadow: 6px 3px #ddd
+    }
+
+    #main-slider .carousel .logo i {
+      color: #3498db
+    }
+
+    #main-slider .carousel h2 {
+      color: #666;
+      font-weight: 500;
+      margin: 20px 0
+    }
+
+    #main-slider .carousel .btn-slide {
+      padding: 8px 20px;
+      background: #3498db;
+      color: #fff;
+      border-radius: 4px;
+      margin-top: 25px;
+      display: inline-block
+    }
+
+    .carousel-inner {
+      height: 550px
+    }
+
+    #main-slider .carousel .item {
+      background-position: 50%;
+      background-repeat: no-repeat;
+      background-size: cover;
+      left: 0 !important;
+      opacity: 0;
+      top: 0;
+      position: absolute;
+      width: 100%;
+      display: block !important;
+      height: 480px;
+      -webkit-transition: opacity ease-in-out 500ms;
+      -moz-transition: opacity ease-in-out 500ms;
+      -o-transition: opacity ease-in-out 500ms;
+      transition: opacity ease-in-out 500ms
+    }
+
+    #main-slider .carousel .item:first-child {
+      top: auto;
+      position: relative
+    }
+
+    #main-slider .carousel .item.active {
+      opacity: 1;
+      -webkit-transition: opacity ease-in-out 500ms;
+      -moz-transition: opacity ease-in-out 500ms;
+      -o-transition: opacity ease-in-out 500ms;
+      transition: opacity ease-in-out 500ms;
+      z-index: 1
+    }
+
+    #main-slider .prev,
+    #main-slider .next {
+      position: absolute;
+      top: 50%;
+      background-color: #fff;
+      color: #ccc;
+      display: inline-block;
+      margin-top: -25px;
+      height: 40px;
+      line-height: 40px;
+      width: 40px;
+      line-height: 40px;
+      text-align: center;
+      border-radius: 4px;
+      z-index: 5;
+      opacity: .8
+    }
+
+    #main-slider .prev:hover,
+    #main-slider .next:hover {
+      background-color: #3498db
+    }
+
+    #main-slider .prev {
+      left: 10px
+    }
+
+    #main-slider .next {
+      right: 10px
+    }
+
+    #main-slider .carousel-indicators li {
+      width: 14px;
+      height: 14px;
+      margin: 0 15px 0 0;
+      position: relative
+    }
+
+    #main-slider .carousel-indicators li:after {
+      position: absolute;
+      content: "";
+      width: 18px;
+      height: 18px;
+      border-radius: 100%;
+      border: 1px solid #c3dff4;
+      left: -3px;
+      top: -3px
+    }
+
+    #main-slider .carousel-indicators .active {
+      width: 14px;
+      height: 14px;
+      background-color: #fff;
+      margin: 0 15px 0 0;
+      border: 1px solid #3498db;
+      position: relative
+    }
+
+    #main-slider .carousel-indicators .active:after {
+      position: absolute;
+      content: "";
+      width: 18px;
+      height: 18px;
+      border-radius: 100%;
+      background: #fff;
+      border: 1px solid #3498db;
+      left: -3px;
+      top: -3px
+    }
+
+    .carousel-inner>.item>img,
+    .carousel-inner>.item>a>img {
+      width: 85%;
+      margin: auto
+    }
+
+    #facility {
+      background: #f2f2f2;
+      padding-bottom: 40px
+    }
+
+    #inner-page {
+      padding-bottom: 60px;
+      background: url(../images/background.jpg)repeat-x scroll center top;
+    }
+
+    .color-border {
+      background: url(../images/color_border.jpg) repeat-x scroll center top;
+      width: 100%;
+      float: left;
+      display: block;
+      height: 5px
+    }
+
+    .facility {
+      padding: 0
+    }
+
+    .facility-wrap {
+      margin-bottom: 65px;
+      overflow: hidden;
+      text-align: center
+    }
+
+    .facility-wrap h2 {
+      margin-top: 10px
+    }
+
+    .facility-wrap .pull-left {
+      margin-right: 25px
+    }
+
+    .facility-wrap i {
+      font-size: 55px;
+      height: 110px;
+      width: 110px;
+      margin: 3px;
+      border-radius: 100%;
+      line-height: 110px;
+      text-align: center;
+      background: #ddd;
+      color: #3498db
+    }
+
+    #recent-works .col-xs-12.col-sm-4.col-md-4 {
+      padding: 0
+    }
+
+    #recent-works {
+      padding-bottom: 70px
+    }
+
+    .recent-work-wrap {
+      position: relative
+    }
+
+    .recent-work-wrap img {
+      width: 100%
+    }
+
+    .recent-work-wrap .recent-work-inner {
+      top: 0;
+      background: transparent;
+      opacity: 1;
+      width: 100%;
+      border-radius: 0;
+      margin-bottom: 0;
+      text-align: center
+    }
+
+    .recent-work-wrap .recent-work-inner h3 {
+      margin: 10px 0
+    }
+
+    .recent-work-wrap .recent-work-inner h3 a {
+      font-size: 24px;
+      color: #fff
+    }
+
+    .recent-work-wrap .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      border-radius: 0;
+      background: #3498db;
+      color: #fff;
+      vertical-align: middle;
+      -webkit-transition: opacity 500ms;
+      -moz-transition: opacity 500ms;
+      -o-transition: opacity 500ms;
+      transition: opacity 500ms;
+      padding: 30px
+    }
+
+    .recent-work-wrap .overlay .preview {
+      bottom: 0;
+      display: inline-block;
+      height: 35px;
+      line-height: 35px;
+      border-radius: 0;
+      background: transparent;
+      text-align: center;
+      color: #fff
+    }
+
+    .recent-work-wrap:hover .overlay {
+      opacity: .9
+    }
+
+    .testimonials blockquote {
+      position: relative;
+      background: #fff;
+      min-height: 120px;
+      margin-top: 20px;
+      margin-bottom: 100px;
+      border: 1px solid #ecedf1;
+      text-align: center
+    }
+
+    .testimonials blockquote:before {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      margin-left: -10px;
+      border-top: 10px solid #ecedf1;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent
+    }
+
+    .testimonials blockquote:after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      margin-left: -9px;
+      border-top: 9px solid #fff;
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent
+    }
+
+    .testimonials blockquote img {
+      height: 70px;
+      width: 70px;
+      position: absolute;
+      border: 1px solid #ecedf1;
+      background: #fff;
+      bottom: -90px;
+      left: 50%;
+      margin-left: -34px
+    }
+
+    blockquote p.clients-words {
+      font-size: 14px
+    }
+
+    span.clients-name {
+      font-size: 14px;
+      position: absolute;
+      bottom: 10px;
+      right: 10px
+    }
+
+    #testimonials {
+      background: #000 url(../images/testimonials/bg_testimonials.jpg);
+      background-size: cover
+    }
+
+    #testimonials .clients-name {
+      color: #3498db
+    }
+
+    #testimonials .lead,
+    #testimonials h2 {
+      color: #fff
+    }
+
+    #middle {
+      background: #f2f2f2
+    }
+
+    #middle h3 {
+      color: #4e4e4e;
+      font-size: 18px;
+      font-weight: 600
+    }
+
+    #middle i {
+      color: #52a7e0
+    }
+
+    #middle .media-body h3 {
+      color: #4e4e4e;
+      font-size: 18px
+    }
+
+    .accordion h2 {
+      margin-bottom: 25px
+    }
+
+    .panel-default {
+      border-color: transparent
+    }
+
+    .panel-default>.panel-heading,
+    .panel {
+      background-color: #ebebeb;
+      border: 0 none;
+      box-shadow: none;
+      margin-bottom: 60px;
+      border-bottom: 1px solid #d9d9d9
+    }
+
+    .panel-default>.panel-heading+.panel-collapse .panel-body {
+      background: #f1f1f1;
+      color: #4e4e4e
+    }
+
+    .panel-body {
+      padding: 1px;
+      margin-bottom: 60px;
+      border-bottom: 1px solid #d9d9d9
+    }
+
+    .panel-group .panel+.panel {
+      margin-top: 0;
+      border-top: 1px solid #d9d9d9
+    }
+
+    .panel-group .panel {
+      border-radius: 8px
+    }
+
+    .panel-heading {
+      border-radius: 0
+    }
+
+    .panel-title>a {
+      color: #4e4e4e;
+      font-size: 14px
+    }
+
+    .accordion-inner img {
+      border-radius: 4px
+    }
+
+    .accordion-inner h4 {
+      margin-top: 0
+    }
+
+    .panel-heading.active {
+      background: #52a7e0;
+      border-radius: 8px
+    }
+
+    .panel-heading.active .panel-title>a {
+      color: #fff
+    }
+
+    a.accordion-toggle i {
+      width: 45px;
+      line-height: 44px;
+      font-size: 20px;
+      margin-top: -10px;
+      text-align: center;
+      margin-right: -15px;
+      background: #ebebeb;
+      border-radius: 8px
+    }
+
+    .panel-heading.active a.accordion-toggle i {
+      background: #52a7e0;
+      color: #fff
+    }
+
+    .panel-heading.active a.accordion-toggle.collapsed i {
+      background: #52a7e0;
+      color: #fff
+    }
+
+    #partner {
+      background: url(../images/partners/partner_bg.jpg) 50% 50% no-repeat;
+      background-size: cover;
+      text-align: center
+    }
+
+    .partners ul {
+      list-style: none;
+      margin: 0;
+      padding: 0
+    }
+
+    .partners ul li {
+      display: inline-block;
+      float: left;
+      width: 20%
+    }
+
+    #get-started {
+      padding: 50px 0 60px;
+      text-align: center;
+      background: #f2f2f2
+    }
+
+    .about-us {
+      padding-bottom: 50px
+    }
+
+    .about-us h3 {
+      color: #4e4e4e;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 30px
+    }
+
+    .about-us p {
+      color: #4e4e4e
+    }
+
+    .about-us img {
+      margin-top: 2px
+    }
+
+    .portfolio-items,
+    .portfolio-filter {
+      list-style: none outside none;
+      margin: 0 0 40px;
+      padding: 0
+    }
+
+    .portfolio-filter>li {
+      display: inline-block
+    }
+
+    .portfolio-filter>li a {
+      background: none repeat scroll 0 0 #fff;
+      font-size: 14px;
+      font-weight: 400;
+      margin-right: 20px;
+      text-transform: uppercase;
+      transition: all .9s ease 0;
+      -moz-transition: all .9s ease 0;
+      -webkit-transition: all .9s ease 0;
+      -o-transition: all .9s ease 0;
+      border: 1px solid #f2f2f2;
+      outline: 0;
+      border-radius: 3px
+    }
+
+    .portfolio-filter>li a:hover,
+    .portfolio-filter>li a.active {
+      color: #fff;
+      background: #3498db;
+      border: 1px solid #3498db;
+      box-shadow: none;
+      -webkit-box-shadow: none
+    }
+
+    .portfolio-items>li {
+      float: left;
+      padding: 0;
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box
+    }
+
+    .portfolio-item {
+      margin: 0;
+      padding: 0
+    }
+
+    .isotope-item {
+      z-index: 2
+    }
+
+    .isotope-hidden.isotope-item {
+      pointer-events: none;
+      z-index: 1
+    }
+
+    .isotope,
+    .isotope .isotope-item {
+      -webkit-transition-duration: .8s;
+      -moz-transition-duration: .8s;
+      -ms-transition-duration: .8s;
+      -o-transition-duration: .8s;
+      transition-duration: .8s
+    }
+
+    .isotope {
+      -webkit-transition-property: height, width;
+      -moz-transition-property: height, width;
+      -ms-transition-property: height, width;
+      -o-transition-property: height, width;
+      transition-property: height, width
+    }
+
+    .isotope .isotope-item {
+      -webkit-transition-property: -webkit-transform, opacity;
+      -moz-transition-property: -moz-transform, opacity;
+      -ms-transition-property: -ms-transform, opacity;
+      -o-transition-property: -o-transform, opacity;
+      transition-property: transform, opacity
+    }
+
+    .isotope.no-transition,
+    .isotope.no-transition .isotope-item,
+    .isotope .isotope-item.no-transition {
+      -webkit-transition-duration: 0;
+      -moz-transition-duration: 0;
+      -ms-transition-duration: 0;
+      -o-transition-duration: 0;
+      transition-duration: 0
+    }
+
+    .isotope.infinite-scrolling {
+      -webkit-transition: none;
+      -moz-transition: none;
+      -ms-transition: none;
+      -o-transition: none;
+      transition: none
+    }
+
+    #inner-page .panel-primary>.panel-heading {
+      color: #fff;
+      background-color: #65b0e2;
+      border-color: #65b0e2;
+      padding: 20px 0
+    }
+
+    #inner-page .panel-info>.panel-heading {
+      color: #fff;
+      background-color: #e4907e;
+      border-color: #e4907e;
+      padding: 20px 0
+    }
+
+    #inner-page .panel-success>.panel-heading {
+      color: #fff;
+      background-color: #8ac66b;
+      border-color: #8ac66b;
+      padding: 20px 0
+    }
+
+    #inner-page .panel-title {
+      font-size: 18px
+    }
+
+    #inner-page .panel {
+      text-align: left
+    }
+
+    #inner-page .panel:hover {
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4), 0 1px 5px rgba(130, 130, 130, 0.35)
+    }
+
+    #inner-page .panel-body {
+      padding: 0;
+      text-align: center
+    }
+
+    .the-price {
+      background-color: rgba(220, 220, 220, .17);
+      box-shadow: 0 1px 0 #dcdcdc, inset 0 1px 0 #fff;
+      padding: 20px;
+      margin: 0
+    }
+
+    .the-price h1 {
+      font-weight: 500;
+      line-height: 1em;
+      padding: 20px 0;
+      margin: 0
+    }
+
+    .contact_top {
+      margin-right: 0;
+      margin-left: 0;
+      margin-bottom: 2em;
+      border-bottom: 2px solid #fff
+    }
+
+    .contact_details {
+      padding: 20px;
+      text-align: center
+    }
+
+    .contact_details i {
+      color: #3498db
+    }
+
+    .contact_details p {
+      padding: 20px 0
+    }
+
+    .form-group .form-control {
+      padding: 7px 12px;
+      border-color: #f2f2f2;
+      box-shadow: none
+    }
+
+    textarea#message {
+      resize: none;
+      padding: 10px
+    }
+
+    #footer {
+      padding-top: 60px;
+      padding-bottom: 40px;
+      color: #aaa;
+      background: #274f75
+    }
+
+    #footer a {
+      color: #eee
+    }
+
+    #footer a:hover {
+      color: #3276b1
+    }
+
+    #footer ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      float: right
+    }
+
+    #footer ul>li {
+      display: inline-block;
+      margin-left: 0
+    }
+
+    .follow-us {
+      margin-top: -5px;
+      text-align: center
+    }
+
+    .social-icon {
+      padding-top: 6px;
+      font-size: 16px;
+      text-align: center;
+      width: 32px;
+      height: 32px;
+      border: 2px solid #999;
+      border-radius: 50%;
+      color: #999;
+      margin: 5px
+    }
+
+    a.social-icon:hover,
+    a.social-icon:active,
+    a.social-icon:focus {
+      text-decoration: none;
+      color: #3276b1;
+      border-color: #3276b1
+    }
+
+    .test-img {
+      border: 1px solid #ccc;
+      padding: 10px;
+      float: left
+    }
+
+    .about-us img {
+      border: 1px solid #c80708;
+      margin-right: 15px;
+      margin-top: 8px;
+      padding: 9px
+    }
+
+    .welcome img {
+      border: 1px solid #c80708;
+      margin-top: 5px;
+      margin-right: 20px;
+      padding: 9px
+    }
+
+    .home-section1 {
+      margin-bottom: 10px;
+      text-align: left;
+      background-color: #e7f7fa;
+      padding: 2px;
+      height: 150px;
+      overflow-y: scroll;
+      overflow-x: hidden
+    }
+
+    .home-section {
+      margin-top: 1px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      text-align: left;
+      background-color: #e7f7fa;
+      padding: 12px;
+      height: 205px
+    }
+
+    .home-section h2 {
+      margin-top: 3px;
+      background-color: #cdf0f7;
+      padding: 8px
+    }
+
+    .home-section .pull-left {
+      margin-right: 5px
+    }
+
+    .home-section i {
+      font-size: 55px;
+      height: 110px;
+      width: 100%;
+      margin: 3px;
+      border-radius: 100%;
+      line-height: 110px;
+      text-align: center;
+      background: #ddd;
+      color: #3498db
+    }
+
+    .phone {
+      margin-top: 30px
+    }
+
+    .carousel-control .glyphicon-chevron-left,
+    .carousel-control .icon-prev {
+      margin-left: -40px !important
+    }
+
+    .carousel-control .glyphicon-chevron-right,
+    .carousel-control .icon-next {
+      margin-right: -40px !important
+    }
+
+    @media(min-width: 768px) and (max-width:991px) {
+      .navbar-logo {
+        font-size: 24px;
+        font-weight: 700;
+        margin-top: 31px;
+        margin-left: 90px
+      }
+
+      .phone {
+        margin-top: 20px
+      }
+    }
+
+    @media(min-width: 320px) and (max-width:767px) {
+      .phone {
+        margin-top: 1px;
+        float: right
+      }
+    }
+
+    #header_setting {
+      margin-bottom: 40px !important
+    }
+
+    .class-hd {
+      padding: 1rem;
+      font-weight: bold;
+    }
+
+    .input-group {
+      position: relative;
+      display: table;
+      border-collapse: separate;
+    }
+
+    .search-field {
+      padding: 5px 15px;
+      min-width: 29%;
+      font-size: 1rem;
+      line-height: 1.5em;
+      color: #373D41;
+      background-color: #FFF;
+      background-clip: padding-box;
+      border: 1px solid #C5C5C7;
+      border-radius: 6px;
+      -webkit-box-shadow: none;
+      box-shadow: none;
+      flex-grow: 1;
+    }
+
+    .search-submit {
+      background-color: #1a1a1a;
+      color: #ffffff;
+      font-weight: 700;
+      text-decoration: none;
+      white-space: normal;
+      -webkit-transition: none;
+      transition: none;
+      cursor: pointer;
+      outline: 0;
+      padding: 14px 24px 13px;
+      font-size: 1.4rem;
+      line-height: 1.5rem;
+      border-radius: 6px;
+      border-width: 0;
+      margin: 10px 14px;
+    }
+
+    .search-form .input-group {
+      text-align: center;
+    }
+
+    /* .search-form .input-group {
+            text-align: center;
+            width: 28%;
+        } */
+
+    .search-form {
+      margin: 30px 0;
+    }
+
+    .otp-field {
+      padding: 10px 15px;
+      font-size: 1.3rem;
+      line-height: 1em;
+      color: #373D41;
+      background-color: #FFF;
+      background-clip: padding-box;
+      border: 1px solid #C5C5C7;
+      border-radius: 6px;
+      -webkit-box-shadow: none;
+      box-shadow: none;
+      flex-grow: 1;
+      width: 42px;
+      height: 42px;
+      margin-right: 8px;
+    }
+
+    .spinner {
+      margin: 100px auto;
+      width: 40px;
+      height: 40px;
+      position: relative;
+      text-align: center;
+      animation: rotate 2s infinite linear;
+    }
+
+    .dot1,
+    .dot2 {
+      width: 60%;
+      height: 60%;
+      display: inline-block;
+      position: absolute;
+      top: 0;
+      background-color: #333;
+      border-radius: 100%;
+      animation: bounce 2s infinite ease-in-out;
+    }
+
+    .dot2 {
+      top: auto;
+      bottom: 0;
+      animation-delay: -1s;
+    }
+
+    @keyframes rotate {
+
+      0%,
+      100% {
+        transform: rotate(0);
+      }
+
+      50% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes bounce {
+
+      0%,
+      100% {
+        transform: scale(0);
+      }
+
+      50% {
+        transform: scale(1);
+      }
+    }
+
+    .hidden,
+    .visible-lg,
+    .visible-lg-block,
+    .visible-lg-inline,
+    .visible-lg-inline-block,
+    .visible-md,
+    .visible-md-block,
+    .visible-md-inline,
+    .visible-md-inline-block,
+    .visible-sm,
+    .visible-sm-block,
+    .visible-sm-inline,
+    .visible-sm-inline-block,
+    .visible-xs,
+    .visible-xs-block,
+    .visible-xs-inline,
+    .visible-xs-inline-block {
+      display: none !important;
+    }
+
+    .input-group>:not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
+    margin-left: calc(var(--bs-border-width) * -1);
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px; 
+  }
+  </style>
+</head>
+
+<body>
+  <!-- <div id="form-container">
+        Form to get OTP
+        <form id="get-otp-form" method="POST" action="{% url 'send_otp_verification' %}">
+            {% csrf_token %}
+            <input type="text" name="admission_number" placeholder="Enter Admission Number" required>
+            <input type="text" name="mobile_number" placeholder="Enter Mobile Number" required>
+            <button type="submit">Get OTP</button>
+        </form>
+
+        Form to verify OTP
+        <form id="verify-otp-form" method="POST" style="display: none;">
+            {% csrf_token %}
+            <input type="text" id="otp-1" maxlength="1" required>
+            <input type="text" id="otp-2" maxlength="1" required>
+            <input type="text" id="otp-3" maxlength="1" required>
+            <input type="text" id="otp-4" maxlength="1" required>
+            <button type="submit">Verify OTP</button>
+        </form>
+    </div> -->
+  <div id="form-container">
+    <section id="inner-page">
+      <div class="container" style="background-color:#fff;">
+        <div class="center">
+          <h2>Pay Fees</h2>
+          <div class="line"></div>
+        </div>
+        <form class="search-form row center" id="get-otp-form" method="POST" action="{% url 'send_otp_verification' %}">
+          {% csrf_token %}
+          <h4>Enter Admission Number & Mobile Number <br>
+            <span style="font-size: 12px; font-weight: normal;">(should be in school records)</span>
+          </h4>
+          <div class="input-group" >
+            <label class="col-md-12">
+              <input type="search" class="search-field" name="admission_number" placeholder="Enter Admission Number"
+                id="admission-number" required>
+            </label>
+            <label class="col-md-12 mt-3">
+              <input type="search" class="search-field" name="mobile_number" placeholder="Enter Mobile Number"
+                id="mobile-number" required>
+            </label>
+            <!-- <button type="submit" class="rstore-domain-search-button search-submit btn btn-primary" value="Get OTP" style="
+            width: 152px;
+            margin-left: 29rem;
+        ">Get
+              OTP</button> -->
+              <button type="submit" class="rstore-domain-search-button search-submit btn btn-primary" value="Get OTP" >Get
+              OTP</button>
+          </div>
+        </form>
+        <form class="search-form verify-otp row center" id="verify-otp-form" style="display: none;">
+          <h4>Enter OTP <br>
+            <span style="font-size: 12px; font-weight: normal;">(Check your Mobile or Email)</span>
+          </h4>
+          <div class="input-group" style="display: inline-flex;width: auto;">
+            <input type="text" class="otp-field col-md-3" placeholder="" id="otp-1" maxlength="1">
+            <input type="text" class="otp-field col-md-3" placeholder="" id="otp-2" maxlength="1">
+            <input type="text" class="otp-field col-md-3" placeholder="" id="otp-3" maxlength="1">
+            <input type="text" class="otp-field col-md-3" placeholder="" id="otp-4" maxlength="1">
+          </div>
+          <div style="margin-top: 5px;">
+            <p style="margin: 0px;">Didn't get a code? <a href="javascript:void(0);" class="resend-link"
+                id="resendLink">Click to resend</a></p>
+          </div>
+          <div>
+            <input type="submit" class="rstore-domain-search-button search-submit search-submit-otp btn btn-primary"
+              value="VERIFY">
+          </div>
+        </form>
+
+        <div id="student_fee_wrapper">
+          <div class="row">
+            <div class="col-xs-6 col-md-6 col-lg-6" style="text-align: start; margin-bottom:1.5rem;">
+              <h2>Student Information</h2>
+            </div>
+            <div class="col-xs-6 col-md-6 col-lg-6" style="text-align: end; margin-bottom:1.5rem;">
+              <button type="button" class="btn btn-primary btn-xs" id="toggleReceipts" style="display: none;"><i
+                  class="fa fa-list-alt"></i> View Fee Receipts</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-xs-12 col-md-12" style="text-align: center;">
+              <div class="panel panel-info" style="margin-bottom: 20px;">
+                <div class="table-responsive">
+                  <table class="table" id="student_details">
+                    <tbody>
+                    </tbody>
+                  </table>
+                </div>
+                <hr style="border-top: 1px solid #000;" />
+                <!-- Placeholder for the dummy table -->
+                <div id="receiptsTable" class="table-responsive" style="display: none;">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th style="font-size: 14px; text-align: start; padding-left: 40px;">Receipt No</th>
+                        <th style="font-size: 14px; text-align: start;">Paid for Month</th>
+                        <th style="font-size: 14px; text-align: start;">Fee Paid</th>
+                        <th style="font-size: 14px; text-align: start;">Paid On</th>
+                        <!-- <th style="font-size: 14px; text-align: center;">Action</th> -->
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Dummy data rows will be added here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="col-xs-12 col-md-12" style="text-align: center;">
+              <div class="panel panel-info" style="margin-bottom: 20px;">
+                <div class="table-responsive">
+                  <table class="table" id="last_payment_details">
+                    <tbody>
+                      <!-- Payment details will be dynamically added here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="col-xs-12 col-md-12" style="text-align: center;">
+              <div class="panel panel-info" style="margin-bottom: 20px;">
+                <div class="table-responsive">
+                  <table class="table" id="outstanding_payment_details">
+                    <tbody>
+                      <!-- Outstanding payment details will be dynamically added here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="col-xs-12 col-md-12" style="text-align: center;">
+              <div class="panel panel-info" style="margin-bottom: 20px;">
+                <div class="table-responsive">
+                  <table class="table" id="current_payment_details">
+                    <tbody>
+                      <!-- Payment details will be dynamically added here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="loader" class="text-center hidden">
+                <div class="spinner">
+                  <div class="dot1"></div>
+                  <div class="dot2"></div>
+                </div>
+                <p class="mt-2">Pease wait...</p>
+                <p class="mt-2">Fetching payment URL...</p>
+              </div>
+              <button class="btn btn-primary hidden" id="make_payment_btn" >PROCEED TO PAYMENT</button>
+
+            </div>
+          </div>
+        </div>
+      </div>
+      <!--/.container-->
+    </section>
+  </div>
+
+  <script>
+
+    $(document).ready(function () {
+      // getStudentFeeDetails()
+      console.log('jqueriywoke')
+      var selectedIndexes = [];
+      var payment_amount = 0;
+      var prevOutstandingAmount = 0;
+      var admission_no = "";
+      var student_id = "";
+      var current_session = "";
+      var outstandingPaymentDetails = null;
+      var currentPaymentDetailsData = [];
+      var selectedQuatersData = [];
+      var yearlyAggregatedDetails = [];
+      $("#student_fee_wrapper").hide();
+      var receivedOTP = "";
+
+      // Function to show the second form and send the OTP request
+      document.getElementById('student_fee_wrapper').style.display = 'none';
+      document.getElementById('get-otp-form').onsubmit = function (event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+
+        fetch("{% url 'send_otp_verification' %}", {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+          }
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              document.getElementById('get-otp-form').style.display = 'none';
+              document.getElementById('verify-otp-form').style.display = 'block';
+              receivedOTP = data.data.otp;
+              console.log('receivedOTP', receivedOTP)
+              alert(data.message);
+            } else {
+              alert(data.message);
+            }
+          });
+      };
+
+      // Function to show the second form
+      function showVerifyOTPForm() {
+        $("#get-otp-form").hide();
+        $("#verify-otp-form").show();
+      }
+
+      // Function to verify OTP
+      function verifyOTP(enteredOTP) {
+        console.log(enteredOTP);
+        console.log('receivedOTP verifyOTP', receivedOTP)
+        if (enteredOTP == receivedOTP) {
+          alert("OTP verified successfully!");
+          getStudentFeeDetails();
+          $("#verify-otp-form").hide();
+        } else {
+          alert("Invalid OTP. Please try again.");
+        }
+      }
+
+
+      $("#verify-otp-form").submit(function (event) {
+        event.preventDefault();
+
+        var otp = $("#otp-1").val() + $("#otp-2").val() + $("#otp-3").val() + $("#otp-4").val();
+        verifyOTP(otp);
+      });
+
+
+      // Function to automatically move cursor to the next input box
+      function moveToNextInput(currentInput, nextInput) {
+        if (currentInput.value.length === currentInput.maxLength) {
+          nextInput.focus();
+        }
+      }
+
+      // Get references to all OTP input fields
+      const otpFields = document.querySelectorAll(".otp-field");
+
+      // Attach event listeners to each OTP input field
+      otpFields.forEach((currentInput, index) => {
+        // Get the next OTP input field (if it exists)
+        const nextInput = otpFields[index + 1];
+
+        currentInput.addEventListener("input", () => {
+          moveToNextInput(currentInput, nextInput);
+        });
+
+        // Prevent the user from moving backward using the keyboard
+        currentInput.addEventListener("keydown", (e) => {
+          if (e.key === "Backspace" && currentInput.value.length === 0 && index > 0) {
+            otpFields[index - 1].focus();
+            e.preventDefault();
+          }
+        });
+      });
+
+      function getStudentFeeDetails() {
+        //e.preventDefault();
+        // Clear existing tables and reset values
+        $("#student_details tbody").empty();
+        $("#last_payment_details tbody").empty();
+        $("#outstanding_payment_details tbody").empty();
+        $("#current_payment_details tbody").empty();
+        $('#loader').addClass('hidden');
+        $('#make_payment_btn').addClass('hidden');
+        payment_amount = 0;
+        prevOutstandingAmount = 0;
+        admission_no = "";
+        mobile_no = "";
+        student_id = "";
+        current_session = "";
+
+        var searchValue = $(".search-field").val();
+        // var searchValue = 3;
+        //var searchValue = 403623;
+        $.ajax({
+          // url: "/feemanagement/index.php?r=studentFees/StudentPaymentDetails",
+          url: "/student-payment-details/",
+          method: "GET",
+          data: {
+            admission: searchValue
+          },
+          success: function (response) {
+            $("#student_fee_wrapper").show(); // show main div
+            if (response.success) {
+              // Prevent fee from portal for concession cases
+              if (response.data.studentDetails.length > 0 && response.data.studentDetails[0].concession_id && response.data.studentDetails[0].concession_id !== null) {
+                alert('Please visit the school fee counter for fee payment.  Thank you');
+                return false;
+              }
+              if (response.data.contactAdmin) {
+                alert('Please visit the school fee counter for fee payment. Thank you');
+                return false;
+              }
+              // Update student details
+              if (response.data.studentDetails.length > 0) {
+                $("#toggleReceipts").show();
+
+                // Update student details
+                var studentDetails = response.data.studentDetails[0];
+                //$(".student-admission-no").text(studentDetails.addmission_no);
+                //$(".student-name").text(studentDetails.student_name);
+                //$(".father-name").text(studentDetails.father_name);
+                //$(".student-class-section").text(`Class ${studentDetails.class_no} - ${studentDetails.section}`);
+                //$(".student-year").text(studentDetails.year);
+                student_id = studentDetails.student_id;
+                admission_no = studentDetails.addmission_no;
+                current_session = studentDetails.session;
+                var studentDetailsHTML = `
+							<tr>
+								<td style="padding-left: 40px; font-weight: bold;">Admission No:</td>
+								<td>${studentDetails.addmission_no}</td>
+								<td style="padding-left: 40px; font-weight: bold;">Student Name:</td>
+								<td>${studentDetails.student_name}</td>
+							</tr>
+							<tr>
+								<td style="padding-left: 40px; font-weight: bold;">Father Name:</td>
+								<td>${studentDetails.father_name}</td>
+								<td style="padding-left: 40px; font-weight: bold;">Class</td>
+								<td>${studentDetails.class_no} - ${studentDetails.section}</td>
+							</tr>
+						`;
+
+                // Append the student details HTML to the table body
+                $("#student_details tbody").html(studentDetailsHTML);
+
+                // Populate previous fee details
+                if (response.data.lastPaymentDetails && response.data.lastPaymentDetails.amount_paid) {
+                  $("#last_payment_details tbody").html(`
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold; text-align: center; color: #c80708;" colspan="4">Last Fees Paid</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Fees for Months:</td>
+					  <td>${response.data.lastPaymentDetails.fees_for_months}</td>
+					  <td style="padding-left: 40px; font-weight: bold;">Date Payment:</td>
+					  <td>${response.data.lastPaymentDetails.date_payment}</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Amount Paid:</td>
+					  <td>Rs. ${response.data.lastPaymentDetails.amount_paid}</td>
+					  <td style="padding-left: 40px; font-weight: bold;">Fees Period Month:</td>
+					  <td>${response.data.lastPaymentDetails.fees_period_month}</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Student Class:</td>
+					  <td>${response.data.lastPaymentDetails.student_class} - ${response.data.lastPaymentDetails.student_section}</td>
+					  <td style="padding-left: 40px; font-weight: bold;">Class Year:</td>
+					  <td>${response.data.lastPaymentDetails.year}</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Late Fee:</td>
+					  <td>Rs. ${response.data.lastPaymentDetails.late_fee}</td>
+					  <td style="padding-left: 40px; font-weight: bold;">Remarks:</td>
+					  <td>${response.data.lastPaymentDetails.remarks}</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Outstanding Amount</td>
+					  <td>Rs. ${response.data.lastPaymentDetails.prev_pending_amount}</td>
+					  <td style="padding-left: 40px; font-weight: bold;"></td>
+					  <td></td>
+					</tr>
+				  `);
+                } else {
+                  // Display message if no previous fee details are available
+                  $("#last_payment_details tbody").html('<tr><td colspan="4" class="text-center">No previous fee details available.</td></tr>');
+                }
+
+
+                // Populate previous fee details
+                if (response.data.lastOustandingPaymentDetails && response.data.lastOustandingPaymentDetails.total_fee) {
+                  $("#outstanding_payment_details tbody").html(`
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold; text-align: center; color: #c80708;" colspan="4" clas="text-danger">Outstanding Fee Due</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Fees for Months:</td>
+					  <td>${response.data.lastOustandingPaymentDetails.fees_for_months}</td>
+					  <td style="padding-left: 40px; font-weight: bold;"></td>
+					  <td></td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Outstanding Amount</td>
+					  <td>Rs. ${response.data.lastOustandingPaymentDetails.total_fee - response.data.lastOustandingPaymentDetails.late_fee}</td>
+					  <td style="padding-left: 40px; font-weight: bold;">Late Fee Applied:</td>
+					  <td>Rs. ${response.data.lastOustandingPaymentDetails.late_fee}</td>
+					</tr>
+					<tr>
+					<td style="padding-left: 40px; font-weight: bold; color:red;">Total:</td>
+					<td style="color:red;">Rs. ${response.data.lastOustandingPaymentDetails.total_fee}</td>
+				  </tr>
+				  `);
+                  prevOutstandingAmount += response.data.lastOustandingPaymentDetails.total_fee;
+                  outstandingPaymentDetails = response.data.lastOustandingPaymentDetails;
+                } else {
+                  // Display message if no previous fee details are available
+                  //$("#outstanding_payment_details tbody").html('<tr><td colspan="4" class="text-center">No previous fee details available.</td></tr>');
+                }
+
+
+                // Update current payment details
+                var currentPaymentDetails = response.data.currentPaymentDetails;
+                currentPaymentDetailsData = currentPaymentDetails;
+                selectedQuatersData = currentPaymentDetails;
+                var paymentDetailsHTML = '';
+                paymentDetailsHTML += currentPaymentDetails.length > 0 ? `<tr>
+					<td style="padding-left: 40px; font-weight: bold; text-align: center; color: #c80708;" colspan="4">Current Fees Due</td>
+				  </tr>` : ``;
+                currentPaymentDetails.forEach(function (payment, index) {
+                  paymentDetailsHTML += `
+				  <tr>
+						  <td style="padding-left: 40px; font-weight: bold;">
+							<input type="checkbox" class="quarter-checkbox" data-index="${index}" checked> Fees for Months:
+						  </td>
+						  <td>${payment.fees_for_months}</td>
+						  <td style="padding-left: 40px; font-weight: bold;"></td>
+				  </tr>
+				  <tr>
+						  <td style="padding-left: 40px; font-weight: bold;"> Class:</td>
+						  <td>${payment.class_no} - ${payment.section}</td>
+				  <td style="padding-left: 40px; font-weight: bold;">Year:</td>
+						  <td>${payment.year}</td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Annual Fees:</td>
+						  <td>Rs. ${payment.annual_fees}</td>
+						  <td style="padding-left: 40px; font-weight: bold;">Tuition Fees:</td>
+						  <td>Rs. ${payment.tuition_fees}</td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Funds Fees:</td>
+						  <td>Rs. ${payment.funds_fees}</td>
+						  <td style="padding-left: 40px; font-weight: bold;">Sports Fees:</td>
+						  <td>Rs. ${payment.sports_fees}</td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Activity Fees:</td>
+						  <td>Rs. ${payment.activity_fees}</td>
+						  <td style="padding-left: 40px; font-weight: bold;">Admission Fees:</td>
+						  <td>Rs. ${payment.admission_fees}</td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Dayboarding Fees:</td>
+						  <td>Rs. ${payment.dayboarding_fees}</td>
+						  <td style="padding-left: 40px; font-weight: bold;">Bus Fees:</td>
+						  <td>${payment.bus_fees ? 'Rs. ' + payment.bus_fees : 'N/A'}</td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Concession Type:</td>
+						  <td>${payment.concession_type ? payment.concession_type : 'N/A'}</td>
+						  <td style="padding-left: 40px; font-weight: bold;">Concession Applied:</td>
+						  <td>
+							${payment?.concession_applied > 0
+                      ? 'Rs. ' + payment.concession_applied
+                      : 'N/A'}
+						  </td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Late Fees:</td>
+						  <td>Rs. ${payment.late_fee}</td>
+						   <td style="padding-left: 40px; font-weight: bold;">Miscellaneous Fees:</td>
+						   <td>Rs. ${payment.miscellaneous_fees}</td>
+						</tr>
+				  <tr>
+					<td style="padding-left: 40px; font-weight: bold; color:red;">Total:</td>
+					<td style="color:red;">Rs. ${payment.total_fee}</td>
+				  </tr>
+				  <tr>
+					<td colspan="4">
+					  <hr style="border-top: 2px dashed #ccc;">
+					</td>
+				  </tr>
+				`;
+
+                });
+                paymentDetailsHTML += response.data.netFeeAmountPayable ?
+                  `<tr style="background: #E7F7FA">
+				  <td style="padding-left: 40px;font-weight: bold;color: #c80708;font-size: 16px;">Total Fees ${prevOutstandingAmount && prevOutstandingAmount > 0 ? "+ Outstanding" : ""} Amount:</td>
+				  <td style="font-weight: bold;color: #c80708;font-size: 16px; text-align: center;" colspan=3>Rs. <span class="total_fee_amount">${response.data.netFeeAmountPayable}</span></td>
+				 </tr>` :
+                  '';
+                $("#current_payment_details tbody").html(paymentDetailsHTML);
+                payment_amount = response.data.netFeeAmountPayable ? response.data.netFeeAmountPayable : 0;
+                yearlyAggregatedDetails = response.data.yearlyAggregatedDetails ? response.data.yearlyAggregatedDetails : [];
+                if (response.data.netFeeAmountPayable && response.data.netFeeAmountPayable != "" && response.data.netFeeAmountPayable != 0) {
+                  $('#make_payment_btn').removeClass('hidden');
+                } else {
+                  $('#make_payment_btn').addClass('hidden');
+                }
+              } else {
+                // Display a message when no student details are found
+                $("#student_details tbody").html('<tr><td colspan="4" class="text-center">No student details found.</td></tr>');
+                $("#toggleReceipts").hide();
+              }
+            } else {
+              $("#student_details tbody").html(`<tr><td colspan="4" class="text-center">${response.message}</td></tr>`);
+            }
+          },
+          error: function (jqXHR, textStatus, errorThrown) {
+            console.error("Error:", errorThrown);
+          }
+        });
+      };
+
+      // $(document).on("change", ".quarter-checkbox", function () {
+
+      //   var checkboxes = $(".quarter-checkbox");
+      //   var currentIndex = checkboxes.index(this);
+      //   // Toggle the state of the clicked checkbox
+      //   //$(this).prop("checked", !$(this).prop("checked"));
+      //   var selectedIndexesArray = [];
+      //   console.log('currentIndex', currentIndex);
+      //   for (var i = 0; i <= currentIndex; i++) {
+
+      //     if (i == currentIndex) {
+      //       isChecked = $(this).prop("checked");
+      //       if (isChecked) {
+      //         selectedIndexesArray.push(i)
+      //       }
+      //       checkboxes.eq(i).prop("checked", isChecked);
+      //     } else {
+      //       selectedIndexesArray.push(i)
+      //       checkboxes.eq(i).prop("checked", true);
+      //     }
+
+      //   }
+      //   selectedIndexes = selectedIndexesArray;
+      //   for (var i = currentIndex + 1; i < checkboxes.length; i++) {
+      //     checkboxes.eq(i).prop("checked", false);
+      //   }
+      //   console.log('selectedIndexes', selectedIndexes);
+      //   setUpdatedPaymentAmount(selectedIndexes);
+      // });
+      $(document).on("change", ".quarter-checkbox", function () {
+        var checkboxes = $(".quarter-checkbox");
+        var currentIndex = checkboxes.index(this);
+        var selectedIndexesArray = [];
+
+        // Iterate over all checkboxes and add/remove their index to/from the array based on checked state
+        checkboxes.each(function (index) {
+            if ($(this).is(":checked")) {
+                // If the checkbox is checked, add its index to the array
+                if (!selectedIndexesArray.includes(index)) {
+                    selectedIndexesArray.push(index);
+                }
+            } else {
+                // If the checkbox is unchecked, remove its index from the array
+                var removeIndex = selectedIndexesArray.indexOf(index);
+                if (removeIndex !== -1) {
+                    selectedIndexesArray.splice(removeIndex, 1);
+                }
+            }
+        });
+
+        // You can log or use the selectedIndexesArray as needed
+        console.log("Selected indexes: ", selectedIndexesArray);
+        setUpdatedPaymentAmount(selectedIndexesArray);
+    });
+
+
+      function setUpdatedPaymentAmount(selectedIndexes) {
+        var currentPaymentAmount = prevOutstandingAmount;
+        var selectedQuatersArray = [];
+        // Loop through the selectedIndexes and calculate the sum
+        for (var i = 0; i < selectedIndexes.length; i++) {
+          var index = selectedIndexes[i];
+          // Check if the index is within the bounds of the currentPaymentDetailsData
+          if (index >= 0 && index < currentPaymentDetailsData.length) {
+            currentPaymentAmount += currentPaymentDetailsData[index].total_fee;
+            selectedQuatersArray.push(currentPaymentDetailsData[index]);
+          }
+        }
+        payment_amount = currentPaymentAmount; //update global payment amount value
+        $('#current_payment_details .total_fee_amount').html(currentPaymentAmount);
+        selectedQuatersData = selectedQuatersArray;
+
+        if (currentPaymentAmount == 0) {
+          $('#make_payment_btn').addClass('hidden');
+        } else {
+          $('#make_payment_btn').removeClass('hidden');
+        }
+
+      }
+
+      // document.getElementById('make_payment_btn').onclick = function (event) {
+      //   event.preventDefault();
+      //   // var formData = new FormData(this);
+      //   // formData.append(name, value)
+      //   // event.preventDefault();
+      //   console.log('selectedQuatersData',selectedQuatersData);
+      //   if (outstandingPaymentDetails && outstandingPaymentDetails.total_fee) {
+      //     selectedQuatersData.splice(0, 0, outstandingPaymentDetails);
+      //   }
+      //   console.log('selectedQuatersData', JSON.stringify(selectedQuatersData));
+      //   // $(this).prop('disabled', true); // Disable the button
+      //   $('#loader').removeClass('hidden'); // Show the loader
+
+      //   fetch("{% url 'generate_payment_url' %}", {
+      //     method: 'POST',
+      //     body: {
+      //       admission_no: admission_no,
+      //       student_id: student_id,
+      //       amount: payment_amount,
+      //       yearlyAggregatedDetails: JSON.stringify(selectedQuatersData)
+      //     },
+      //     // headers: {
+      //     //   'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+      //     // }
+      //   })
+      //     .then(response => response.json())
+      //     .then(data => {
+      //       if (data.success) {
+      //         if (response.url) {
+      //           window.location.href = response.url; // Redirect to payment URL
+      //         } else {
+      //           alert("Payment URL not found.");
+      //         }
+      //         } else {
+      //         alert("Error: " + response.message);
+      //       }
+      //     });
+      // };
+
+      // $('#make_payment_btn').click(function(event) {
+
+      //     event.preventDefault();
+      //     console.log('selectedQuatersData',selectedQuatersData);
+      //     if (outstandingPaymentDetails && outstandingPaymentDetails.total_fee) {
+      //       selectedQuatersData.splice(0, 0, outstandingPaymentDetails);
+      //     }
+      //     console.log('selectedQuatersData', JSON.stringify(selectedQuatersData));
+      //     $(this).prop('disabled', true); // Disable the button
+      //     $('#loader').removeClass('hidden'); // Show the loader
+      //     $.ajax({
+      //       url: "/generate-payment-url/",
+      //       method: "POST",
+      //       data: {
+      //         admission_no: admission_no,
+      //         student_id: student_id,
+      //         amount: payment_amount,
+      //         yearlyAggregatedDetails: JSON.stringify(selectedQuatersData)
+      //       },
+      //       success: function(response) {
+      //         console.log("response", response);
+      //         if (response.success) {
+      //         if (response.url) {
+      //           window.location.href = response.url; // Redirect to payment URL
+      //         } else {
+      //           alert("Payment URL not found.");
+      //         }
+      //         } else {
+      //         alert("Error: " + response.message);
+      //         }
+      //       },
+      //       error: function(xhr, status, error) {
+      //         console.error("Error:", error);
+      //       },
+      //       complete: function() {
+
+      //       }
+      //     });
+      // });
+
+      $('#make_payment_btn').click(function (event) {
+        event.preventDefault();
+
+        console.log('selectedQuatersData', selectedQuatersData);
+
+        // Check and add outstanding payment details if they exist
+        if (outstandingPaymentDetails && outstandingPaymentDetails.total_fee) {
+          selectedQuatersData.splice(0, 0, outstandingPaymentDetails);
+        }
+
+        console.log('selectedQuatersData', JSON.stringify(selectedQuatersData));
+
+        $(this).prop('disabled', true);  // Disable the button to prevent multiple clicks
+        $('#loader').removeClass('hidden');  // Show the loader
+
+        // Get CSRF token from the meta tag
+        var csrftoken = $('meta[name="csrf-token"]').attr('content');
+
+        $.ajax({
+          url: "/generate-payment-url/",  // Adjust this URL to match your Django view
+          method: "POST",
+          contentType: "application/json",  // Set content type to JSON
+          data: JSON.stringify({
+            admission_no: admission_no,
+            student_id: student_id,
+            amount: payment_amount,
+            yearlyAggregatedDetails: selectedQuatersData
+          }),
+          headers: {
+            "X-CSRFToken": csrftoken  // Include the CSRF token in the request header
+          },
+          success: function (response) {
+            console.log("response", response);
+            if (response.success) {
+              if (response.url) {
+                window.location.href = response.url;  // Redirect to the payment URL
+                // window.open(response.url, '_blank').focus();
+              } else {
+                alert("Payment URL not found.");
+              }
+            } else {
+              alert("Error: " + response.message);
+            }
+          },
+          error: function (xhr, status, error) {
+            console.error("Error:", error);
+          },
+          complete: function () {
+            $('#make_payment_btn').prop('disabled', false);  // Re-enable the button
+            $('#loader').addClass('hidden');  // Hide the loader
+          }
+        });
+      });
+
+
+
+
+      // Function to fetch and populate the receipts table with data from the API
+      function populateReceiptsTableFromAPI() {
+        console.log("prevOutstandingAmount", prevOutstandingAmount)
+        var tbody = $('#receiptsTable tbody');
+        tbody.empty(); // Clear existing rows
+
+        // Make an AJAX request to your API endpoint
+        $.ajax({
+          // url: "/feemanagement/index.php?r=studentFees/GetFeeReceipts", // Replace with your actual API URL
+          url: "/get-fee-receipts/", // Replace with your actual API URL
+          method: 'GET',
+          data: {
+            year: current_session, // Replace with the desired year
+            studentId: student_id, // Replace with the desired student ID
+          },
+          dataType: 'json',
+          success: function (response) {
+            if (response.success) {
+              var data = response.data;
+
+              // Loop through the data and create rows
+              data.forEach(function (item) {
+                var row = $('<tr>');
+                row.append('<td style="font-size: 14px; text-align: start; vertical-align: middle; padding-left: 40px;">' + item.recpNo + '</td>');
+                row.append('<td style="font-size: 14px; text-align: start; vertical-align: middle;">' + item.paidForMonths + '</td>');
+                row.append('<td style="font-size: 14px; text-align: start; vertical-align: middle;">Rs. ' + item.feePaid + '</td>');
+                row.append('<td style="font-size: 14px; text-align: start; vertical-align: middle;">' + item.paidOn + '</td>');
+                row.append('<td style="text-align: center;"><a href="' + item.receipt_url + '" style="margin-top:0;" class="btn btn-primary btn-xs viewReceipt" role="button" target="_blank"><i class="fa fa-download"></i> Download Receipt</a></td>'); // Add a button for viewing receipts
+                tbody.append(row);
+              });
+            } else {
+              // Handle the case where no data is found
+              var noDataMessage = $('<tr><td colspan="5" style="text-align: center;">No data found</td></tr>');
+              tbody.append(noDataMessage);
+            }
+          },
+          error: function (xhr, textStatus, errorThrown) {
+            // Handle any errors that occur during the AJAX request
+            console.error('Error: ' + errorThrown);
+          },
+        });
+      }
+
+      // Toggle the display of the table when the button is clicked
+      $('#toggleReceipts').click(function () {
+        console.log('toggleReceipts')
+        $('#receiptsTable').toggle(); // Toggle the visibility of the table
+        if ($('#receiptsTable').is(':visible')) {
+          // If the table is visible, populate it with data from the API
+          populateReceiptsTableFromAPI();
+        } else {
+          // If the table is hidden, clear its content
+          clearReceiptsTable();
+        }
+      });
+
+      // Function to clear the receipts table
+      function clearReceiptsTable() {
+        var tbody = $('#receiptsTable tbody');
+        tbody.empty(); // Clear existing rows
+      }
+
+
+
+
+
+
+    });
+
+
+    // Handle OTP verification form submission similarly
+  </script>
+</body>
+
+</html>

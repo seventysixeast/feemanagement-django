@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fee Receipt</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .receipt th, .receipt td {
+            /* border: 1px solid #ddd; */
+            padding: 8px;
+            font-size: 14px;
+        }
+        /* th {
+            text-align: left;
+            background-color: #f2f2f2;
+        }
+        .center {
+            text-align: center;
+        } */
+    </style>
+</head>
+<body>
+    <!-- <table>
+        <tr>
+            <td class="center" colspan="2">
+                <h2>Shishu Niketan Public School</h2>
+                <p>Sector – 66, Mohali</p>
+                <h3>FEE RECEIPT</h3>
+                <p>{{ year }}</p>
+            </td>
+        </tr>
+        <tr>
+            <td>Receipt No: {{ receipt_number }}</td>
+            <td>Date: {{ date_payment }}</td>
+        </tr>
+        <tr>
+            <td>Transaction ID: {{ txn_id }}</td>
+            <td>Admission No.: {{ addmission_no }}</td>
+        </tr>
+        <tr>
+            <td>Student Name: {{ student_name }}</td>
+            <td>Father Name: {{ father_name }}</td>
+        </tr>
+        <tr>
+            <td>Mother Name: {{ mother_name }}</td>
+            <td>Class: {{ student_class }}</td>
+        </tr>
+        <tr>
+            <td>Payment Mode: {{ txn_payment_mode }}</td>
+            <td>Paid For Session(Months): {{ months_paid }}</td>
+        </tr>
+        <tr>
+            <th>Total Fees Paid</th>
+            <td>{{ total_amount_paid }}</td>
+        </tr>
+        <tr>
+            <td colspan="2">Remarks: {{ remarks }}</td>
+        </tr>
+    </table>
+    <p class="center">Copyright © shishuniketanmohali.org.in - All Rights Reserved.</p> -->
+    <table style="background: #fff; border: 1px solid #e9e9e9; border-radius: 3px; width: 100%; margin: 0 auto;" cellpadding="10">
+        <tr>
+           <td style="text-align: center;">
+              <span style="font-size: 24px; font-weight: 700;">Shishu Niketan Public School<br> Sector – 66, Mohali</span><br>
+              <span style="font-size: 18px;">FEE RECEIPT</span><br>
+              <span style="font-size: 14px;">{{year}}</span>
+           </td>
+        </tr>
+        <tr>
+           <td>
+              <table style="width: 100%;" class="receipt" cellpadding="0" cellspacing="0">
+                 <tr>
+                    <td style="border-top: #eee 1px solid; width: 50%; padding: 5px 0">Receipt: {{receipt_number}}</td>
+                    <td style="border-top: #eee 1px solid; text-align: right; padding: 5px 0; width: 50%;">{{date_payment}}</td>
+                 </tr>
+                 <tr>
+                    <td style="border-top: #eee 1px solid; width: 50%; padding: 5px 0">Transaction ID: {{student_fee_id}}</td>
+                    <td style="border-top: #eee 1px solid; text-align: right; padding: 5px 0; width: 50%;">&nbsp;</td>
+                 </tr>
+                 <tr>
+                    <td style="border-top: #eee 1px solid; width: 50%; padding: 5px 0">Admission No.:</td>
+                    <td style="border-top: #eee 1px solid; text-align: right; padding: 5px 0; width: 50%;">{{addmission_no}}</td>
+                 </tr>
+                 <tr>
+                    <td style="border-top: #eee 1px solid; width: 50%; padding: 5px 0">Student Name:</td>
+                    <td style="border-top: #eee 1px solid; text-align: right; padding: 5px 0; width: 50%;">{{student_name}}</td>
+                 </tr>
+                 <tr>
+                    <td style="border-top: #eee 1px solid; width: 50%; padding: 5px 0">Father Name:</td>
+                    <td style="border-top: #eee 1px solid; text-align: right; padding: 5px 0; width: 50%;">{{father_name}}</td>
+                 </tr>
+                 <tr>
+                    <td style="border-top: #eee 1px solid; width: 50%; padding: 5px 0">Mother Name:</td>
+                    <td style="border-top: #eee 1px solid; text-align: right; padding: 5px 0; width: 50%;">{{mother_name}}</td>
+                 </tr>
+                 <tr>
+                    <td style="border-top: #eee 1px solid; width: 50%; padding: 5px 0">Class:</td>
+                    <td style="border-top: #eee 1px solid; text-align: right; padding: 5px 0; width: 50%;">{{student_class}}</td>
+                 </tr>
+                 <tr>
+                    <td style="border-top: #eee 1px solid; width: 50%; padding: 5px 0">Payment Mode:</td>
+                    <td style="border-top: #eee 1px solid; text-align: right; padding: 5px 0; width: 50%;">{{txn_payment_mode}}</td>
+                 </tr>
+                 <tr>
+                    <td style="border-top: #eee 1px solid; width: 50%; padding: 5px 0">Paid For Session(Months)</td>
+                    <td style="border-top: #eee 1px solid; text-align: right; padding: 5px 0; width: 50%;">{{months_paid}}</td>
+                 </tr>
+                 <tr>
+                    <td style="border-top: 2px solid #333; border-bottom: 2px solid #333; font-weight: 700;">Total Fees Paid</td>
+                    <td style="border-top: 2px solid #333; border-bottom: 2px solid #333; font-weight: 700; text-align: right">{{total_amount_paid}}</td>
+                 </tr>
+                 <tr>
+                    <td colspan="2" style="padding: 5px 0;">Remarks: {{remarks}}</td>
+                 </tr>
+              </table>
+           </td>
+        </tr>
+        <tr>
+           <td style="padding: 5px 0; text-align: center;font-size: 14px;">
+              Copyright © shishuniketanmohali.org.in - All Rights Reserved.
+           </td>
+        </tr>
+        <!-- Add similar rows for other sections -->
+     </table>
+</body>
+</html>

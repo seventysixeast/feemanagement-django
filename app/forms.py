@@ -46,3 +46,27 @@ class FeeNotApplicableForm(forms.Form):
     
     # Use ChoiceField instead of IntegerField
     fee_not_applicable_in_months = forms.ChoiceField(choices=MONTH_CHOICES, label="Fee Not Applicable in Months")
+
+
+class RealizedDateForm(forms.Form):
+    realized_date = forms.DateField(required=False, widget=forms.TextInput(attrs={'type': 'date'}))
+
+
+
+class GetOtpForm(forms.Form):
+    admission_number = forms.CharField(max_length=20, required=True)
+    mobile_number = forms.CharField(max_length=15, required=True)
+
+class VerifyOtpForm(forms.Form):
+    otp_1 = forms.CharField(max_length=1, required=True)
+    otp_2 = forms.CharField(max_length=1, required=True)
+    otp_3 = forms.CharField(max_length=1, required=True)
+    otp_4 = forms.CharField(max_length=1, required=True)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        otp = cleaned_data.get('otp_1') + cleaned_data.get('otp_2') + cleaned_data.get('otp_3') + cleaned_data.get('otp_4')
+        cleaned_data['otp'] = otp
+        return cleaned_data
+
+

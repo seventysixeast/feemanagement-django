@@ -236,57 +236,7 @@ class specialfee_master(models.Model):
   def __str__(self):
       return f"Charge {self.student_charge_id} for Student ID {self.student_id}"
   
-class student_fee(models.Model):
-  student_fee_id = models.BigAutoField(primary_key=True)
-  student_id = models.IntegerField()
-  student_class = models.CharField(max_length=20)
-  student_section = models.CharField(max_length=1, null=True, blank=True)
-  fees_for_months = models.CharField(max_length=20)
-  fees_period_month = models.CharField(max_length=50)
-  year = models.CharField(max_length=4, null=True, blank=True)
-  bus_id = models.IntegerField(null=True, blank=True)
-  annual_fees_paid = models.IntegerField(null=True, blank=True)
-  tuition_fees_paid = models.IntegerField(null=True, blank=True)
-  funds_fees_paid = models.IntegerField(null=True, blank=True)
-  sports_fees_paid = models.IntegerField(null=True, blank=True)
-  activity_fees = models.IntegerField(null=True, blank=True)
-  admission_fees_paid = models.IntegerField(null=True, blank=True)
-  security_paid = models.IntegerField(null=True, blank=True)
-  late_fees_paid = models.IntegerField(null=True, blank=True)
-  dayboarding_fees_paid = models.IntegerField(null=True, blank=True)
-  miscellaneous_fees_paid = models.IntegerField(null=True, blank=True)
-  bus_fees_paid = models.IntegerField(null=True, blank=True)
-  date_payment = models.DateField(null=True, blank=True)
-  payment_mode = models.CharField(max_length=50, null=True, blank=True)
-  cheq_no = models.CharField(max_length=20, null=True, blank=True)
-  bank_name = models.CharField(max_length=30, null=True, blank=True)
-  concession_applied = models.FloatField(null=True, blank=True)
-  concession_type_id = models.IntegerField(null=True, blank=True)
-  total_amount = models.FloatField(null=True, blank=True)
-  amount_paid = models.FloatField(null=True, blank=True)
-  processing_fees_paid = models.FloatField(null=True, blank=True)
-  txn_ref_number = models.CharField(max_length=50, null=True, blank=True)
-  isdefault = models.CharField(max_length=10, null=True, blank=True)
-  entry_date = models.DateField(null=True, blank=True)
-  cheque_status = models.CharField(max_length=10, null=True, blank=True)
-  realized_date = models.DateField(null=True, blank=True)
-  branch_name = models.CharField(max_length=50, null=True, blank=True)
-  remarks = models.CharField(max_length=50)
-  txn_id = models.CharField(max_length=50, null=True, blank=True)
-  txn_response_code = models.CharField(max_length=20, null=True, blank=True)
-  txn_payment_mode = models.CharField(max_length=50, null=True, blank=True)
-  # txn_status = models.CharField(max_length=10, null=True, blank=True)
-  receipt_url = models.CharField(max_length=100, null=True, blank=True)
-  added_by = models.CharField(max_length=255, null=True, blank=True)
-  added_at = models.DateTimeField(auto_now_add=True)
-  edited_by = models.CharField(max_length=255, null=True, blank=True)
-  edited_at = models.DateTimeField(auto_now=True)
 
-  class Meta:
-    db_table = 'student_fees'  # Custom table name
-
-  def __str__(self):
-      return f"StudentFee {self.student_fee_id} for Student {self.student_id}"
   
 class student_master(models.Model):
     GENDER_CHOICES = [
@@ -337,6 +287,62 @@ class student_master(models.Model):
         creating = self.pk is None
         super().save(*args, **kwargs)
 
+class student_fee(models.Model):
+  student_fee_id = models.BigAutoField(primary_key=True)
+  # student_id = models.IntegerField()
+  student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='fees',db_column='student_id')
+  student_class = models.CharField(max_length=20)
+  student_section = models.CharField(max_length=1, null=True, blank=True)
+  fees_for_months = models.CharField(max_length=20)
+  fees_period_month = models.CharField(max_length=100)
+  year = models.CharField(max_length=4, null=True, blank=True)
+  bus_id = models.IntegerField(null=True, blank=True)
+  annual_fees_paid = models.IntegerField(null=True, blank=True)
+  tuition_fees_paid = models.IntegerField(null=True, blank=True)
+  funds_fees_paid = models.IntegerField(null=True, blank=True)
+  sports_fees_paid = models.IntegerField(null=True, blank=True)
+  activity_fees = models.IntegerField(null=True, blank=True)
+  admission_fees_paid = models.IntegerField(null=True, blank=True)
+  security_paid = models.IntegerField(null=True, blank=True)
+  late_fees_paid = models.IntegerField(null=True, blank=True)
+  dayboarding_fees_paid = models.IntegerField(null=True, blank=True)
+  miscellaneous_fees_paid = models.IntegerField(null=True, blank=True)
+  bus_fees_paid = models.IntegerField(null=True, blank=True)
+  date_payment = models.DateField(null=True, blank=True)
+  payment_mode = models.CharField(max_length=50, null=True, blank=True)
+  cheq_no = models.CharField(max_length=20, null=True, blank=True)
+  bank_name = models.CharField(max_length=30, null=True, blank=True)
+  concession_applied = models.FloatField(null=True, blank=True)
+  concession_type_id = models.IntegerField(null=True, blank=True)
+  total_amount = models.FloatField(null=True, blank=True)
+  amount_paid = models.FloatField(null=True, blank=True)
+  processing_fees_paid = models.FloatField(null=True, blank=True)
+  txn_ref_number = models.CharField(max_length=50, null=True, blank=True)
+  isdefault = models.CharField(max_length=10, null=True, blank=True)
+  entry_date = models.DateField(null=True, blank=True)
+  cheque_status = models.CharField(max_length=10, null=True, blank=True)
+  realized_date = models.DateField(null=True, blank=True)
+  branch_name = models.CharField(max_length=50, null=True, blank=True)
+  # remarks = models.CharField(max_length=50)
+  remarks = models.CharField(max_length=255, blank=True, null=True)
+  txn_id = models.CharField(max_length=50, null=True, blank=True)
+  txn_response_code = models.CharField(max_length=20, null=True, blank=True)
+  txn_payment_mode = models.CharField(max_length=50, null=True, blank=True)
+  # txn_status = models.CharField(max_length=10, null=True, blank=True)
+  receipt_url = models.CharField(max_length=100, null=True, blank=True)
+  added_by = models.CharField(max_length=255, null=True, blank=True)
+  added_at = models.DateTimeField(auto_now_add=True)
+  edited_by = models.CharField(max_length=255, null=True, blank=True)
+  edited_at = models.DateTimeField(auto_now=True)
+
+  class Meta:
+    db_table = 'student_fees'  # Custom table name
+
+  def __str__(self):
+      return f"StudentFee {self.student_fee_id} for Student {self.student_id}"
+  
+
+
 class student_class(models.Model):
     CLASS_CHOICES = [
         ('', 'Select the Class'),
@@ -372,7 +378,9 @@ class student_class(models.Model):
     ]
 
     student_class_id = models.AutoField(primary_key=True)
-    student_id = models.IntegerField(null=True)
+    # student_id = models.IntegerField(null=True)
+    student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='classes',db_column='student_id')
+    # student = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='classes')
     class_no = models.CharField(max_length=50, choices=CLASS_CHOICES,default='')
     section = models.CharField(max_length=50, choices=SECTION,default='')
     started_on = models.DateField(null=True, blank=True)
@@ -415,3 +423,7 @@ class generate_mobile_number_list(student_master):
   class Meta:
       proxy = True  # Use this model as a proxy for the original model
 
+
+class cheque_status(student_master):
+  class Meta:
+      proxy = True  # Use this model as a proxy for the original model
