@@ -25,7 +25,11 @@ SECRET_KEY = 'django-insecure-7a=vigulfe7j_y#zh57a2td5nc=#$e8%p6#mvu#-4^k^8nih^=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['127.0.0.1','66.235.194.119','76east.com', 'www.76east.com']
+
+CORS_ALLOW_METHODS = ['*']
+CORS_ALLOW_HEADERS = ['*']
 
 
 # Application definition
@@ -76,7 +80,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'feemanagement.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
@@ -93,12 +96,12 @@ DATABASES = {
         'NAME': 'shishuniketanmoh_schoolmanagement',
         'USER':'root',
         # 'PASSWORD':'Rahul@1234',
-        'PASSWORD':'',
-        'HOST':'127.0.0.1',
+        # 'PASSWORD':'',
+        # 'HOST':'127.0.0.1',
         # 'NAME': 'schoolmanagement',
         # 'USER':'root',
-        # 'PASSWORD':'Honda@76east',
-        # 'HOST':'66.235.194.119',
+        'PASSWORD':'Honda@76east',
+        'HOST':'66.235.194.119',
         'PORT':'3306'
     }
 }
@@ -138,7 +141,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+# STATIC_URL = 'static/'
+STATIC_URL = '/school-admin/static/'
+MEDIA_URL = '/school-admin/media/'
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_FILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
