@@ -93,7 +93,7 @@ DATABASES = {
         'NAME': 'shishuniketanmoh_schoolmanagement',
         'USER':'root',
         'PASSWORD':'Rahul@1234',
-        # 'PASSWORD':'',
+        #'PASSWORD':'',
         'HOST':'127.0.0.1',
         # 'NAME': 'schoolmanagement',
         # 'USER':'root',

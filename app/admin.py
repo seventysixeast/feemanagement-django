@@ -235,25 +235,37 @@ class StudentNameFilter(admin.SimpleListFilter):
     #     return queryset
 
 
+class ClassNoFilter(admin.SimpleListFilter):
+    title = 'Class No'
+    parameter_name = 'search_class_no'
+
+    def lookups(self, request, model_admin):
+        return []
 
 class StudentMasterAdmin(admin.ModelAdmin):
     form = StudentMasterForm
-    list_display = ('student_id', 'student_name', 'get_class_no', 'get_section', 'addmission_no', 'gender', 'birth_date', 'category', 'status', 'admission_date', 'passedout_date')
+    list_display = ('student_id', 'student_name', 'get_class_no', 'get_section', 'addmission_no', 'father_name', 'mother_name', 'gender', 'birth_date', 'category', 'status', 'admission_date', 'passedout_date')
     # search_fields = ('student_name', 'addmission_no', 'aadhaar_no', 'email', 'city', 'birth_date')
 
     # Add custom filters to the list filter
-    list_filter = (AdmissionNoFilter, StudentNameFilter)
+    list_filter = (AdmissionNoFilter, StudentNameFilter, ClassNoFilter)
 
     # Override get_search_results to handle custom search logic
     def get_search_results(self, request, queryset, search_term):
         search_admission_no = request.GET.get('search_admission_no', None)
         search_student_name = request.GET.get('search_student_name', None)
+        search_class_no = request.GET.get('search_class_no', None)
 
         # Apply custom filters for admission_no and student_name
         if search_admission_no:
             queryset = queryset.filter(addmission_no__icontains=search_admission_no)
         if search_student_name:
             queryset = queryset.filter(student_name__icontains=search_student_name)
+
+        if search_class_no:
+            # Get the student IDs from student_class based on class_no
+            student_ids = student_class.objects.filter(class_no=search_class_no).values_list('student_id', flat=True)
+            queryset = queryset.filter(student_id__in=student_ids)
 
         print("++++++++++ queryset +++++++++++", queryset)
 
@@ -265,6 +277,7 @@ class StudentMasterAdmin(admin.ModelAdmin):
         extra_context = extra_context or {}
         extra_context['search_admission_no'] = request.GET.get('search_admission_no', '')
         extra_context['search_student_name'] = request.GET.get('search_student_name', '')
+        extra_context['search_class_no'] = request.GET.get('search_class_no', '')
         
         return super().changelist_view(request, extra_context=extra_context)
 
