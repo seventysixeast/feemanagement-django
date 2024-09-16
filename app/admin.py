@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     teacher_master, student_master, student_fee, student_class, specialfee_master,
     payment_schedule_master, latefee_master, fees_master, expense,
-    concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list, cheque_status
+    concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list, cheque_status, transport
 )
 from django.db.models import Max
 from django import forms
@@ -30,6 +30,7 @@ from django.db.models import OuterRef, Subquery, Exists
 
 import csv
 from django.http import HttpResponse
+from datetime import datetime
 
 from django.utils import timezone
 from .forms import RealizedDateForm
@@ -85,6 +86,29 @@ SECTION = [
         ('I', 'I'),
         ('J', 'J'),
     ]
+MONTHS_APPL_CHOICES = [
+     ('', 'Please Select Months'),
+     ('4,5,6', '4,5,6'),
+     ('10,11,12', '10,11,12'),
+     ('1,2,3', '1,2,3'),
+     ('8', '8'),
+     ('9', '9')
+  ]
+MONTHS = [
+    ('', 'Please Select Month'),
+    ('1', 'January'),
+    ('2', 'February'),
+    ('3', 'March'),
+    ('4', 'April'),
+    ('5', 'May'),
+    ('6', 'June'),
+    ('7', 'July'),
+    ('8', 'August'),
+    ('9', 'September'),
+    ('10', 'October'),
+    ('11', 'November'),
+    ('12', 'December'),
+]
 
 PAYMENT_MODE_CHOICES = [
     ('Cash', 'Cash'),
@@ -263,13 +287,72 @@ class StudentMasterForm(forms.ModelForm):
     def clean_concession_id(self):
         concession = self.cleaned_data.get('concession_id')
         return concession.concession_id if concession else None
+    
+# Custom filter for admission_no
+class AdmissionNoFilter(admin.SimpleListFilter):
+    title = 'Admission No'
+    parameter_name = 'search_admission_no'
+
+    def lookups(self, request, model_admin):
+        return []
+
+    # def queryset(self, request, queryset):
+    #     search_admission_no = self.value()  # Get the value from the request
+    #     if search_admission_no:
+    #         return queryset.filter(addmission_no__icontains=search_admission_no)
+    #     return queryset
+
+
+# Custom filter for student_name
+class StudentNameFilter(admin.SimpleListFilter):
+    title = 'Student Name'
+    parameter_name = 'search_student_name'
+
+    def lookups(self, request, model_admin):
+        return []
+
+    # def queryset(self, request, queryset):
+    #     search_student_name = self.value()  # Get the value from the request
+    #     if search_student_name:
+    #         return queryset.filter(student_name__icontains=search_student_name)
+    #     return queryset
 
 
 
 class StudentMasterAdmin(admin.ModelAdmin):
     form = StudentMasterForm
     list_display = ('student_id', 'student_name', 'get_class_no', 'get_section', 'addmission_no', 'gender', 'birth_date', 'category', 'status', 'admission_date', 'passedout_date')
-    search_fields = ('student_name', 'addmission_no', 'aadhaar_no', 'email', 'city', 'birth_date')
+    # search_fields = ('student_name', 'addmission_no', 'aadhaar_no', 'email', 'city', 'birth_date')
+
+    # Add custom filters to the list filter
+    list_filter = (AdmissionNoFilter, StudentNameFilter)
+
+    # Override get_search_results to handle custom search logic
+    def get_search_results(self, request, queryset, search_term):
+        search_admission_no = request.GET.get('search_admission_no', None)
+        search_student_name = request.GET.get('search_student_name', None)
+
+        # Apply custom filters for admission_no and student_name
+        if search_admission_no:
+            queryset = queryset.filter(addmission_no__icontains=search_admission_no)
+        if search_student_name:
+            queryset = queryset.filter(student_name__icontains=search_student_name)
+
+        print("++++++++++ queryset +++++++++++", queryset)
+
+        # Return the modified queryset and a boolean for whether distinct is needed
+        return queryset, False
+
+    def changelist_view(self, request, extra_context=None):
+        # Adding extra context for the search fields in the template
+        extra_context = extra_context or {}
+        extra_context['search_admission_no'] = request.GET.get('search_admission_no', '')
+        extra_context['search_student_name'] = request.GET.get('search_student_name', '')
+        
+        return super().changelist_view(request, extra_context=extra_context)
+
+    # Customize the changelist template to include custom search fields
+    change_list_template = 'admin/student_master_changelist.html'
 
     def get_class_no(self, obj):
         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
@@ -921,7 +1004,176 @@ class PaymentScheduleMasterAdmin(admin.ModelAdmin):
 admin.site.register(payment_schedule_master, PaymentScheduleMasterAdmin)
 
 # admin.site.register(payment_schedule_master)
-admin.site.register(specialfee_master)
+
+class SpecialFeeMasterForm(forms.ModelForm):
+    class_no = forms.ChoiceField(choices=CLASS_CHOICES, required=True)
+    student_name = forms.ChoiceField(choices=[('', 'Select Student')], required=False, label="Student Name*")
+    student_id = forms.CharField(widget=forms.HiddenInput())
+    student_class_id = forms.CharField(widget=forms.HiddenInput())
+    # added_by = forms.CharField(widget=forms.HiddenInput())
+    # updated_by = forms.CharField(widget=forms.HiddenInput())
+    months_applicable_for = forms.MultipleChoiceField(
+        choices=[],
+    )
+
+    # Generate year choices dynamically
+    current_year = datetime.now().year
+    year_choices = [(str(year), str(year)) for year in range(current_year + 1, current_year - 4, -1)]
+    year = forms.ChoiceField(choices=year_choices, required=True)
+
+    class Meta:
+        model = specialfee_master
+        # fields = ['class_no', 'student_name', 'fee_type', 'months_applicable_for', 'year', 'amount', 'added_by', 'updated_by']
+        fields = ['class_no', 'student_name', 'fee_type', 'months_applicable_for', 'year', 'amount', 'added_by', 'updated_by']
+
+    class Media:
+        js = ('app/js/specialfee_master.js',)
+
+    MONTHS = [
+        ('', 'Please Select Month'),
+        ('1', 'January'),
+        ('2', 'February'),
+        ('3', 'March'),
+        ('4', 'April'),
+        ('5', 'May'),
+        ('6', 'June'),
+        ('7', 'July'),
+        ('8', 'August'),
+        ('9', 'September'),
+        ('10', 'October'),
+        ('11', 'November'),
+        ('12', 'December')
+    ]
+
+    MONTHS_APPL_CHOICES = [
+        ('', 'Please Select Months'),
+        ('4,5,6', '4,5,6'),
+        ('10,11,12', '10,11,12'),
+        ('1,2,3', '1,2,3'),
+        ('8', '8'),
+        ('9', '9')
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super(SpecialFeeMasterForm, self).__init__(*args, **kwargs)
+
+        # Set the choices for months_applicable_for based on the initial fee_type
+        self.update_months_choices()
+
+        if 'class_no' in self.data and not self.instance.pk:  # Only validate class_no if it's a new instance
+            try:
+                class_no = int(self.data.get('class_no'))
+                current_year = datetime.now().year
+
+                # Get student_classes and filter students
+                student_classes = student_class.objects.filter(class_no=class_no).values('student_class_id', 'student_id', 'class_no', 'section')
+                student_ids = [sc['student_id'] for sc in student_classes]
+                students = student_master.objects.filter(student_id__in=student_ids, admission_date__year=current_year)
+
+                # Prepare choices for the student_name field
+                student_choices = [(f"{student.student_id}-{sc['student_class_id']}", f"{sc['class_no']} {sc['section']} {student.student_name}") 
+                                   for student in students 
+                                   for sc in student_classes 
+                                   if sc['student_id'] == student.student_id]
+
+                # Update the choices dynamically
+                self.fields['student_name'].choices = student_choices
+
+            except (ValueError, TypeError):
+                pass  # Invalid input; ignore and leave choices empty
+        elif self.instance.pk:  # Edit case
+            # pass
+            # Hide the class_no and student_name fields when editing
+            self.fields['months_applicable_for'].required = False
+            self.fields['class_no'].required = False
+            self.fields['class_no'].widget = forms.HiddenInput()
+            self.fields['student_name'].required = False
+            self.fields['student_name'].widget = forms.HiddenInput()
+
+            # Populate the student_name choices for existing instances
+            # self.fields['student_name'].choices = [(f"{self.instance.student_id}-{self.instance.student_class_id}", 
+            #                                         f"{self.instance.student_id} - {self.instance.student_class_id}")]
+
+    def update_months_choices(self):
+        fee_type = self.initial.get('fee_type', self.data.get('fee_type'))
+        if fee_type == 'bus_fees':
+            print("++++++++++++")
+            self.fields['months_applicable_for'].choices = self.MONTHS
+            # self.fields['months_applicable_for'].required = True
+        elif fee_type == 'ignore_prev_outstanding_fees':
+            print("############")
+            self.fields['months_applicable_for'].choices = []
+            self.fields['months_applicable_for'].required = False
+        else:
+            print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+            self.fields['months_applicable_for'].choices = self.MONTHS_APPL_CHOICES
+            # self.fields['months_applicable_for'].required = True
+
+        
+    def clean_months_applicable_for(self):
+        months = self.cleaned_data.get('months_applicable_for', [])
+        # Join the list into a comma-separated string
+        return ','.join(months)
+
+        # months = self.cleaned_data.get('months_applicable_for', None)
+        # print('+++++ months ++++++++', months)
+        # # If no months were selected, keep the existing value
+        # if not months:
+        #     return self.instance.months_applicable_for
+        # # Otherwise, join the selected months into a comma-separated string
+        # return ','.join(months)
+
+
+class SpecialFeeMasterAdmin(admin.ModelAdmin):
+    list_display = ("student_charge_id", "student_id", "student_class_id", "fee_type", "months_applicable_for", "year", "amount", "added_at", "updated_at")
+    form = SpecialFeeMasterForm
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('ajax/get-students/', self.admin_site.admin_view(self.get_students), name='ajax_get_students'),
+        ]
+        return custom_urls + urls
+
+    def get_students(self, request):
+        class_no = request.GET.get('class_no', '')
+        print('++++++++ class_no ++++++++++', class_no)
+        if class_no:
+            current_year = datetime.now().year
+
+            # Get the student_id, class_no, and section from the student_class model
+            student_classes = student_class.objects.filter(class_no=class_no).values('student_class_id', 'student_id', 'class_no', 'section')
+
+            # Extract student_ids
+            student_ids = [sc['student_id'] for sc in student_classes]
+
+            # Filter students from the student_master model
+            students = student_master.objects.filter(student_id__in=student_ids, admission_date__year=current_year)
+            
+            # Combine the student data with class_no and section
+            results = []
+            for student in students:
+                student_info = {
+                    'student_id': student.student_id,
+                    'student_name': student.student_name,
+                    'admission_no': student.addmission_no,
+                }
+                # Add class_no and section from the student_classes data
+                student_class_info = next(sc for sc in student_classes if sc['student_id'] == student.student_id)
+                student_info['class_id'] = student_class_info['student_class_id']
+                student_info['class_no'] = student_class_info['class_no']
+                student_info['section'] = student_class_info['section']
+                results.append(student_info)
+
+            print("++++++++ results +++++++", results)
+            return JsonResponse(results, safe=False)
+
+        return JsonResponse({'error': 'Student not found'}, status=404)
+
+
+
+admin.site.register(specialfee_master,SpecialFeeMasterAdmin)
+
     
 class ButtonWidget(forms.Widget):
     def render(self, name, value, attrs=None, renderer=None):
@@ -3098,6 +3350,354 @@ class ChequeStatusListAdmin(admin.ModelAdmin):
 
 
 admin.site.register(cheque_status, ChequeStatusListAdmin)
+
+# # admin.site.register(transport)
+# from django.contrib import admin
+# from .models import transport, StudentMaster
+
+# Custom admin class for the transport model
+# from django.contrib import admin
+# from .models import transport, StudentMaster, StudentClass, BusFeesMaster, BusMaster
+# from django.db.models import OuterRef, Subquery
+
+# class TransportAdmin(admin.ModelAdmin):
+#     list_display = ('student_id', 'student_name', 'admission_no', 'bus_id', 'status')
+#     search_fields = ('student_name', 'admission_no', 'bus_id')
+#     list_filter = ('status',)
+
+#     def get_queryset(self, request):
+#         # Get filter parameters from the request
+#         busno = request.GET.get('busno', None)
+#         c = request.GET.get('class', None)  # 'class' might be a reserved keyword, use 'class_no'
+#         d = request.GET.get('destination', None)
+
+#         # Build the route and destination conditions
+#         busfees_filter = {}
+#         if busno:
+#             busfees_filter['route'] = busno
+#         if d:
+#             busfees_filter['destination'] = d
+
+#         # Filter students who are not "passed out"
+#         student_filter = {'status__ne': 'passed out'}
+
+#         # Get the latest student_class_id for each student (subquery)
+#         subquery = StudentClass.objects.filter(student_id=OuterRef('student_id')).order_by('-student_class_id').values('student_class_id')[:1]
+        
+
+#         # Filter based on bus route and destination
+#         bus_fees = BusFeesMaster.objects.filter(**busfees_filter)
+
+#         # Filter students manually based on conditions
+#         queryset = StudentMaster.objects.filter(
+#             student_id__in=Subquery(
+#                 StudentClass.objects.filter(student_class_id=subquery).values('student_id')
+#             ),
+#             bus_id__in=bus_fees.values('bus_id'),
+#             **student_filter
+#         )
+
+#         # Apply class filter if provided
+#         if c:
+#             queryset = queryset.filter(
+#                 student_id__in=StudentClass.objects.filter(class_no=c).values('student_id')
+#             )
+
+#     #         # Now get the bus details from BusMaster
+#         bus_routes = BusMaster.objects.filter(bus_route__in=bus_fees.values('route'))
+
+#         # Build the transport details
+#         trdetails = ""
+
+#         for student in students:
+#             student_class = StudentClass.objects.filter(student_id=student.student_id).first()
+#             bus_fees_record = bus_fees.filter(bus_id=student.bus_id).first()
+#             bus_route_record = bus_routes.filter(bus_route=bus_fees_record.route).first()
+
+#             trdetails += f"{student.student_id}*{student.student_name}*" \
+#                         f"{student.admission_no}*{student_class.class_no}*" \
+#                         f"{student_class.section}*{bus_fees_record.destination}*" \
+#                         f"{bus_fees_record.route}*{student.father_name}*" \
+#                         f"{student.phone_no}*{bus_route_record.bus_driver}*" \
+#                         f"{bus_route_record.driver_phone}*{bus_route_record.bus_conductor}*" \
+#                         f"{bus_route_record.conductor_phone}*" \
+#                         f"{bus_route_record.bus_attendant}*{bus_route_record.attendant_phone}&"
+
+
+
+#         return queryset
+
+# Register the transport model with the custom admin class
+# admin.site.register(transport, TransportAdmin)
+# from django.contrib import admin
+# from .models import transport, StudentMaster, StudentClass, BusFeesMaster, BusMaster
+# from django.db.models import OuterRef, Subquery
+# from collections import namedtuple
+
+# class TransportAdmin(admin.ModelAdmin):
+#     list_display = ('student_id', 'student_name', 'admission_no', 'class_no', 'section', 'destination', 'route', 'father_name', 'phone_no', 'bus_driver', 'driver_phone', 'bus_conductor', 'conductor_phone', 'bus_attendant', 'attendant_phone')
+#     search_fields = ('student_name', 'admission_no', 'bus_id')
+#     list_filter = ('status',)
+
+#     def get_queryset(self, request):
+#         # Get filter parameters from the request
+#         busno = request.GET.get('busno', None)
+#         c = request.GET.get('class', None)
+#         d = request.GET.get('destination', None)
+
+#         # Build the route and destination conditions
+#         busfees_filter = {}
+#         if busno:
+#             busfees_filter['route'] = busno
+#         if d:
+#             busfees_filter['destination'] = d
+
+#         # Filter students who are not "passed out"
+#         student_filter = {'status__ne': 'passed out'}
+
+#         # Get the latest student_class_id for each student (subquery)
+#         subquery = student_class.objects.filter(student_id=OuterRef('student_id')).order_by('-student_class_id').values('student_class_id')[:1]
+
+#         # Filter based on bus route and destination
+#         bus_fees = BusFeesMaster.objects.filter(**busfees_filter)
+
+#         # Filter students manually based on conditions
+#         queryset = student_master.objects.filter(
+#             student_id__in=Subquery(
+#                 student_class.objects.filter(student_class_id=subquery).values('student_id')
+#             ),
+#             bus_id__in=bus_fees.values('bus_id'),
+#             **student_filter
+#         )
+
+#         # Apply class filter if provided
+#         if c:
+#             queryset = queryset.filter(
+#                 student_id__in=student_class.objects.filter(class_no=c).values('student_id')
+#             )
+
+#         # Fetch bus route details from BusMaster
+#         bus_routes = BusMaster.objects.filter(bus_route__in=bus_fees.values('route'))
+
+#         # Define a named tuple to represent the custom fields
+#         TransportDetails = namedtuple('TransportDetails', [
+#             'student_id', 'student_name', 'admission_no', 'class_no', 'section', 'destination', 
+#             'route', 'father_name', 'phone_no', 'bus_driver', 'driver_phone', 
+#             'bus_conductor', 'conductor_phone', 'bus_attendant', 'attendant_phone'
+#         ])
+
+#         # Build a list of custom objects with transport details
+#         custom_queryset = []
+#         for student in queryset:
+#             student_class1 = student_class.objects.filter(student_id=student.student_id).first()
+#             bus_fees_record = bus_fees.filter(bus_id=student.bus_id).first()
+#             bus_route_record = bus_routes.filter(bus_route=bus_fees_record.route).first()
+
+#             # Create an object for each student with the desired fields
+#             transport_detail = TransportDetails(
+#                 student_id=student.student_id,
+#                 student_name=student.student_name,
+#                 admission_no=student.admission_no,
+#                 class_no=student_class1.class_no if student_class1 else None,
+#                 section=student_class1.section if student_class1 else None,
+#                 destination=bus_fees_record.destination if bus_fees_record else None,
+#                 route=bus_fees_record.route if bus_fees_record else None,
+#                 father_name=student.father_name,
+#                 phone_no=student.phone_no,
+#                 bus_driver=bus_route_record.bus_driver if bus_route_record else None,
+#                 driver_phone=bus_route_record.driver_phone if bus_route_record else None,
+#                 bus_conductor=bus_route_record.bus_conductor if bus_route_record else None,
+#                 conductor_phone=bus_route_record.conductor_phone if bus_route_record else None,
+#                 bus_attendant=bus_route_record.bus_attendant if bus_route_record else None,
+#                 attendant_phone=bus_route_record.attendant_phone if bus_route_record else None
+#             )
+
+#             # Append the transport detail object to the custom queryset
+#             custom_queryset.append(transport_detail)
+
+#         # Return the custom queryset (a list of TransportDetails named tuples)
+#         return custom_queryset
+
+# # Register the transport model with the custom admin class
+# admin.site.register(transport, TransportAdmin)
+
+# from django.contrib import admin
+# from .models import transport, StudentMaster, StudentClass, BusFeesMaster, BusMaster
+from django.db.models import OuterRef, Subquery
+from collections import namedtuple
+
+class TransportAdmin(admin.ModelAdmin):
+    # Define methods to display custom fields in the list display
+    list_display = (
+        'get_student_id', 'get_student_name', 'get_admission_no', 'get_class_no', 
+        'get_section', 'get_destination', 'get_route', 'get_father_name', 
+        'get_phone_no', 'get_bus_driver', 'get_driver_phone', 'get_bus_conductor', 
+        'get_conductor_phone', 'get_bus_attendant', 'get_attendant_phone'
+    )
+    # search_fields = ('student_name', 'admission_no', 'bus_id')
+    # list_filter = ('status',)
+
+    def get_queryset(self, request):
+        # Get filter parameters from the request
+        busno = request.GET.get('busno', None)
+        c = request.GET.get('class', None)
+        d = request.GET.get('destination', None)
+
+        # Build the route and destination conditions
+        busfees_filter = {}
+        if busno:
+            busfees_filter['route'] = busno
+        if d:
+            busfees_filter['destination'] = d
+
+        # Filter students who are not "passed out"
+        # student_filter = {'status__ne': 'passed out'}
+        student_filter = {'status': 'passed out'}
+
+
+        # Get the latest student_class_id for each student (subquery)
+        subquery = student_class.objects.filter(student_id=OuterRef('student_id')).order_by('-student_class_id').values('student_class_id')[:1]
+
+        # Filter based on bus route and destination
+        bus_fees = busfees_master.objects.filter(**busfees_filter)
+
+        # Filter students manually based on conditions
+        # queryset = student_master.objects.filter(
+        #     student_id__in=Subquery(
+        #         student_class.objects.filter(student_class_id=subquery).values('student_id')
+        #     ),
+        #     bus_id__in=bus_fees.values('bus_id'),
+        #     **student_filter
+        # )
+
+        queryset = student_master.objects.filter(
+            student_id__in=Subquery(
+                student_class.objects.filter(student_class_id=subquery).values('student_id')
+            ),
+            bus_id__in=bus_fees.values('bus_id')
+        ).exclude(**student_filter)
+
+
+        # Apply class filter if provided
+        if c:
+            queryset = queryset.filter(
+                student_id__in=student_class.objects.filter(class_no=c).values('student_id')
+            )
+
+        # Fetch bus route details from BusMaster
+        bus_routes = bus_master.objects.filter(bus_route__in=bus_fees.values('route'))
+
+        # Define a named tuple to represent the custom fields
+        TransportDetails = namedtuple('TransportDetails', [
+            'student_id', 'student_name', 'admission_no', 'class_no', 'section', 'destination', 
+            'route', 'father_name', 'phone_no', 'bus_driver', 'driver_phone', 
+            'bus_conductor', 'conductor_phone', 'bus_attendant', 'attendant_phone'
+        ])
+
+        # Build a list of custom objects with transport details
+        self.custom_queryset = []
+        for student in queryset:
+            student_class1 = student_class.objects.filter(student_id=student.student_id).first()
+            bus_fees_record = bus_fees.filter(bus_id=student.bus_id).first()
+            bus_route_record = bus_routes.filter(bus_route=bus_fees_record.route).first()
+
+            # Create an object for each student with the desired fields
+            transport_detail = TransportDetails(
+                student_id=student.student_id,
+                student_name=student.student_name,
+                admission_no=student.addmission_no,
+                class_no=student_class1.class_no if student_class1 else None,
+                section=student_class1.section if student_class1 else None,
+                destination=bus_fees_record.destination if bus_fees_record else None,
+                route=bus_fees_record.route if bus_fees_record else None,
+                father_name=student.father_name,
+                phone_no=student.phone_no,
+                bus_driver=bus_route_record.bus_driver if bus_route_record else None,
+                driver_phone=bus_route_record.driver_phone if bus_route_record else None,
+                bus_conductor=bus_route_record.bus_conductor if bus_route_record else None,
+                conductor_phone=bus_route_record.conductor_phone if bus_route_record else None,
+                bus_attendant=bus_route_record.bus_attendant if bus_route_record else None,
+                attendant_phone=bus_route_record.attendant_phone if bus_route_record else None
+            )
+
+            # Append the transport detail object to the custom queryset
+            self.custom_queryset.append(transport_detail)
+
+        # Return the custom queryset (a list of TransportDetails named tuples)
+        return self.custom_queryset
+
+    # Define methods for each field to display in list_display
+    def get_student_id(self, obj):
+        return obj.student_id
+
+    def get_student_name(self, obj):
+        return obj.student_name
+
+    def get_admission_no(self, obj):
+        return obj.admission_no
+
+    def get_class_no(self, obj):
+        return obj.class_no
+
+    def get_section(self, obj):
+        return obj.section
+
+    def get_destination(self, obj):
+        return obj.destination
+
+    def get_route(self, obj):
+        return obj.route
+
+    def get_father_name(self, obj):
+        return obj.father_name
+
+    def get_phone_no(self, obj):
+        return obj.phone_no
+
+    def get_bus_driver(self, obj):
+        return obj.bus_driver
+
+    def get_driver_phone(self, obj):
+        return obj.driver_phone
+
+    def get_bus_conductor(self, obj):
+        return obj.bus_conductor
+
+    def get_conductor_phone(self, obj):
+        return obj.conductor_phone
+
+    def get_bus_attendant(self, obj):
+        return obj.bus_attendant
+
+    def get_attendant_phone(self, obj):
+        return obj.attendant_phone
+
+    # Set short descriptions for admin display
+    get_student_id.short_description = 'Student ID'
+    get_student_name.short_description = 'Student Name'
+    get_admission_no.short_description = 'Admission No'
+    get_class_no.short_description = 'Class No'
+    get_section.short_description = 'Section'
+    get_destination.short_description = 'Destination'
+    get_route.short_description = 'Route'
+    get_father_name.short_description = 'Father Name'
+    get_phone_no.short_description = 'Phone No'
+    get_bus_driver.short_description = 'Bus Driver'
+    get_driver_phone.short_description = 'Driver Phone'
+    get_bus_conductor.short_description = 'Bus Conductor'
+    get_conductor_phone.short_description = 'Conductor Phone'
+    get_bus_attendant.short_description = 'Bus Attendant'
+    get_attendant_phone.short_description = 'Attendant Phone'
+
+# Register the transport model with the custom admin class
+admin.site.register(transport, TransportAdmin)
+
+
+
+
+   
+    
+
 
 
 
