@@ -289,8 +289,8 @@ class student_master(models.Model):
 
 class student_fee(models.Model):
   student_fee_id = models.BigAutoField(primary_key=True)
-  # student_id = models.IntegerField()
-  student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='fees',db_column='student_id')
+  student_id = models.IntegerField()
+  #student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='fees',db_column='student_id')
   student_class = models.CharField(max_length=20)
   student_section = models.CharField(max_length=1, null=True, blank=True)
   fees_for_months = models.CharField(max_length=20)
@@ -341,6 +341,10 @@ class student_fee(models.Model):
   def __str__(self):
       return f"StudentFee {self.student_fee_id} for Student {self.student_id}"
   
+  def save(self, *args, **kwargs):
+        creating = self.pk is None
+        super().save(*args, **kwargs)
+  
 
 
 class student_class(models.Model):
@@ -378,8 +382,8 @@ class student_class(models.Model):
     ]
 
     student_class_id = models.AutoField(primary_key=True)
-    # student_id = models.IntegerField(null=True)
-    student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='classes',db_column='student_id')
+    student_id = models.IntegerField(null=True)
+    # student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='classes',db_column='student_id')
     # student = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='classes')
     class_no = models.CharField(max_length=50, choices=CLASS_CHOICES,default='')
     section = models.CharField(max_length=50, choices=SECTION,default='')
