@@ -216,12 +216,24 @@ class payment_schedule_master(models.Model):
       return f"Schedule {self.schedule_id} for {self.fees_for_months}"
 
 class specialfee_master(models.Model):
+  FEE_TYPE_CHOICES = [
+    ('activity_fees', 'Activity Fees'),
+    ('admission_fees', 'Admission Fees'),
+    ('annual_fees', 'Annual Fees'),
+    ('bus_fees', 'Bus Fees'),
+    ('dayboarding_fees', 'Dayboarding Fees'),
+    ('funds_fees', 'Funds Fees'),
+    ('miscellaneous_fees', 'Miscellaneous Fees'),
+    ('sports_fees', 'Sports Fees'),
+    ('tuition_fees', 'Tuition Fees'),
+    ('ignore_prev_outstanding_fees', 'Ignore Previous Outstanding Fees')
+  ]
   student_charge_id = models.AutoField(primary_key=True)
   student_id = models.IntegerField()
   student_class_id = models.IntegerField()
   late_fee_applicable = models.BooleanField(default=False)
-  fee_type = models.CharField(max_length=50, null=True, blank=True)
-  months_applicable_for = models.CharField(max_length=100, null=True, blank=True)
+  fee_type = models.CharField(max_length=50, choices=FEE_TYPE_CHOICES, default='activity_fees')
+  months_applicable_for = models.CharField(max_length=100, null=True)
   year = models.CharField(max_length=4, null=True, blank=True)
   amount = models.IntegerField(default=0)
   status = models.CharField(max_length=50, default='enabled')
