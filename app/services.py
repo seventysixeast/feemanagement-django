@@ -106,7 +106,7 @@ def fetch_fee_details_for_class( student_id, class_no):
 
     # Fetch the student class information
     student_class1 = student_class.objects.filter(
-        student_id=student, class_no=class_no
+        student_id=student.student_id, class_no=class_no
     ).first()
 
     if not student_class1:

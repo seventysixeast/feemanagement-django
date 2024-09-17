@@ -91,9 +91,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'shishuniketanmoh_schoolmanagement',
-        'USER':'root',
-        # 'PASSWORD':'Rahul@1234',
-        'PASSWORD':'',
+        'USER':'shishuniketan',
+        'PASSWORD':'Rahul@1234',
         'HOST':'127.0.0.1',
         # 'NAME': 'schoolmanagement',
         # 'USER':'root',
