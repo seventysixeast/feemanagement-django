@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const selectedClass = this.value;
             console.log('+++++++ selected class +++++++', selectedClass);
             if (selectedClass) {
-                fetch(`/admin/app/specialfee_master/ajax/get-students/?class_no=${selectedClass}`)
+                fetch(`/school-admin/app/specialfee_master/ajax/get-students/?class_no=${selectedClass}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log('++++++ data ++++++++', data);

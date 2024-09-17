@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (studentName || admissionNo) {
             try{
-                const url = '/admin/app/student_class/ajax/load-students/?student_name=' + studentName +'&admission_no='+ admissionNo;
+                const url = '/school-admin/app/student_class/ajax/load-students/?student_name=' + studentName +'&admission_no='+ admissionNo;
                 const response = await fetch(url)
     
                 const data = await response.json();  // Parse JSON from the response
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const selectedStudentId = this.value;
             
             if (selectedStudentId) {
-                fetch(`/admin/app/student_class/ajax/get-student/?student_id=${selectedStudentId}`)
+                fetch(`/school-admin/app/student_class/ajax/get-student/?student_id=${selectedStudentId}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.student_id) {
