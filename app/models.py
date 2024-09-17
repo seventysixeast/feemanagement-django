@@ -301,8 +301,8 @@ class student_master(models.Model):
 
 class student_fee(models.Model):
   student_fee_id = models.BigAutoField(primary_key=True)
-  student_id = models.IntegerField()
-  #student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='fees',db_column='student_id')
+  # student_id = models.IntegerField()
+  student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='fees',db_column='student_id')
   student_class = models.CharField(max_length=20)
   student_section = models.CharField(max_length=1, null=True, blank=True)
   fees_for_months = models.CharField(max_length=20)
@@ -353,9 +353,21 @@ class student_fee(models.Model):
   def __str__(self):
       return f"StudentFee {self.student_fee_id} for Student {self.student_id}"
   
-  def save(self, *args, **kwargs):
-        creating = self.pk is None
-        super().save(*args, **kwargs)
+
+  def get_student_name(self):
+        return self.student_id.student_name  # assuming student_id is a ForeignKey to student_master
+
+  get_student_name.short_description = 'Student Name'  # Set the column name in the admin view
+  
+
+  def get_addmission_no(self):
+      return self.student_id.addmission_no  # Assuming `student_id` is a ForeignKey to student_master
+
+  get_addmission_no.short_description = 'Admission No'  # Set the column name in the admin view
+
+  # def save(self, *args, **kwargs):
+  #       creating = self.pk is None
+  #       super().save(*args, **kwargs)
   
 
 
