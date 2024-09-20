@@ -1,8 +1,8 @@
 from django.contrib import admin
 from .models import (
-    teacher_master, student_master, student_fee, student_class, specialfee_master,
+    user, student_master, student_fee, student_class, specialfee_master,
     payment_schedule_master, latefee_master, fees_master, expense,
-    concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list, cheque_status, transport
+    concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list, 
 )
 from django.db.models import Max
 from django import forms
@@ -175,13 +175,16 @@ FEE_MONTHS_CHOICES = [
         ('1,2,3', '1,2,3')
     ]
 
+# Define choices for months (1 to 12)
+#MONTH_CHOICES = [(str(i), str(i)) for i in range(1, 13)]
 # Register your models here.
 
 class TeacherMasterForm(forms.ModelForm):
-    role = forms.ChoiceField(choices=teacher_master.ROLES_CHOICES, required=True)
+    # role = forms.ChoiceField(choices=teacher_master.ROLES_CHOICES, required=True)
+    role = forms.ChoiceField(choices=user.ROLES_CHOICES, required=True)
 
     class Meta:
-        model = teacher_master
+        model = user
         fields = [
             "user_name", "email", "mobile","role"
         ]
@@ -526,7 +529,7 @@ class StudentMasterAdmin(admin.ModelAdmin):
 
     # Existing methods...
 
-# admin.site.register(student_master, StudentMasterAdmin)
+admin.site.register(student_master, StudentMasterAdmin)
 
 
 class FeesMasterForm(forms.ModelForm):
@@ -567,10 +570,11 @@ class FeesMasterAdmin(admin.ModelAdmin):
     form = FeesMasterForm
     list_display = ("fees_id", "class_no", "annual_fees", "tuition_fees", "funds_fees", "sports_fees", "activity_fees", "admission_fees", "dayboarding_fees", "miscellaneous_fees", "valid_from", "valid_to")
 
-admin.site.register(student_master,StudentMasterAdmin)
+# admin.site.register(student_master,StudentMasterAdmin)
+admin.site.register(user, UserDisplay)
+# admin.site.register(teacher_master, UserDisplay)
 # admin.site.register(user, UserDisplay)
-admin.site.register(teacher_master, UserDisplay)
-admin.site.register(account_head)
+# admin.site.register(account_head)
 
 # class BusFeesMaster(admin.ModelAdmin):
 #     list_display = ("bus_id", "route", "destination", "bus_fees", "fee_not_applicable_in_months")
@@ -714,7 +718,7 @@ class ConcessionMasterAdmin(admin.ModelAdmin):
     form = ConcessionMasterForm
 
 admin.site.register(concession_master, ConcessionMasterAdmin)
-admin.site.register(expense)
+# admin.site.register(expense)
 
 class FeesMasterDisplay(admin.ModelAdmin):
     list_display = ("fees_id", "class_no", "annual_fees", "tuition_fees", "funds_fees", "sports_fees", "activity_fees", "admission_fees", "dayboarding_fees", "miscellaneous_fees", "valid_from", "valid_to")
@@ -733,12 +737,10 @@ class LateFeeMasterForm(forms.ModelForm):
 
     days_from = forms.ChoiceField(
         choices=Pay_In_Month_CHOICES,
-        # label="Concession Persent *",
     )
 
     days_to = forms.ChoiceField(
         choices=Pay_In_Month_CHOICES,
-        # label="Concession Persent *",
     )
 
     Latefee_Type_CHOICES = [
@@ -750,8 +752,6 @@ class LateFeeMasterForm(forms.ModelForm):
 
     latefee_type = forms.ChoiceField(
         choices=Latefee_Type_CHOICES,
-        # widget=forms.RadioSelect,
-        # label="Concession Persent *",
     )
 
     class Meta:
@@ -761,30 +761,79 @@ class LateFeeMasterForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Get the instance being edited
+        instance = kwargs.get('instance')
+        selected_days_from = int(instance.days_from) if instance and instance.days_from.isdigit() else None
+        selected_days_to = int(instance.days_to) if instance and instance.days_to.isdigit() else None
+
+        print('selected_days_from',selected_days_from)
+        print('selected_days_to',selected_days_to)
+
         
         # Exclude non-numeric values and get existing ranges
-        existing_ranges = latefee_master.objects.exclude(days_from__in=['', None, 'till current date']).exclude(days_to__in=['', None, 'till current date']).values_list('days_from', 'days_to')
+        # existing_ranges = latefee_master.objects.exclude(days_from__in=['', None, 'till current date']).exclude(days_to__in=['', None, 'till current date']).values_list('days_from', 'days_to')
+
+        existing_ranges = latefee_master.objects.exclude(days_from__in=['', None]).exclude(days_to__in=['', None]).values_list('days_from', 'days_to')
+
+        print('existing_ranges',existing_ranges)
         
         excluded_days = set()
         
         # Calculate excluded days only for numeric values
         for days_from, days_to in existing_ranges:
+            # if str(days_to) == "90":
+            #     continue  # Keep "90" available
             try:
                 excluded_days.update(range(int(days_from), int(days_to) + 1))
             except ValueError:
                 continue  # Skip non-numeric values
 
-        # Filter numeric choices and include custom options
-        numeric_choices = [(str(i), str(i)) for i in range(1, 91) if i not in excluded_days]
-        available_choices = [
-            ('', 'Please Select Day'),
-        ] + numeric_choices + [
-            ('till current date', 'Till Current Date')
-        ]
+        print('excluded_days',excluded_days)
+        # Check if 'till current date' is present in either days_from or days_to
+        is_till_current_date_present = any('till current date' in (days_from, days_to) for days_from, days_to in existing_ranges)
+
+
+        # Define available numeric choices for the form fields
+        if selected_days_from is not None and selected_days_to is not None:
+            # If editing, restrict the choices to the selected range (days_from to days_to)
+            numeric_choices = [(str(i), str(i)) for i in range(selected_days_from, selected_days_to + 1)]
+
+            available_choices = [
+                ('', 'Please Select Day'),
+            ] + numeric_choices
+
+        elif is_till_current_date_present:
+            numeric_choices = [(str(i), str(i)) for i in range(1, 91) if i not in excluded_days]
+
+            available_choices = [
+                ('', 'Please Select Day'),
+            ] + numeric_choices 
+
+        elif 90 in excluded_days:
+            numeric_choices = [(str(i), str(i)) for i in range(1, 91) if i not in excluded_days]
+
+            available_choices = [
+                ('', 'Please Select Day'),
+            ] + numeric_choices + [
+                ('90', '90'),('till current date', 'Till Current Date')
+            ]
+    
+        else:
+            # If not editing, exclude the existing ranges
+            numeric_choices = [(str(i), str(i)) for i in range(1, 91) if i not in excluded_days]
+
+            available_choices = [
+                ('', 'Please Select Day'),
+            ] + numeric_choices + [
+                ('till current date', 'Till Current Date')
+            ]
         
         self.fields['days_from'].choices = available_choices
+        self.fields['days_from'].initial = str(selected_days_from) if selected_days_from else ''
         self.fields['days_from'].required = False  # Not required
         self.fields['days_to'].choices = available_choices
+        self.fields['days_to'].initial = str(selected_days_to) if selected_days_to else ''
         self.fields['days_to'].required = False  # Not required
 
         # Generate the HTML table to display existing LateFeeMaster records
@@ -795,7 +844,6 @@ class LateFeeMasterForm(forms.ModelForm):
             <table style='border: 1px solid #ddd; width: 100%; border-collapse: collapse;'>
                 <thead>
                     <tr>
-                        <th style='border: 1px solid #ddd; padding: 8px;'>Late Fee ID</th>
                         <th style='border: 1px solid #ddd; padding: 8px;'>Days From</th>
                         <th style='border: 1px solid #ddd; padding: 8px;'>Days To</th>
                         <th style='border: 1px solid #ddd; padding: 8px;'>Late Fee</th>
@@ -809,7 +857,6 @@ class LateFeeMasterForm(forms.ModelForm):
         for record in records:
             listing_html += f"""
                 <tr>
-                    <td style='border: 1px solid #ddd; padding: 8px;'>{record.latefee_id}</td>
                     <td style='border: 1px solid #ddd; padding: 8px;'>{record.days_from}</td>
                     <td style='border: 1px solid #ddd; padding: 8px;'>{record.days_to}</td>
                     <td style='border: 1px solid #ddd; padding: 8px;'>{record.latefee}</td>
@@ -826,28 +873,6 @@ class LateFeeMasterForm(forms.ModelForm):
         # Assign the marked-safe HTML to the custom form field
         self.fields['listing'].initial = mark_safe(listing_html)
 
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-        
-    #     # Get all existing ranges as integers, ignoring non-numeric values
-    #     existing_ranges = latefee_master.objects.exclude(days_from='').exclude(days_from=None).exclude(days_to='').exclude(days_to=None).values_list('days_from', 'days_to')
-    #     excluded_days = set()
-        
-    #     # Calculate excluded days only for numeric values
-    #     for r in existing_ranges:
-    #         try:
-    #             days_from = int(r[0])
-    #             days_to = int(r[1])
-    #             excluded_days.update(range(days_from, days_to + 1))
-    #         except ValueError:
-    #             # Skip non-numeric values
-    #             continue
-        
-    #     # Filter choices and convert to strings
-    #     available_choices = [(str(i), str(i)) for i in range(1, 91) if i not in excluded_days]
-        
-    #     self.fields['days_from'].choices = available_choices
-    #     self.fields['days_to'].choices = available_choices
 
 class LateFeeMasterDisplay(admin.ModelAdmin):
     form = LateFeeMasterForm
@@ -855,152 +880,767 @@ class LateFeeMasterDisplay(admin.ModelAdmin):
 
 admin.site.register(latefee_master, LateFeeMasterDisplay)
 
+# class LateFeeMasterForm(forms.ModelForm):
+#     listing = forms.CharField(widget=ReadOnlyCKEditorWidget(), required=False, label='')
+
+#     # Pay_In_Month_CHOICES with "Till Current Date" option and numeric values
+#     Pay_In_Month_CHOICES = [
+#         ('', 'Please Select Day'),
+#     ] + [(str(i), str(i)) for i in range(1, 91)] + [
+#         ('till current date', 'Till Current Date')
+#     ]
+
+#     days_from = forms.ChoiceField(choices=Pay_In_Month_CHOICES)
+#     days_to = forms.ChoiceField(choices=Pay_In_Month_CHOICES)
+    
+#     Latefee_Type_CHOICES = [
+#         ('', 'Select Type'),
+#         ('fixed', 'Fixed'),
+#         ('per day', 'Per Day'),
+#         ('no charge', 'No Charge'),
+#     ]
+
+#     latefee_type = forms.ChoiceField(choices=Latefee_Type_CHOICES)
+
+#     class Meta:
+#         model = latefee_master
+#         fields = '__all__'
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+        
+#         # Get the instance being edited
+#         instance = kwargs.get('instance')
+#         selected_days_from = instance.days_from if instance else None
+#         selected_days_to = instance.days_to if instance else None
+        
+#         # Exclude non-numeric values and get existing ranges
+#         existing_ranges = latefee_master.objects.exclude(days_from__in=['', None, 'till current date']).exclude(days_to__in=['', None, 'till current date']).values_list('days_from', 'days_to')
+        
+#         excluded_days = set()
+        
+#         # Calculate excluded days only for numeric values, but keep "90" always available
+#         for days_from, days_to in existing_ranges:
+#             if str(days_to) == "90":
+#                 continue  # Keep "90" available
+#             try:
+#                 excluded_days.update(range(int(days_from), int(days_to) + 1))
+#             except ValueError:
+#                 continue  # Skip non-numeric values
+
+#         # Include the currently selected days_from and days_to in the choices
+#         numeric_choices = [(str(i), str(i)) for i in range(1, 91) if i not in excluded_days or str(i) in (selected_days_from, selected_days_to)]
+#         available_choices = [
+#             ('', 'Please Select Day'),
+#         ] + numeric_choices + [
+#             ('till current date', 'Till Current Date')
+#         ]
+
+#         # Update choices for the form fields
+#         self.fields['days_from'].choices = available_choices
+#         self.fields['days_from'].initial = selected_days_from
+#         self.fields['days_from'].required = False  # Not required
+
+#         self.fields['days_to'].choices = available_choices
+#         self.fields['days_to'].initial = selected_days_to
+#         self.fields['days_to'].required = False  # Not required
+
+#         # Display existing late fees in a table
+#         listing_html = """
+#             <h3>Existing Late Fees</h3>
+#             <table style='border: 1px solid #ddd; width: 100%; border-collapse: collapse;'>
+#                 <tr>
+#                     <th>Days From</th>
+#                     <th>Days To</th>
+#                     <th>Late Fee</th>
+#                     <th>Type</th>
+#                     <th>Description</th>
+#                 </tr>
+#         """
+#         # Query existing records for display in listing
+#         for latefee in latefee_master.objects.all():
+#             listing_html += f"""
+#                 <tr>
+#                     <td>{latefee.days_from}</td>
+#                     <td>{latefee.days_to}</td>
+#                     <td>{latefee.latefee}</td>
+#                     <td>{latefee.latefee_type}</td>
+#                     <td>{latefee.latefee_desc}</td>
+#                 </tr>
+#             """
+        
+#         listing_html += "</table>"
+
+#         # Assign the marked-safe HTML to the custom form field
+#         self.fields['listing'].initial = mark_safe(listing_html)
+
+
+# class LateFeeMasterDisplay(admin.ModelAdmin):
+#     form = LateFeeMasterForm
+#     list_display = ("days_from", "days_to", "latefee", "latefee_type", "latefee_desc")
+
+# admin.site.register(latefee_master, LateFeeMasterDisplay)
+
+
+
+# class LateFeeMasterForm(forms.ModelForm):
+#     listing = forms.CharField(widget=ReadOnlyCKEditorWidget(), required=False, label='')
+
+#     # Pay_In_Month_CHOICES with "Till Current Date" option and numeric values
+#     Pay_In_Month_CHOICES = [
+#         ('', 'Please Select Day'),
+#     ] + [(str(i), str(i)) for i in range(1, 91)] + [
+#         ('till current date', 'Till Current Date')
+#     ]
+
+#     days_from = forms.ChoiceField(choices=Pay_In_Month_CHOICES)
+#     days_to = forms.ChoiceField(choices=Pay_In_Month_CHOICES)
+
+#     Latefee_Type_CHOICES = [
+#         ('', 'Select Type'),
+#         ('fixed', 'Fixed'),
+#         ('per day', 'Per Day'),
+#         ('no charge', 'No Charge'),
+#     ]
+
+#     latefee_type = forms.ChoiceField(choices=Latefee_Type_CHOICES)
+
+#     class Meta:
+#         model = latefee_master
+#         fields = '__all__'
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+
+#         # Get the instance being edited
+#         instance = kwargs.get('instance')
+#         selected_days_from = int(instance.days_from) if instance and instance.days_from.isdigit() else None
+#         selected_days_to = int(instance.days_to) if instance and instance.days_to.isdigit() else None
+
+#         # Exclude non-numeric values and get existing ranges
+#         existing_ranges = latefee_master.objects.exclude(days_from__in=['', None, 'till current date']).exclude(days_to__in=['', None, 'till current date']).values_list('days_from', 'days_to')
+
+#         excluded_days = set()
+        
+#         # Calculate excluded days based on existing records' ranges
+#         for days_from, days_to in existing_ranges:
+#             if str(days_to) == "90":
+#                 continue  # Keep "90" available
+#             try:
+#                 excluded_days.update(range(int(days_from), int(days_to) + 1))
+#             except ValueError:
+#                 continue  # Skip non-numeric values
+        
+#         # Include the currently selected range only for numeric choices
+#         if selected_days_from is not None and selected_days_to is not None:
+#             numeric_choices = [(str(i), str(i)) for i in range(selected_days_from, selected_days_to + 1) if i not in excluded_days or str(i) in (str(selected_days_from), str(selected_days_to))]
+#         else:
+#             numeric_choices = [(str(i), str(i)) for i in range(1, 91) if i not in excluded_days]
+
+#         available_choices = [
+#             ('', 'Please Select Day'),
+#         ] + numeric_choices + [
+#             ('till current date', 'Till Current Date')
+#         ]
+
+#         # Update choices for the form fields
+#         self.fields['days_from'].choices = available_choices
+#         self.fields['days_from'].initial = str(selected_days_from) if selected_days_from else ''
+#         self.fields['days_from'].required = False  # Not required
+
+#         self.fields['days_to'].choices = available_choices
+#         self.fields['days_to'].initial = str(selected_days_to) if selected_days_to else ''
+#         self.fields['days_to'].required = False  # Not required
+
+#         # Display existing late fees in a table
+#         listing_html = """
+#             <h3>Existing Late Fees</h3>
+#             <table style='border: 1px solid #ddd; width: 100%; border-collapse: collapse;'>
+#                 <tr>
+#                     <th>Days From</th>
+#                     <th>Days To</th>
+#                     <th>Late Fee</th>
+#                     <th>Type</th>
+#                     <th>Description</th>
+#                 </tr>
+#         """
+#         # Query existing records for display in listing
+#         for latefee in latefee_master.objects.all():
+#             listing_html += f"""
+#                 <tr>
+#                     <td>{latefee.days_from}</td>
+#                     <td>{latefee.days_to}</td>
+#                     <td>{latefee.latefee}</td>
+#                     <td>{latefee.latefee_type}</td>
+#                     <td>{latefee.latefee_desc}</td>
+#                 </tr>
+#             """
+        
+#         listing_html += "</table>"
+
+#         # Assign the marked-safe HTML to the custom form field
+#         self.fields['listing'].initial = mark_safe(listing_html)
+
+
+# class LateFeeMasterDisplay(admin.ModelAdmin):
+#     form = LateFeeMasterForm
+#     list_display = ("days_from", "days_to", "latefee", "latefee_type", "latefee_desc")
+
+# admin.site.register(latefee_master, LateFeeMasterDisplay)
+
+
+
+# class LateFeeMasterForm(forms.ModelForm):
+#     listing = forms.CharField(widget=ReadOnlyCKEditorWidget(), required=False, label='')
+
+#     # Pay_In_Month_CHOICES with "Till Current Date" option and numeric values
+#     Pay_In_Month_CHOICES = [
+#         ('', 'Please Select Day'),
+#     ] + [(str(i), str(i)) for i in range(1, 91)] + [
+#         ('till current date', 'Till Current Date')
+#     ]
+
+#     days_from = forms.ChoiceField(choices=Pay_In_Month_CHOICES)
+#     days_to = forms.ChoiceField(choices=Pay_In_Month_CHOICES)
+
+#     Latefee_Type_CHOICES = [
+#         ('', 'Select Type'),
+#         ('fixed', 'Fixed'),
+#         ('per day', 'Per Day'),
+#         ('no charge', 'No Charge'),
+#     ]
+
+#     latefee_type = forms.ChoiceField(choices=Latefee_Type_CHOICES)
+
+#     class Meta:
+#         model = latefee_master
+#         fields = '__all__'
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+
+#         # Get the instance being edited
+#         instance = kwargs.get('instance')
+#         selected_days_from = int(instance.days_from) if instance and instance.days_from.isdigit() else None
+#         selected_days_to = int(instance.days_to) if instance and instance.days_to.isdigit() else None
+
+#         # Exclude non-numeric values and get existing ranges
+#         existing_ranges = latefee_master.objects.exclude(
+#             days_from__in=['', None, 'till current date']
+#         ).exclude(
+#             days_to__in=['', None, 'till current date']
+#         ).values_list('days_from', 'days_to')
+
+#         excluded_days = set()
+
+#         # Calculate excluded days based on existing records' ranges
+#         for days_from, days_to in existing_ranges:
+#             if str(days_to) == "90":
+#                 continue  # Keep "90" available
+#             try:
+#                 excluded_days.update(range(int(days_from), int(days_to) + 1))
+#             except ValueError:
+#                 continue  # Skip non-numeric values
+
+#         # Define available numeric choices for the form fields
+#         if selected_days_from is not None and selected_days_to is not None:
+#             # If editing, restrict the choices to the selected range (days_from to days_to)
+#             numeric_choices = [(str(i), str(i)) for i in range(selected_days_from, selected_days_to + 1)]
+
+#             available_choices = [
+#                 ('', 'Please Select Day'),
+#             ] + numeric_choices
+
+#         else:
+#             # If not editing, exclude the existing ranges
+#             numeric_choices = [(str(i), str(i)) for i in range(1, 91) if i not in excluded_days]
+
+#             available_choices = [
+#                 ('', 'Please Select Day'),
+#             ] + numeric_choices + [
+#                 ('till current date', 'Till Current Date')
+#             ]
+
+#         # Update choices for the form fields
+#         self.fields['days_from'].choices = available_choices
+#         self.fields['days_from'].initial = str(selected_days_from) if selected_days_from else ''
+#         self.fields['days_from'].required = False  # Not required
+
+#         self.fields['days_to'].choices = available_choices
+#         self.fields['days_to'].initial = str(selected_days_to) if selected_days_to else ''
+#         self.fields['days_to'].required = False  # Not required
+
+#         # Display existing late fees in a table
+#         listing_html = """
+#             <h3>Existing Late Fees</h3>
+#             <table style='border: 1px solid #ddd; width: 100%; border-collapse: collapse;'>
+#                 <tr>
+#                     <th>Days From</th>
+#                     <th>Days To</th>
+#                     <th>Late Fee</th>
+#                     <th>Type</th>
+#                     <th>Description</th>
+#                 </tr>
+#         """
+#         # Query existing records for display in listing
+#         for latefee in latefee_master.objects.all():
+#             listing_html += f"""
+#                 <tr>
+#                     <td>{latefee.days_from}</td>
+#                     <td>{latefee.days_to}</td>
+#                     <td>{latefee.latefee}</td>
+#                     <td>{latefee.latefee_type}</td>
+#                     <td>{latefee.latefee_desc}</td>
+#                 </tr>
+#             """
+        
+#         listing_html += "</table>"
+
+#         # Assign the marked-safe HTML to the custom form field
+#         self.fields['listing'].initial = mark_safe(listing_html)
+
+
+# class LateFeeMasterDisplay(admin.ModelAdmin):
+#     form = LateFeeMasterForm
+#     list_display = ("days_from", "days_to", "latefee", "latefee_type", "latefee_desc")
+
+# admin.site.register(latefee_master, LateFeeMasterDisplay)
+
+
+
+# class LateFeeMasterForm(forms.ModelForm):
+#     listing = forms.CharField(widget=ReadOnlyCKEditorWidget(), required=False, label='')
+
+#     # Pay_In_Month_CHOICES with "Till Current Date" option and numeric values
+#     Pay_In_Month_CHOICES = [
+#         ('', 'Please Select Day'),
+#     ] + [(str(i), str(i)) for i in range(1, 91)] + [
+#         ('till current date', 'Till Current Date')
+#     ]
+
+#     days_from = forms.ChoiceField(choices=Pay_In_Month_CHOICES)
+#     days_to = forms.ChoiceField(choices=Pay_In_Month_CHOICES)
+
+#     Latefee_Type_CHOICES = [
+#         ('', 'Select Type'),
+#         ('fixed', 'Fixed'),
+#         ('per day', 'Per Day'),
+#         ('no charge', 'No Charge'),
+#     ]
+
+#     latefee_type = forms.ChoiceField(choices=Latefee_Type_CHOICES)
+
+#     class Meta:
+#         model = latefee_master
+#         fields = '__all__'
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+
+#         # Get the instance being edited
+#         instance = kwargs.get('instance')
+#         selected_days_from = int(instance.days_from) if instance and instance.days_from.isdigit() else None
+#         selected_days_to = int(instance.days_to) if instance and instance.days_to.isdigit() else None
+
+#         # Exclude non-numeric values and get existing ranges
+#         existing_ranges = latefee_master.objects.exclude(
+#             days_from__in=['', None, 'till current date']
+#         ).exclude(
+#             days_to__in=['', None, 'till current date']
+#         ).values_list('days_from', 'days_to')
+
+#         excluded_days = set()
+
+#         # Calculate excluded days based on existing records' ranges
+#         for days_from, days_to in existing_ranges:
+#             if str(days_to) == "90":
+#                 continue  # Always allow 90 and "Till Current Date" to be available
+#             try:
+#                 excluded_days.update(range(int(days_from), int(days_to) + 1))
+#             except ValueError:
+#                 continue  # Skip non-numeric values
+
+#         # Define available numeric choices for the form fields
+#         if selected_days_from is not None and selected_days_to is not None:
+#             # If editing, restrict the choices to the selected range (days_from to days_to)
+#             numeric_choices = [(str(i), str(i)) for i in range(selected_days_from, selected_days_to + 1)]
+#         else:
+#             # If not editing, exclude the existing ranges but keep "90" and "Till Current Date" available
+#             numeric_choices = [(str(i), str(i)) for i in range(1, 91) if i not in excluded_days or i == 90]
+
+#         available_choices = [
+#             ('', 'Please Select Day'),
+#         ] + numeric_choices + [
+#             ('till current date', 'Till Current Date')
+#         ]
+
+#         # Update choices for the form fields
+#         self.fields['days_from'].choices = available_choices
+#         self.fields['days_from'].initial = str(selected_days_from) if selected_days_from else ''
+#         self.fields['days_from'].required = False  # Not required
+
+#         self.fields['days_to'].choices = available_choices
+#         self.fields['days_to'].initial = str(selected_days_to) if selected_days_to else ''
+#         self.fields['days_to'].required = False  # Not required
+
+#         # Display existing late fees in a table
+#         listing_html = """
+#             <h3>Existing Late Fees</h3>
+#             <table style='border: 1px solid #ddd; width: 100%; border-collapse: collapse;'>
+#                 <tr>
+#                     <th>Days From</th>
+#                     <th>Days To</th>
+#                     <th>Late Fee</th>
+#                     <th>Type</th>
+#                     <th>Description</th>
+#                 </tr>
+#         """
+#         # Query existing records for display in listing
+#         for latefee in latefee_master.objects.all():
+#             listing_html += f"""
+#                 <tr>
+#                     <td>{latefee.days_from}</td>
+#                     <td>{latefee.days_to}</td>
+#                     <td>{latefee.latefee}</td>
+#                     <td>{latefee.latefee_type}</td>
+#                     <td>{latefee.latefee_desc}</td>
+#                 </tr>
+#             """
+        
+#         listing_html += "</table>"
+
+#         # Assign the marked-safe HTML to the custom form field
+#         self.fields['listing'].initial = mark_safe(listing_html)
+
+
+# class LateFeeMasterDisplay(admin.ModelAdmin):
+#     form = LateFeeMasterForm
+#     list_display = ("days_from", "days_to", "latefee", "latefee_type", "latefee_desc")
+
+# admin.site.register(latefee_master, LateFeeMasterDisplay)
+
+
 
 # admin.site.register(latefee_master)
 
 
-class PaymentScheduleMasterForm(forms.ModelForm):
+# class PaymentScheduleMasterForm(forms.ModelForm):
 
-    schedule_list = forms.CharField(widget=ReadOnlyCKEditorWidget(), required=False, label='Existing Payment Schedules')
+#     schedule_list = forms.CharField(widget=ReadOnlyCKEditorWidget(), required=False, label='')
     
+#     fees_for_months = forms.MultipleChoiceField(
+#         choices=payment_schedule_master.Fees_For_Month_CHOICES,
+#     )
+
+#     Pay_In_Month_CHOICES = [
+#         ('', 'Choose The Month'),
+#         ('1', '1'),
+#         ('2', '2'),
+#         ('3', '3'),
+#         ('4', '4'),
+#         ('5', '5'),
+#         ('6', '6'),
+#         ('7', '7'),
+#         ('8', '8'),
+#         ('9', '9'),
+#         ('10', '10'),
+#         ('11', '11'),
+#         ('12', '12')
+#     ]
+   
+#     pay_in_month = forms.ChoiceField(
+#         choices=Pay_In_Month_CHOICES,
+#         # widget=forms.RadioSelect,
+#         label="Pay In Month *",
+#     )
+
+#     Payment_Date_CHOICES = [
+#         ('', 'Choose The Date'),
+#         ('01', '01'),
+#         ('02', '02'),
+#         ('03', '03'),
+#         ('04', '04'),
+#         ('05', '05'),
+#         ('06', '06'),
+#         ('07', '07'),
+#         ('08', '08'),
+#         ('09', '09'),
+#         ('10', '10'),
+#         ('11', '11'),
+#         ('12', '12'),
+#         ('13', '13'),
+#         ('14', '14'),
+#         ('15', '15'),
+#         ('16', '16'),
+#         ('17', '17'),
+#         ('18', '18'),
+#         ('19', '19'),
+#         ('20', '20'),
+#         ('21', '21'),
+#         ('22', '22'),
+#         ('23', '23'),
+#         ('24', '24'),
+#         ('25', '25'),
+#         ('26', '26'),
+#         ('27', '27'),
+#         ('28', '28'),
+#         ('29', '29'),
+#         ('30', '30'),
+#         ('31', '31'),
+#     ]
+   
+#     payment_date = forms.ChoiceField(
+#         choices=Payment_Date_CHOICES,
+#         # widget=forms.RadioSelect,
+#         label="Payment Date *",
+#     )
+
+   
+
+#     class Meta:
+#         model = payment_schedule_master
+#         fields = '__all__'
+
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         instance = kwargs.get('instance')
+
+#         schedules = payment_schedule_master.objects.all()
+#         schedule_list_html = """
+#             <h3>Existing Payment Schedules</h3>
+#             <table style='border: 1px solid #ddd; width: 100%; border-collapse: collapse;'>
+#                 <thead>
+#                     <tr>
+#                         <th style='border: 1px solid #ddd; padding: 8px;'>Schedule ID</th>
+#                         <th style='border: 1px solid #ddd; padding: 8px;'>Fees for Months</th>
+#                         <th style='border: 1px solid #ddd; padding: 8px;'>Pay in Month</th>
+#                         <th style='border: 1px solid #ddd; padding: 8px;'>Payment Date</th>
+#                     </tr>
+#                 </thead>
+#                 <tbody>
+#         """
+        
+#         for schedule in schedules:
+#             schedule_list_html += f"""
+#                 <tr>
+#                     <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.schedule_id}</td>
+#                     <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.fees_for_months}</td>
+#                     <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.pay_in_month}</td>
+#                     <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.payment_date}</td>
+#                 </tr>
+#             """
+
+#         schedule_list_html += """
+#                 </tbody>
+#             </table>
+#         """
+
+#         # Assign the marked-safe HTML to the custom form field
+#         self.fields['schedule_list'].initial = mark_safe(schedule_list_html)
+
+#         # Gather all used months from other records
+#         used_months = set()
+#         all_schedules = payment_schedule_master.objects.all()
+
+#         if instance:
+#             all_schedules = all_schedules.exclude(pk=instance.pk)
+#             # Add the selected months of the current instance to the used months set
+#             current_months = set(instance.fees_for_months.split(','))
+#         else:
+#             current_months = set()
+
+#         for schedule in all_schedules:
+#             used_months.update(schedule.fees_for_months.split(','))
+
+#         # The available choices should include the months used by this instance + months not used by other records
+#         available_choices = [
+#             (value, label) for value, label in self.fields['fees_for_months'].choices 
+#             if value in current_months or value not in used_months
+#         ]
+#         self.fields['fees_for_months'].choices = available_choices
+#         self.fields['fees_for_months'].initial = list(current_months)
+    
+#     def clean_fees_for_months(self):
+#         selected_months = self.cleaned_data['fees_for_months']
+#         # Convert the list of selected months into a comma-separated string
+#         return ','.join(selected_months)
+    
+    
+
+# class PaymentScheduleMasterAdmin(admin.ModelAdmin):
+#     form = PaymentScheduleMasterForm
+#     list_display = ("fees_for_months", "pay_in_month", "payment_date")
+#     search_fields = ("fees_for_months", "pay_in_month", "payment_date")
+#     def get_form(self, request, obj=None, **kwargs):
+#         form = super().get_form(request, obj, **kwargs)
+#         return form
+
+
+# admin.site.register(payment_schedule_master, PaymentScheduleMasterAdmin)
+
+# another method
+
+# class PaymentScheduleMasterForm(forms.ModelForm):
+#     schedule_list = forms.CharField(widget=ReadOnlyCKEditorWidget(), required=False, label='')
+    
+#     fees_for_months = forms.MultipleChoiceField(
+#         choices=payment_schedule_master.Fees_For_Month_CHOICES,
+#     )
+
+#     Pay_In_Month_CHOICES = [
+#         ('', 'Choose The Month'),
+#         ('1', '1'),
+#     ]
+   
+#     pay_in_month = forms.ChoiceField(
+#         choices=Pay_In_Month_CHOICES,
+#         label="Pay In Month *",
+#     )
+
+#     Payment_Date_CHOICES = [
+#         ('', 'Choose The Date'),
+#         ('01', '01'),
+#     ]
+   
+#     payment_date = forms.ChoiceField(
+#         choices=Payment_Date_CHOICES,
+#         label="Payment Date *",
+#     )
+
+#     class Meta:
+#         model = payment_schedule_master
+#         fields = '__all__'
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         instance = kwargs.get('instance')
+
+#         # Display a custom HTML block for the schedule list
+#         schedule_list_html = """
+#             <h3>Existing Payment Schedules</h3>
+#         """
+#         self.fields['schedule_list'].initial = mark_safe(schedule_list_html)
+
+#         # Gather all used months from other records (excluding the current record if in edit mode)
+#         used_months = set()
+#         all_schedules = payment_schedule_master.objects.all()
+
+#         # If in edit mode, exclude the current instance from the used months
+#         current_months = set()
+#         if instance:
+#             all_schedules = all_schedules.exclude(pk=instance.pk)
+#             current_months = set(instance.fees_for_months.split(','))
+
+#         # Collect months used by other records
+#         for schedule in all_schedules:
+#             used_months.update(schedule.fees_for_months.split(','))
+
+#         # The available choices should include the months used by this instance + months not used by other records
+#         available_choices = [
+#             (value, label) for value, label in self.fields['fees_for_months'].choices
+#             if value in current_months or value not in used_months
+#         ]
+
+#         # Set the available choices for the 'fees_for_months' field
+#         self.fields['fees_for_months'].choices = available_choices
+#         self.fields['fees_for_months'].initial = list(current_months)  # Set initial value to the current record's months
+
+#     def clean_fees_for_months(self):
+#         selected_months = self.cleaned_data['fees_for_months']
+#         # Convert the list of selected months into a comma-separated string for storage
+#         return ','.join(selected_months)
+    
+class PaymentScheduleMasterForm(forms.ModelForm):
+    schedule_list = forms.CharField(widget=ReadOnlyCKEditorWidget(), required=False, label='')
+
     fees_for_months = forms.MultipleChoiceField(
         choices=payment_schedule_master.Fees_For_Month_CHOICES,
     )
+    # fees_for_months = forms.CharField(
+    #     widget=forms.CheckboxSelectMultiple(choices=payment_schedule_master.Fees_For_Month_CHOICES),
+    #     required=False,
+    # )
+    # fees_for_months = forms.MultipleChoiceField(
+    #     choices=payment_schedule_master.Fees_For_Month_CHOICES,
+    #     widget=forms.CheckboxSelectMultiple,  # Use CheckboxSelectMultiple widget
+    #     required=False,
+    # )
+
 
     Pay_In_Month_CHOICES = [
         ('', 'Choose The Month'),
         ('1', '1'),
-        ('2', '2'),
-        ('3', '3'),
-        ('4', '4'),
-        ('5', '5'),
-        ('6', '6'),
-        ('7', '7'),
-        ('8', '8'),
-        ('9', '9'),
-        ('10', '10'),
-        ('11', '11'),
-        ('12', '12')
     ]
    
     pay_in_month = forms.ChoiceField(
         choices=Pay_In_Month_CHOICES,
-        # widget=forms.RadioSelect,
         label="Pay In Month *",
     )
 
     Payment_Date_CHOICES = [
         ('', 'Choose The Date'),
         ('01', '01'),
-        ('02', '02'),
-        ('03', '03'),
-        ('04', '04'),
-        ('05', '05'),
-        ('06', '06'),
-        ('07', '07'),
-        ('08', '08'),
-        ('09', '09'),
-        ('10', '10'),
-        ('11', '11'),
-        ('12', '12'),
-        ('13', '13'),
-        ('14', '14'),
-        ('15', '15'),
-        ('16', '16'),
-        ('17', '17'),
-        ('18', '18'),
-        ('19', '19'),
-        ('20', '20'),
-        ('21', '21'),
-        ('22', '22'),
-        ('23', '23'),
-        ('24', '24'),
-        ('25', '25'),
-        ('26', '26'),
-        ('27', '27'),
-        ('28', '28'),
-        ('29', '29'),
-        ('30', '30'),
-        ('31', '31'),
     ]
    
     payment_date = forms.ChoiceField(
         choices=Payment_Date_CHOICES,
-        # widget=forms.RadioSelect,
         label="Payment Date *",
     )
-
-   
 
     class Meta:
         model = payment_schedule_master
         fields = '__all__'
 
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         instance = kwargs.get('instance')
 
-        schedules = payment_schedule_master.objects.all()
+        # Display a custom HTML block for the schedule list
         schedule_list_html = """
             <h3>Existing Payment Schedules</h3>
-            <table style='border: 1px solid #ddd; width: 100%; border-collapse: collapse;'>
-                <thead>
-                    <tr>
-                        <th style='border: 1px solid #ddd; padding: 8px;'>Schedule ID</th>
-                        <th style='border: 1px solid #ddd; padding: 8px;'>Fees for Months</th>
-                        <th style='border: 1px solid #ddd; padding: 8px;'>Pay in Month</th>
-                        <th style='border: 1px solid #ddd; padding: 8px;'>Payment Date</th>
-                    </tr>
-                </thead>
-                <tbody>
         """
-        
-        for schedule in schedules:
-            schedule_list_html += f"""
-                <tr>
-                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.schedule_id}</td>
-                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.fees_for_months}</td>
-                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.pay_in_month}</td>
-                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.payment_date}</td>
-                </tr>
-            """
-
-        schedule_list_html += """
-                </tbody>
-            </table>
-        """
-
-        # Assign the marked-safe HTML to the custom form field
         self.fields['schedule_list'].initial = mark_safe(schedule_list_html)
 
-        # Gather all used months from other records
+        # Gather all months used by other records (excluding the current instance's months)
         used_months = set()
+        current_months = set()
+
+        # Collect months used by other records
         all_schedules = payment_schedule_master.objects.all()
-
+        # print('instance.fees_for_months',type(instance.fees_for_months))
         if instance:
+            # Exclude the current instance if in edit mode
             all_schedules = all_schedules.exclude(pk=instance.pk)
-            # Add the selected months of the current instance to the used months set
+            # Include the current record's months to keep them selectable
             current_months = set(instance.fees_for_months.split(','))
-        else:
-            current_months = set()
+            # current_months = ','.join(current_months)
+             # Sort the current months in ascending order
+            current_months = sorted(current_months, key=lambda x: int(x))
 
+        print('current_months',(current_months))
+
+        # Collect months from all other records
         for schedule in all_schedules:
             used_months.update(schedule.fees_for_months.split(','))
 
-        # The available choices should include the months used by this instance + months not used by other records
+        # Ensure the current record's months remain in the selectable list and filter out used months
         available_choices = [
-            (value, label) for value, label in self.fields['fees_for_months'].choices 
+            (value, label) for value, label in self.fields['fees_for_months'].choices
             if value in current_months or value not in used_months
         ]
+
+        # Set the available choices for the 'fees_for_months' field
         self.fields['fees_for_months'].choices = available_choices
-    
+
+        # Set the initial values for 'fees_for_months' to the current record's months
+        self.fields['fees_for_months'].initial = (current_months)
+
     def clean_fees_for_months(self):
         selected_months = self.cleaned_data['fees_for_months']
-        # Convert the list of selected months into a comma-separated string
+        # Convert the list of selected months into a comma-separated string for storage
         return ','.join(selected_months)
-    
-    
+
 
 class PaymentScheduleMasterAdmin(admin.ModelAdmin):
     form = PaymentScheduleMasterForm
@@ -1010,11 +1650,10 @@ class PaymentScheduleMasterAdmin(admin.ModelAdmin):
         form = super().get_form(request, obj, **kwargs)
         return form
 
-    
-
-
 
 admin.site.register(payment_schedule_master, PaymentScheduleMasterAdmin)
+
+
 
 # admin.site.register(payment_schedule_master)
 
@@ -1328,7 +1967,7 @@ class StudentFeesAdminForm(forms.ModelForm):
     display_father_name = forms.CharField(required=False, label="Father Name", widget=forms.TextInput(attrs={'readonly': 'readonly'}))
     display_student_class = forms.CharField(required=False, label="Student Class", widget=forms.TextInput(attrs={'readonly': 'readonly'}))
     display_student_section = forms.CharField(required=False, label="Student Section", widget=forms.TextInput(attrs={'readonly': 'readonly'}))
-    display_year = forms.ChoiceField(
+    started_on = forms.ChoiceField(
         choices=[(str(year), str(year)) for year in range(current_year - 1, current_year + 2)],
         required=False, 
         label="Year", 
@@ -1343,14 +1982,27 @@ class StudentFeesAdminForm(forms.ModelForm):
         choices=FEE_MONTHS_CHOICES,  # Populate with dynamic data if needed
         required=False,
         label="Fees for Months",
-        widget=forms.SelectMultiple(attrs={'style': 'width:165px', 'id': 'id_fees_for_months'})
+        widget=forms.SelectMultiple(attrs={'style': 'width:150px', 'id': 'id_fees_for_months'})
     )
-    
+    Month_CHOICES = [
+        ('1', '1'),
+        ('2', '2'),
+        ('3', '3'),
+        ('4', '4'),
+        ('5', '5'),
+        ('6', '6'),
+        ('7', '7'),
+        ('8', '8'),
+        ('9', '9'),
+        ('10', '10'),
+        ('11', '11'),
+        ('12', '12')
+    ]
     fees_period_month = forms.MultipleChoiceField(
-        choices=[],  # Initially empty, will be populated by JavaScript
+        choices=[(int(month[0]), int(month[1])) for month in Month_CHOICES],
         required=False,
         label="Fees Period Month",
-        widget=forms.SelectMultiple(attrs={'style': 'width:160px; height:50px','id': 'id_fees_period_month'})
+        widget=forms.SelectMultiple(attrs={'style': 'width:150px;','id': 'id_fees_period_month'})
     )
     annual_fees_paid = forms.DecimalField(label="Annual Fees Paid", required=False)
     tuition_fees_paid = forms.DecimalField(label="Tuition Fees Paid", required=False)
@@ -1381,18 +2033,21 @@ class StudentFeesAdminForm(forms.ModelForm):
      # Previous Fees Record
     previous_fees_record = forms.CharField(widget=forms.HiddenInput(), required=False)  # This can be a hidden input for custom HTML rendering
 
-    class Media:
-        js = ('app/js/student_fees.js',)  # Adjust the path as necessary
-        css = {
-            'all': ('app/css/custom_admin.css',)  # Add your custom CSS file here
-        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         print("======= I'M HERE ===========")
 
-        self.fields['search_results'].queryset = student_master.objects.none()
+        # Set the field to not required if needed
+        # self.fields['fees_period_month'].required = False  # Ensure the field is optional
+        # Populate fees_period_month with dynamic choices if needed
+        # self.fields['fees_period_month'].choices = MONTH_CHOICES
+
+        # Fetch the initial data for update case
+        selected_months = self.instance.fees_period_month.split(', ')
+        self.fields['fees_period_month'].initial = selected_months
+    
 
         # Calculate the current quarter based on the current month
         current_month = datetime.now().month
@@ -1405,14 +2060,19 @@ class StudentFeesAdminForm(forms.ModelForm):
         else:
             default_quarter = '1,2,3'  # January - March
 
-        # Set the default value for fees_for_months
+         # Set the default value for fees_for_months
         self.fields['fees_for_months'].initial = default_quarter
+        print(default_quarter)
 
-        
+        initial_values = self.instance.fees_period_month.split(', ') if self.instance.fees_period_month else []
+        self.fields['fees_period_month'].initial = [10]
+        print(initial_values)
+
+
         if self.instance and self.instance.pk:
 
             # Assuming 'student_id' is being passed in the form data
-            student_id  = student_master.objects.get(pk=student_id)
+            student_id = self.instance.student_id
 
             # Print the value and type of student_id
             # logger.debug(f"Student ID: {student_id}, Type: {type(student_id)}")
@@ -1423,34 +2083,111 @@ class StudentFeesAdminForm(forms.ModelForm):
             self.fields['section'].widget = forms.HiddenInput()
             self.fields['search_results'].widget = forms.HiddenInput()
 
+            # Pre-select the values in fees_period_month
+            if self.instance.fees_period_month:
+                initial_values = self.instance.fees_period_month.split(', ')  # Split by comma
+                print("initial_values", initial_values)
+                self.fields['fees_period_month'].initial = initial_values  # Set the initial values
             
             if student_id:
-
+                
                 student = student_master.objects.get(student_id=student_id)
-                self.fields['display_admission_no'].initial = student.admission_no
+                student_classes = student_class.objects.filter(student_id=student_id).order_by('-started_on').first()
+                self.fields['display_admission_no'].initial = student.addmission_no
                 self.fields['display_student_name'].initial = student.student_name
                 self.fields['display_father_name'].initial = student.father_name
-                self.fields['display_student_class'].initial = student.student_class
-                self.fields['display_student_section'].initial = student.student_section
-                self.fields['display_year'].initial = student.selected_year
+                self.fields['display_student_class'].initial = student_classes.class_no
+                self.fields['display_student_section'].initial = student_classes.section
+                self.fields['started_on'].initial = student_classes.started_on.strftime('%Y')
 
                 # Set hidden student_id value
                 self.fields['student_id'].initial = student_id
 
-                
+        # Populate pre-selected values when the form is submitted
+        if self.is_bound:
+            submitted_fees_period_month = self.data.getlist('fees_period_month')
+            print("submitted_fees_period_month", submitted_fees_period_month)
+            self.fields['fees_period_month'].initial = submitted_fees_period_month  # Ensure submitted values are used      
 
         if self.is_bound and self.data.get('search_results'):
             student_id = self.data.get('search_results')
             if student_id:
                 self.fields['search_results'].queryset = student_master.objects.filter(student_id=student_id)
 
+    class Media:
+        js = ('app/js/student_fees.js',)  # Adjust the path as necessary
+        css = {
+            'all': ('app/css/custom_admin.css',)  # Add your custom CSS file here
+        }
+
 class StudentFeesAdmin(admin.ModelAdmin):
 
-    
-    
     form = StudentFeesAdminForm
+    
+    # Fields to display in the list view
+    list_display = (
+        'student_fee_id',
+        'student_id',
+        'student_class',
+        'student_section',
+        'fees_for_months',
+        'fees_period_month',
+        'year',
+        'bus_id',
+        'annual_fees_paid',
+        'tuition_fees_paid',
+        'funds_fees_paid',
+        'sports_fees_paid',
+        'activity_fees',
+        'admission_fees_paid',
+        'security_paid',
+        'late_fees_paid',
+        'dayboarding_fees_paid',
+        'miscellaneous_fees_paid',
+        'bus_fees_paid',
+        'date_payment',
+        'payment_mode',
+        'cheq_no',
+        'bank_name',
+        'concession_applied',
+        'concession_type_id',
+        'total_amount',
+        'amount_paid',
+        'processing_fees_paid',
+        'txn_ref_number',
+        'isdefault',
+        'entry_date',
+        'cheque_status',
+        'realized_date',
+        'branch_name',
+        'remarks',
+        'txn_id',
+        'txn_response_code',
+        'txn_payment_mode',
+        'receipt_url',
+        'added_by',
+        'added_at',
+        'edited_by',
+        'edited_at',
+    )
+    
+    # Fields to search in the search bar
+    search_fields = (
+        'student_fee_id',
+        'student_id__student_id',  # Assuming there's a 'student_id' field in student_master model
+        'student_class',
+        'fees_for_months',
+        'fees_period_month',
+        'year',
+        'date_payment',
+        'total_amount',
+        'amount_paid',
+        'receipt_url',
+        'added_by'
+    )
 
     fieldsets = (
+        # Section 1: Search and Previous Fees
         ('Search Student', {
             'fields': (
                 'student_name',
@@ -1459,12 +2196,14 @@ class StudentFeesAdmin(admin.ModelAdmin):
                 'section',
                 'search_button',
             ),
-            'classes': ('half-width-container',),  # Custom CSS class
+            'classes': ('half-width-container',),  # Custom CSS class for layout
         }),
         ('Previous Fees Record', {
             'fields': ('previous_fees_record',),
-            'classes': ('collapse',),  # Optional: to initially collapse the section
+            'classes': ('collapse',),  # Optional: initially collapsed
         }),
+
+        # Section 2: Student Details, Fees, and Payment
         ('Selected Student Details', {
             'fields': (
                 'display_admission_no',
@@ -1472,18 +2211,43 @@ class StudentFeesAdmin(admin.ModelAdmin):
                 'display_father_name',
                 'display_student_class',
                 'display_student_section',
-                'display_year',
+                'started_on',
                 'student_id',
             ),
-            'classes': ('half-width-container',),  # Custom CSS class
+            'classes': ('half-width-container',),  # Custom CSS class for layout
         }),
-         ('Fees Section', {
-            'fields': ('fees_for_months', 'fees_period_month', 'annual_fees_paid', 'tuition_fees_paid', 'funds_fees_paid', 'sports_fees_paid', 'activity_fees', 'admission_fees_paid', 'miscellaneous_fees_paid', 'late_fees_paid', 'dayboarding_fees_paid', 'bus_fees_paid', 'concession_type', 'concession_applied', 'total_amount'),
+        ('Fees Section', {
+            'fields': (
+                'fees_for_months',
+                'fees_period_month',
+                'annual_fees_paid',
+                'tuition_fees_paid',
+                'funds_fees_paid',
+                'sports_fees_paid',
+                'activity_fees',
+                'admission_fees_paid',
+                'miscellaneous_fees_paid',
+                'late_fees_paid',
+                'dayboarding_fees_paid',
+                'bus_fees_paid',
+                'concession_type',
+                'concession_applied',
+                'total_amount',
+            ),
         }),
         ('Payment Section', {
-            'fields': ('date_payment', 'payment_mode', 'cheque_no', 'bank_name', 'branch_name', 'amount_paid', 'realized_date', 'cheque_status', 'remarks')
+            'fields': (
+                'date_payment',
+                'payment_mode',
+                'cheque_no',
+                'bank_name',
+                'branch_name',
+                'amount_paid',
+                'realized_date',
+                'cheque_status',
+                'remarks',
+            ),
         }),
-         
     )
 
     # change_form_template = 'admin/student_fee/change_form.html'
@@ -1879,30 +2643,30 @@ class StudentFeesAdmin(admin.ModelAdmin):
     def action_payfees(self, request):
         fm = request.GET.get('fm')
         sid = request.GET.get('sid')
-        today = datetime.today().strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%Y-%m-%d")
         date = today.split("-")
 
         with connection.cursor() as cursor:
             # Query 1: Get payment schedule master data
             cursor.execute("SELECT * FROM payment_schedule_master WHERE fees_for_months = %s", [fm])
-            query = cursor.fetchone()
-            if query:
-                # Constructing the data string as you expect
-                data = f"{query[1]}${query[2]}${query[3]}"
-                payment_date = f"{date[0]}-{query[2]}-{query[3]}"
-            
+            if not (query := cursor.fetchone()):
+                return JsonResponse({"error": "Payment schedule not found"}, status=404)
+            # Constructing the data string as you expect
+            data = f"{query[1]}${query[2]}${query[3]}"
+            payment_date = f"{date[0]}-{query[2]}-{query[3]}"
+
                 # Calculate the date difference in days
-                now = int(time.mktime(datetime.today().timetuple()))
-                your_date = int(time.mktime(datetime.strptime(payment_date, "%Y-%m-%d").timetuple()))
-                days = (now - your_date) // (60 * 60 * 24)
+            now = int(time.mktime(datetime.now().timetuple()))
+            your_date = int(time.mktime(datetime.strptime(payment_date, "%Y-%m-%d").timetuple()))
+            days = (now - your_date) // (60 * 60 * 24)
 
-                # Query 2: Get late fee
-                cursor.execute("SELECT * FROM latefee_master WHERE days_from <= %s AND days_to >= %s", [days, days])
-                query1 = cursor.fetchone()
-                lf = days * query1[3] if query1 else 0
+            # Query 2: Get late fee
+            cursor.execute("SELECT * FROM latefee_master WHERE days_from <= %s AND days_to >= %s", [days, days])
+            query1 = cursor.fetchone()
+            lf = days * query1[3] if query1 else 0
 
-                # Query 3: Get student data and concession details
-                cursor.execute("""
+            # Query 3: Get student data and concession details
+            cursor.execute("""
                     SELECT a.*, c.cp, c.ct, c.ca FROM student_master a
                     LEFT JOIN (
                         SELECT concession_id, concession_type as ct, concession_persent as cp, concession_amount as ca 
@@ -1910,42 +2674,165 @@ class StudentFeesAdmin(admin.ModelAdmin):
                     ) as c ON a.concession_id = c.concession_id
                     WHERE a.student_id = %s
                 """, [sid])
-                query2 = cursor.fetchone()
+            if query2 := cursor.fetchone():
+                # Constructing the expected output string
+                concession_percent = query2[18] if query2[18] is not None else "None"
+                concession_amount = query2[20] if query2[20] is not None else "None"
 
-                if query2:
-                    # Constructing the expected output string
-                    concession_percent = query2[18] if query2[18] is not None else "None"
-                    concession_amount = query2[20] if query2[20] is not None else "None"
-                    
-                    detail = f"{data}&{lf}&{concession_percent}&{concession_amount}&"
-                    # return JsonResponse(detail, safe=False)  # Returning as a string
-                    return JsonResponse({
-                        'success': True,
-                        'data': detail,
-                    })
-                else:
-                    return JsonResponse({"error": "Student not found"}, status=404)
+                detail = f"{data}&{lf}&{concession_percent}&{concession_amount}&"
+                # return JsonResponse(detail, safe=False)  # Returning as a string
+                return JsonResponse({
+                    'success': True,
+                    'data': detail,
+                })
             else:
-                return JsonResponse({"error": "Payment schedule not found"}, status=404)
+                return JsonResponse({"error": "Student not found"}, status=404)
 
-
-    # def save_model(self, request, obj, form, change):
-    #     if not change:  # Only on creation
-    #         student_id = form.cleaned_data.get('student_id')
-    #         if student_id:
-    #             try:
-    #                 student = student_master.objects.get(pk=student_id)
-    #                 obj.student_id = student
-    #             except student_master.DoesNotExist:
-    #                 raise ValueError("Student does not exist.")
-    #     super().save_model(request, obj, form, change)
-
+    
     def save_model(self, request, obj, form, change):
-        if not change:  # Only on creation
-            # Example of setting additional fields
-            obj.added_by = request.user.username
-            obj.entry_date = timezone.now()
-        super().save_model(request, obj, form, change)
+
+        print(request.POST.getlist('fees_period_month'))
+
+        # Custom logic before saving the object
+        today = datetime.now()  # Do not convert to string here
+        year = int(request.POST.get('started_on'))
+
+        # Now, you can access 'today.month' without issues
+        if today.month < 4:
+            year -= 1
+
+        # Fetch existing months paid for comparison
+        # Assuming `stuid` is the primary key value for the student
+        stuid = request.POST.get('student_id')
+
+        # Fetch the student_master instance
+        student_instance = student_master.objects.get(pk=stuid)
+
+        # Assign the instance to the ForeignKey field
+        # obj.student_id = student_instance
+
+        student_class = request.POST.get('display_student_class', '')
+        montharray = self.get_months_array(year)
+        months = ','.join(map(str, montharray))
+
+        if student_class:
+            months_paid = student_fee.objects.filter(
+                student_id=stuid,
+                student_class=student_class,
+                year=year
+            ).values_list('fees_for_months', flat=True).distinct()
+        else:
+            months_paid = student_fee.objects.filter(
+                student_id=stuid,
+                student_class='',
+                year=year
+            ).values_list('fees_for_months', flat=True).distinct()
+
+        months_paid = set(map(str.strip, ','.join(months_paid).split(',')))
+        tmp = set(montharray) - months_paid
+        tmpval = ','.join(map(str, tmp))
+
+        if tmpval:
+            alert_message = f'Fee pending for {tmpval} month '
+            # Optionally use this alert message
+
+        # Setting model attributes
+        obj.payment_mode = request.POST.get('payment_mode')
+        if obj.payment_mode == 'Cheque' and not obj.cheque_status:
+            obj.cheque_status = 'Open'
+
+        obj.date_payment = parse_date(request.POST.get('date_payment'))
+        if obj.payment_mode != 'Cheque':
+            obj.realized_date = obj.date_payment
+
+        obj.entry_date = parse_date(request.POST.get('date_payment'))
+        obj.student_id = student_instance.pk
+        obj.student_class = request.POST.get('display_student_class')
+        obj.student_section = request.POST.get('display_student_section')
+        obj.fees_for_months = request.POST.get('fees_for_months')
+
+        fees_period_month_list = request.POST.getlist('fees_period_month')  # Get the list of selected months
+        obj.fees_period_month = ', '.join(fees_period_month_list)  # Join them as a string (e.g., '1, 2, 3')
+        # request.POST.getlist('fees_period_month')
+
+        obj.year = request.POST.get('started_on')
+        obj.total_amount = float(request.POST.get('total_amount', 0))
+        obj.amount_paid = float(request.POST.get('amount_paid', 0))
+
+        # Handle concessions
+        if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
+            obj.concession_applied = float(request.POST.get('concession_applied'))
+            obj.concession_type_id = request.POST.get('concession_type')
+        else:
+            obj.concession_type_id = None
+            obj.concession_applied = None
+
+        # Setting other attributes
+        # obj.bank_name = request.POST.get('bankname')
+        # obj.branch_name = request.POST.get('branchname')
+        # obj.cheq_no = request.POST.get('cheqno')
+        obj.bus_fees_paid = float(request.POST.get('bus_fees_paid', 0))
+        obj.dayboarding_fees_paid = float(request.POST.get('dayboarding_fees_paid', 0))
+        obj.miscellaneous_fees_paid = float(request.POST.get('miscellaneous_fees_paid', 0))
+        obj.late_fees_paid = float(request.POST.get('late_fees_paid', 0))
+        obj.security_paid = float(request.POST.get('security_paid', 0))
+        obj.admission_fees_paid = float(request.POST.get('admission_fees_paid', 0))
+        obj.activity_fees = float(request.POST.get('activity_fees', 0))
+        obj.sports_fees_paid = float(request.POST.get('sports_fees_paid', 0))
+        obj.funds_fees_paid = float(request.POST.get('funds_fees_paid', 0))
+        obj.tuition_fees_paid = float(request.POST.get('tuition_fees_paid', 0))
+        obj.annual_fees_paid = float(request.POST.get('annual_fees_paid', 0))
+        obj.isdefault = request.POST.get('isdefault')
+        obj.remarks = request.POST.get('remarks')
+        obj.added_by = request.user.username
+
+        obj.save()
+        self.generate_pdf(obj.student_fee_id)
+        # self.message_user(request, "Student fee record saved successfully.")
+
+    def get_months_array(self, year):
+        # Format the start and end date for the financial year
+        date_from = datetime(year, 4, 1)  # April 1st of the given year
+        date_to = datetime(year + 1, 3, 31)  # March 31st of the next year
+
+        # Convert the dates into string format if necessary
+        current_date = datetime.now()
+
+        # If the financial year is not over, adjust the end date to today
+        if current_date < date_to:
+            date_to = current_date
+
+        # Create an array for storing the months
+        month_array = []
+
+        # Initialize a timestamp for the start date
+        time = date_from
+
+        # Loop through the months of the financial year
+        while time <= date_to:
+            # Get the current month number and strip leading zeroes
+            cur_month = time.month
+
+            # Append the current month to the array
+            month_array.append(cur_month)
+
+            # Move to the next month
+            time += timedelta(days=32)
+            time = time.replace(day=1)  # Set the day to 1 to handle month transitions
+
+        # Sort the month array in ascending order
+        month_array.sort()
+
+        # If the financial year is over, return an array of all 12 months
+        if current_date >= datetime(year + 1, 3, 31):
+            month_array = list(range(1, 13))
+
+        return month_array
+
+    def generate_pdf(self, student_fee_id):
+        # Your implementation for generating PDF
+        pass
+
 
     class Media:
         
@@ -2606,7 +3493,7 @@ class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
 
 
 
-admin.site.register(generate_mobile_number_list,GenerateMobileNumbersListAdmin)
+# admin.site.register(generate_mobile_number_list,GenerateMobileNumbersListAdmin)
 
 
 # class ChequeStatusListAdmin(admin.ModelAdmin):
@@ -3362,7 +4249,7 @@ class ChequeStatusListAdmin(admin.ModelAdmin):
 #     mark_as_rejected.short_description = "Mark selected as Rejected"
 
 
-admin.site.register(cheque_status, ChequeStatusListAdmin)
+# admin.site.register(cheque_status, ChequeStatusListAdmin)
 
 # # admin.site.register(transport)
 # from django.contrib import admin
@@ -3703,7 +4590,78 @@ class TransportAdmin(admin.ModelAdmin):
     get_attendant_phone.short_description = 'Attendant Phone'
 
 # Register the transport model with the custom admin class
-admin.site.register(transport, TransportAdmin)
+# admin.site.register(transport, TransportAdmin)
+
+
+# class CustomAdminSite(admin.AdminSite):
+#     site_header = "School Admin"
+#     site_title = "Admin Portal"
+#     index_title = "Welcome to School Admin"
+
+# # Create a custom admin site instance
+# custom_admin_site = CustomAdminSite(name='custom_admin')
+
+# # Register models under custom sections
+# custom_admin_site.register(student_master, StudentMasterAdmin)
+# custom_admin_site.register(student_fee, StudentFeesAdmin)
+
+# custom_admin_site.register(cheque_status, ChequeStatusListAdmin)
+
+# custom_admin_site.register(transport, TransportAdmin)
+
+# try:
+#     admin.site.unregister(student_master)
+#     admin.site.unregister(student_fee)
+#     admin.site.unregister(cheque_status)
+#     admin.site.unregister(transport)
+# except admin.sites.NotRegistered:
+#     pass
+
+
+
+# from django.contrib import admin
+# from django.contrib import admin
+# from .models import (
+#     user, student_master, student_fee, student_class, specialfee_master,
+#     payment_schedule_master, latefee_master, fees_master, expense,
+#     concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list, cheque_status, transport
+# )
+
+# class CustomAdminSite(admin.AdminSite):
+#     site_header = "School Admin"
+#     site_title = "Admin Portal"
+#     index_title = "Welcome to School Admin"
+
+# # Create an instance of the custom admin site
+# custom_admin_site = CustomAdminSite(name='custom_admin')
+
+# # Register models to the custom admin site
+# custom_admin_site.register(student_master)
+# custom_admin_site.register(student_fee)
+# custom_admin_site.register(cheque_status)
+# custom_admin_site.register(transport)
+
+# # Optionally, unregister these models from the default admin site
+# try:
+#     admin.site.unregister(student_master)
+#     admin.site.unregister(student_fee)
+#     admin.site.unregister(cheque_status)
+#     admin.site.unregister(transport)
+# except admin.sites.NotRegistered:
+#     pass
+
+# print(custom_admin_site._registry)
+
+# admin.site.register(student_master)
+# admin.site.register(student_fee)
+
+# # Register Group 2 models
+# admin.site.register(cheque_status)
+# admin.site.register(transport)
+
+
+
+
 
 
 

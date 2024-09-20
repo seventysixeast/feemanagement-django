@@ -290,6 +290,9 @@ class student_master(models.Model):
 
     class Meta:
         db_table = 'student_master'
+        # verbose_name = "Model 1"
+        # verbose_name_plural = "Model 1 Group"
+        # app_label = 'group1' 
         # abstract = True
 
     def __str__(self):
@@ -301,8 +304,8 @@ class student_master(models.Model):
 
 class student_fee(models.Model):
   student_fee_id = models.BigAutoField(primary_key=True)
-  student_id = models.IntegerField()
-  # student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='fees',db_column='student_id')
+  # student_id = models.IntegerField()
+  student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='fees',db_column='student_id')
   student_class = models.CharField(max_length=20)
   student_section = models.CharField(max_length=1, null=True, blank=True)
   fees_for_months = models.CharField(max_length=20)
@@ -349,9 +352,16 @@ class student_fee(models.Model):
 
   class Meta:
     db_table = 'student_fees'  # Custom table name
+    # verbose_name = "Model 2"
+    # verbose_name_plural = "Model 2 Group"
+    # app_label = 'group1'
 
   def __str__(self):
       return f"StudentFee {self.student_fee_id} for Student {self.student_id}"
+  
+  def save(self, *args, **kwargs):
+        creating = self.pk is None
+        super().save(*args, **kwargs)
   
 
 
@@ -404,8 +414,8 @@ class student_class(models.Model):
     def __str__(self):
         return f"Class {self.class_no} Section {self.section}"
 
-# class user(models.Model):
-class teacher_master(models.Model):
+class user(models.Model):
+# class teacher_master(models.Model):
   ROLES_CHOICES = [
       ('', 'Select Type'),
       ('admin', 'Admin'),
@@ -436,10 +446,16 @@ class generate_mobile_number_list(student_master):
       proxy = True  # Use this model as a proxy for the original model
 
 
-class cheque_status(student_master):
-  class Meta:
-      proxy = True  # Use this model as a proxy for the original model
+# class cheque_status(student_master):
+#   class Meta:
+#       proxy = True  # Use this model as a proxy for the original model
+#       # verbose_name = "Model 3"
+#       # verbose_name_plural = "Model 3 Group"
+#       # app_label = 'group2'
 
-class transport(student_master):
-  class Meta:
-      proxy = True  # Use this model as a proxy for the original model
+# class transport(student_master):
+#   class Meta:
+#       proxy = True  # Use this model as a proxy for the original model
+#       # verbose_name = "Model 4"
+#       # verbose_name_plural = "Model 4 Group"
+#       # app_label = 'group2'

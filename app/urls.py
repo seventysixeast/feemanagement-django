@@ -3,10 +3,13 @@ from . import views
 from .views import search_student
 from django.conf import settings
 from django.conf.urls.static import static
+# from .admin import section1_site, section2_site
 
 urlpatterns = [
     # path('admin/app/student_class/search/', search_student, name='search_student'),
     # path('admin/app/search-student/', views.search_student, name='search_student'),
+    # path('section1-admin/', section1_site.urls),
+    # path('section2-admin/', section2_site.urls),
     path('send-otp/', views.send_otp_verification, name='send_otp_verification'),
     path('student-payment-details/', views.action_student_payment_details, name='student_payment_details'),
     path('get-fee-receipts/', views.get_fee_receipts, name='get_fee_receipts'),

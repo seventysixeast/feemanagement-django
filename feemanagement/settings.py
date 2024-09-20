@@ -43,7 +43,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app',
     'import_export',
-    'ckeditor'
+    'ckeditor',
+    'Fees_Section',
+    'Reports'
 ]
 
 AUTHENTICATION_BACKEND=[
@@ -62,10 +64,26 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'feemanagement.urls'
 
+# TEMPLATES = [
+#     {
+#         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+#         'DIRS': [],
+#         'APP_DIRS': True,
+#         'OPTIONS': {
+#             'context_processors': [
+#                 'django.template.context_processors.debug',
+#                 'django.template.context_processors.request',
+#                 'django.contrib.auth.context_processors.auth',
+#                 'django.contrib.messages.context_processors.messages',
+#             ],
+#         },
+#     },
+# ]
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # Add this line
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -77,6 +95,7 @@ TEMPLATES = [
         },
     },
 ]
+
 
 WSGI_APPLICATION = 'feemanagement.wsgi.application'
 
@@ -160,3 +179,5 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # URL prefix for accessing media files
 MEDIA_URL = '/media/'
+
+DAB_FIELD_RENDERER = 'django_admin_bootstrapped.renderers.BootstrapFieldRenderer'

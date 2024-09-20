@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    teacher_master, student_master, student_fee, student_class, specialfee_master,
+    user, student_master, student_fee, student_class, specialfee_master,
     payment_schedule_master, latefee_master, fees_master, expense,
     concession_master, bus_master, busfees_master, account_head
 )
@@ -106,7 +106,7 @@ def fetch_fee_details_for_class( student_id, class_no):
 
     # Fetch the student class information
     student_class1 = student_class.objects.filter(
-        student_id=student, class_no=class_no
+        student_id=student.student_id, class_no=class_no
     ).first()
 
     if not student_class1:
