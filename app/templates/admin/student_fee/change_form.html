@@ -1,0 +1,30 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+
+     <!-- Ensure the rest of the form fields are rendered -->
+     {{ block.super }}
+     
+    <!-- Student Search Section -->
+    <div id="student-search-section">
+        <!-- Assuming your form or search inputs are here for searching students -->
+        {{ form.student_search }}
+    </div>
+
+    <!-- Insert the table of previous fees here -->
+    <div id="previous-fees-section">
+        <h2>Previous Fees Data</h2>
+        <div id="fees-data">
+            <!-- The fetched table data will be inserted here -->
+        </div>
+    </div>
+
+    <!-- Selected Student Details Section -->
+    <div id="selected-student-details">
+        <!-- Render the selected student's details -->
+        {{ form.selected_student_details }}
+    </div>
+
+   
+
+{% endblock %}

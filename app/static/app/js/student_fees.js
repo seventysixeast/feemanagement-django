@@ -3,74 +3,51 @@ document.addEventListener("DOMContentLoaded", function () {
   const admissionNoField = document.querySelector('input[name="admission_no"]');
   const studentNameField = document.querySelector('input[name="student_name"]');
   const searchButton = document.querySelector('input[name="search_button"]');
-  // const feesForMonthsField = document.querySelector('select[name="fees_for_months"]');
-  // const feesPeriodMonthField = document.getElementById('select[name="fees_period_month"]');
+  const classNoField = document.querySelector('select[name="class_no"]');
+  const sectionField = document.querySelector('select[name="section"]');
 
   const feesForMonthsField = document.getElementById('id_fees_for_months');
   const feesPeriodMonthField = document.getElementById('id_fees_period_month');
 
-  console.log("feesForMonthsField", feesForMonthsField);
-  console.log("feesPeriodMonthField", feesPeriodMonthField);
-
 
   let month = '';
 
-  // Function to create the table structure
-  /* function createTable() {
-    const container = document.querySelector("#previous-fees-record");
-    if (!container) {
-      console.error("Container for table not found");
-      return;
-    }
- 
-    // Create table
-    const table = document.createElement("table");
-    table.id = "feesTable";
-    table.className = "table table-striped";
- 
-    // Create table header
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
-    const headers = ["Fees For Months", "Date Payment", "Amount Paid", "Fees Period Month", "Student Class"];
-    headers.forEach(headerText => {
-      const th = document.createElement("th");
-      th.textContent = headerText;
-      headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
- 
-    // Create table body
-    const tbody = document.createElement("tbody");
-    table.appendChild(tbody);
- 
-    // Append the table to the container
-    container.innerHTML = "";  // Clear any existing content
-    container.appendChild(table);
-  }
- */
   // Function to load students based on the search criteria
   async function loadStudents() {
     const admissionNo = admissionNoField.value.trim();
     const studentName = studentNameField.value.trim();
+    const classNo = classNoField.value.trim();
+    const section = sectionField.value.trim();
 
-    if (admissionNo || studentName) {
+    console.log("classNo", classNo);
+    console.log("section", section);
+
+    if (admissionNo || studentName || section || classNo) {
       const url = new URL(
         "/school-admin/app/student_fee/ajax/load-students/",
         window.location.origin
       );
       if (admissionNo) url.searchParams.append("admission_no", admissionNo);
       if (studentName) url.searchParams.append("student_name", studentName);
+      if (classNo) url.searchParams.append("class_no", classNo);
+      if (section) url.searchParams.append("section", section);
 
       try {
         const response = await fetch(url);
         if (!response.ok) throw new Error("Network response was not ok");
         const data = await response.json();
         const students = data.data.split(",");
+
+        console.log("students",students);
+        
+
         students.forEach(async (student) => {
           const [idName, classNo] = student.split(":");
           const [id] = idName.split("$");
-          await handleStudentId(id);
+
+          console.log(id);
+          
+          //await handleStudentId(id);
         });
       } catch (error) {
         console.error("There was a problem with the fetch operation:", error);
@@ -300,7 +277,65 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Function to load previous fees
   async function loadPreviousFees(studentId) {
-    /*  createTable(); */ // Create the table structure
+    try {
+      const response = await fetch(`/school-admin/app/student_fee/ajax/prev-fees/?student_id=${studentId}`);
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      const data = await response.json();
+      const fees = data.data.split("&");
+
+      const feesElement = document.querySelector('#previous-fees-section');
+
+      let feesSection = ''
+
+      if (feesElement) {  // Check if the element exists before trying to set innerHTML
+        
+        let tableHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Fees For Months</th>
+              <th>Date Payment</th>
+              <th>Amount Paid</th>
+              <th>Fees Period Month</th>
+              <th>Class</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+        fees.forEach((fee) => {
+          const [feesForMonths, datePayment, amountPaid, feesPeriodMonth, studentClass] = fee.split("$");
+
+          tableHTML += `
+          <tr>
+            <td>${feesForMonths}</td>
+            <td>${datePayment}</td>
+            <td>${amountPaid}</td>
+            <td>${feesPeriodMonth}</td>
+            <td>${studentClass}</td>
+          </tr>
+        `;
+        });
+
+        tableHTML += `</tbody></table>`;
+
+        feesElement.innerHTML = tableHTML;
+
+      } else {
+        console.error('Error: Element #previous-fees-section not found in the DOM.');
+      }
+
+
+
+    } catch (error) {
+      console.error("Error loading previous fees:", error);
+    }
+  }
+
+
+  /* async function loadPreviousFees(studentId) {
+    /*  createTable();  // Create the table structure
 
     try {
       const response = await fetch(`/school-admin/app/student_fee/ajax/prev-fees/?student_id=${studentId}`);
@@ -337,7 +372,7 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch (error) {
       console.error("There was a problem loading previous fees:", error);
     }
-  }
+  } */
 
   // Attach event listener to search button
   if (searchButton) {

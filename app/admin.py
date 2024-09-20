@@ -1321,6 +1321,8 @@ class StudentFeesAdminForm(forms.ModelForm):
     # Define current year at the top
     current_year = datetime.now().year
 
+
+
     # Existing fields
     student_name = forms.CharField(label="Student Name", required=False)
     admission_no = forms.CharField(label="Admission Number", required=False)
@@ -1400,7 +1402,7 @@ class StudentFeesAdminForm(forms.ModelForm):
     remarks = forms.CharField(widget=forms.Textarea, label="Remarks", required=False)
 
      # Previous Fees Record
-    previous_fees_record = forms.CharField(widget=forms.HiddenInput(), required=False)  # This can be a hidden input for custom HTML rendering
+    previous_fees_record = forms.CharField(widget=forms.HiddenInput(), required=False)  # Hidden input to store previous fees data
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1437,12 +1439,17 @@ class StudentFeesAdminForm(forms.ModelForm):
             self.fields['search_results'].widget = forms.HiddenInput()
 
             student = self.instance.student_id
-            print(student)
+            # print(student)
             # print(f"Student ID: {student.student_id}, Name: {student.student_name}")
 
             if student.student_id:
                 try:
-                    print("Testing for student id error.")
+
+                    # Fetch and render previous fees data
+                    # previous_fees_html = self.get_previous_fees_data(student.student_id)
+                    # self.fields['previous_fees_record'].initial = mark_safe(previous_fees_html)
+
+                    # print("Testing for student id error.")
                     student = student_master.objects.get(student_id=student.student_id)
                     student_classes = student_class.objects.filter(student_id=student.student_id).order_by('-started_on').first()
 
@@ -1462,7 +1469,7 @@ class StudentFeesAdminForm(forms.ModelForm):
                     print(f"Student with ID {student.student_id} does not exist.")
             
         print("======= I'M HERE ===========")
-        
+    
         # # Populate pre-selected values when the form is submitted
         # if self.is_bound:
         #     submitted_fees_period_month = self.data.getlist('fees_period_month')
@@ -1572,6 +1579,10 @@ class StudentFeesAdminForm(forms.ModelForm):
 class StudentFeesAdmin(admin.ModelAdmin):
 
     form = StudentFeesAdminForm
+
+    change_form_template = 'admin/student_fee/change_form.html'
+    # change_form_template = 'admin/student_fee/change_form.html'
+
     # Fields to display in the list view
     list_display = (
         'get_addmission_no',  # Display student name
@@ -1647,7 +1658,7 @@ class StudentFeesAdmin(admin.ModelAdmin):
             'classes': ('half-width-container',),  # Custom CSS class for layout
         }),
         ('Previous Fees Record', {
-            'fields': ('previous_fees_record',),
+            'fields': (),
             'classes': ('collapse',),  # Optional: initially collapsed
         }),
 
