@@ -406,8 +406,9 @@ class student_class(models.Model):
     ]
 
     student_class_id = models.AutoField(primary_key=True)
-    student_id = models.IntegerField(null=True)
-    # student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='classes',db_column='student_id')
+    # student_id = models.IntegerField(null=True)
+    # student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='student_classes')
+    student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='classes', db_column='student_id')
     # student = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='classes')
     class_no = models.CharField(max_length=50, choices=CLASS_CHOICES,default='')
     section = models.CharField(max_length=50, choices=SECTION,default='')

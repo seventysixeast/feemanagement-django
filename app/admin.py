@@ -57,6 +57,7 @@ from datetime import datetime
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
+from multiselectfield import MultiSelectField
 
 from .services import last_payment_record,fetch_fee_details_for_class,get_special_fee,calculate_late_fee
 
@@ -1332,18 +1333,58 @@ class StudentFeesAdminForm(forms.ModelForm):
     search_results = forms.ModelChoiceField(queryset=student_master.objects.none(), required=False, blank=True, label="Select Student")
     
     # Student detail fields
-    student_id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
-    display_admission_no = forms.CharField(required=False, label="Admission No", widget=forms.TextInput(attrs={'readonly': 'readonly'}))
-    display_student_name = forms.CharField(required=False, label="Student Name", widget=forms.TextInput(attrs={'readonly': 'readonly'}))
-    display_father_name = forms.CharField(required=False, label="Father Name", widget=forms.TextInput(attrs={'readonly': 'readonly'}))
-    display_student_class = forms.CharField(required=False, label="Student Class", widget=forms.TextInput(attrs={'readonly': 'readonly'}))
-    display_student_section = forms.CharField(required=False, label="Student Section", widget=forms.TextInput(attrs={'readonly': 'readonly'}))
+    # student_id = forms.IntegerField(widget=forms.HiddenInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}), required=False)
+    # display_admission_no = forms.CharField(required=False, label="Admission No", widget=forms.TextInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}))
+    # display_student_name = forms.CharField(required=False, label="Student Name", widget=forms.TextInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}))
+    # display_father_name = forms.CharField(required=False, label="Father Name", widget=forms.TextInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}))
+    # display_student_class = forms.CharField(required=False, label="Student Class", widget=forms.TextInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}))
+    # display_student_section = forms.CharField(required=False, label="Student Section", widget=forms.TextInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}))
+    # started_on = forms.ChoiceField(
+    #     choices=[(str(year), str(year)) for year in range(current_year - 1, current_year + 2)],
+    #     required=False, 
+    #     label="Year", 
+    #     widget=forms.Select()
+    # )
+
+    student_id = forms.IntegerField(widget=forms.HiddenInput(attrs={'readonly': 'readonly', 'id': 'id_student_id'}), required=False)
+
+    display_admission_no = forms.CharField(
+        required=False, 
+        label="Admission No", 
+        widget=forms.TextInput(attrs={'readonly': 'readonly', 'id': 'id_display_admission_no'})
+    )
+
+    display_student_name = forms.CharField(
+        required=False, 
+        label="Student Name", 
+        widget=forms.TextInput(attrs={'readonly': 'readonly', 'id': 'id_display_student_name'})
+    )
+
+    display_father_name = forms.CharField(
+        required=False, 
+        label="Father Name", 
+        widget=forms.TextInput(attrs={'readonly': 'readonly', 'id': 'id_display_father_name'})
+    )
+
+    display_student_class = forms.CharField(
+        required=False, 
+        label="Student Class", 
+        widget=forms.TextInput(attrs={'readonly': 'readonly', 'id': 'id_display_student_class'})
+    )
+
+    display_student_section = forms.CharField(
+        required=False, 
+        label="Student Section", 
+        widget=forms.TextInput(attrs={'readonly': 'readonly', 'id': 'id_display_student_section'})
+    )
+
     started_on = forms.ChoiceField(
         choices=[(str(year), str(year)) for year in range(current_year - 1, current_year + 2)],
         required=False, 
         label="Year", 
-        widget=forms.Select()
+        widget=forms.Select(attrs={'id': 'id_started_on'})
     )
+
 
     # Fees section fields
     # fees_for_months = forms.CharField(label="Fees For Months", required=False)
@@ -1355,6 +1396,11 @@ class StudentFeesAdminForm(forms.ModelForm):
         label="Fees for Months",
         widget=forms.SelectMultiple(attrs={'style': 'width:150px', 'id': 'id_fees_for_months'})
     )
+
+    # fees_for_months = MultiSelectField(choices=FEE_MONTHS_CHOICES, max_choices=4, max_length=100)
+
+    
+
     Month_CHOICES = [
         ('1', '1'),
         ('2', '2'),
@@ -1722,7 +1768,6 @@ class StudentFeesAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
     
-
     def load_students(self, request):
         if request.method == 'GET':
             admission_no = request.GET.get('admission_no')
@@ -1730,8 +1775,11 @@ class StudentFeesAdmin(admin.ModelAdmin):
             section = request.GET.get('section')
             student_name = request.GET.get('student_name')
             
-            # Base query
+            # Base query with distinct students
             students = student_master.objects.distinct()
+
+            print(f'students==={students}')
+            
 
             # Apply filters based on the provided parameters
             if admission_no:
@@ -1739,27 +1787,82 @@ class StudentFeesAdmin(admin.ModelAdmin):
             if student_name:
                 students = students.filter(student_name__istartswith=student_name)
 
+            # Prefetch related student classes to avoid querying in a loop
+            students = students.prefetch_related('classes') 
+
+            print(f'studentsssss==={students}')
+
             # Create the final response
             student_data = []
             for student in students:
-                # Filter related student classes
+                # Filter related student classes and get the latest with class_no and section filtering
+                # latest_class = student_class.objects.filter(
+                #     student_id=student.student_id,
+                #     class_no=class_no if class_no else None,  # Filter by class_no if provided
+                #     section=section if section else None  # Filter by section if provided
+                # ).order_by('-student_class_id').first()
+
                 latest_class = student_class.objects.filter(
-                    student_id=student.student_id
+                    student_id=student.student_id,
+                    
                 ).order_by('-student_class_id').first()
 
-                if latest_class and (not class_no or latest_class.class_no == class_no):
+                print(f'latest_class----{latest_class}')
+
+                # If latest_class exists, add it to the student_data
+                if latest_class:
                     student_data.append({
                         'student_id': student.student_id,
                         'student_name': student.student_name,
-                        'class_no': latest_class.class_no
+                        'class_no': latest_class.class_no,
+                        'section': latest_class.section
                     })
 
             # Convert the student_data list into the desired format
-            formatted_data = ','.join([f"{d['student_id']}${d['student_name']}:{d['class_no']}" for d in student_data])
+            formatted_data = ','.join([f"{d['student_id']}${d['student_name']}:{d['class_no']}-{d['section']}" for d in student_data])
 
             return JsonResponse({'data': formatted_data})
         
         return JsonResponse({'error': 'Bad Request'}, status=400)
+
+
+    # def load_students(self, request):
+    #     if request.method == 'GET':
+    #         admission_no = request.GET.get('admission_no')
+    #         class_no = request.GET.get('class_no')
+    #         section = request.GET.get('section')
+    #         student_name = request.GET.get('student_name')
+            
+    #         # Base query
+    #         students = student_master.objects.distinct()
+
+    #         # Apply filters based on the provided parameters
+    #         if admission_no:
+    #             students = students.filter(addmission_no=admission_no)
+    #         if student_name:
+    #             students = students.filter(student_name__istartswith=student_name)
+
+    #         # Create the final response
+    #         student_data = []
+    #         for student in students:
+    #             # Filter related student classes
+    #             latest_class = student_class.objects.filter(
+    #                 student_id=student.student_id
+    #             ).order_by('-student_class_id').first()
+
+    #             if latest_class and (not class_no or latest_class.class_no == class_no):
+    #                 student_data.append({
+    #                     'student_id': student.student_id,
+    #                     'student_name': student.student_name,
+    #                     'class_no': latest_class.class_no
+    #                 })
+
+    #         # Convert the student_data list into the desired format
+    #         formatted_data = ','.join([f"{d['student_id']}${d['student_name']}:{d['class_no']}" for d in student_data])
+
+    #         return JsonResponse({'data': formatted_data})
+        
+    #     return JsonResponse({'error': 'Bad Request'}, status=400)
 
     # Get student
     def get_student(self, request):

@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app',
     'import_export',
-    'ckeditor'
+    'ckeditor',
+    'multiselectfield'
 ]
 
 AUTHENTICATION_BACKEND=[
