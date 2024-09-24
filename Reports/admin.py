@@ -26,9 +26,12 @@ from django.db.models.functions import Concat
 
 from django.db.models.expressions import RawSQL
 
-from django.db.models import F, Value, CharField, ExpressionWrapper, Q
+# from django.db.models import F, Value, CharField, ExpressionWrapper, Q
 from django.db.models.functions import Coalesce
 from django.db.models import DecimalField
+
+from django.db.models import Case, When, Value, F, Q, CharField, ExpressionWrapper, DecimalField
+
 
 # from .models import transport, BusFeesMaster, BusMaster, StudentClasses
 
@@ -73,6 +76,34 @@ CLASS_CHOICES = [
     ('11', '11'),
     ('12', '12')
 ]
+
+def get_months_array(year):
+    start_date = date(year, 4, 1)
+    end_date = date(year + 1, 3, 31)
+    current_date = date.today()
+
+    months = []
+    time = start_date
+    if current_date < end_date:
+        end_date = current_date
+
+    while time <= end_date:
+        months.append(time.month)
+        next_month = (time.month % 12) + 1
+        next_year = time.year + (1 if next_month == 1 else 0)
+        time = date(next_year, next_month, 1)
+
+    return months
+
+def calculate_unpaid_months(paid_months, months_array):
+        # print('paid_months in calculate_unpaid_months', paid_months)
+        # print('months_array in calculate_unpaid_months', months_array)
+        if not paid_months:
+            return ','.join(map(str, months_array))  # Return all months if no months are paid
+
+        paid_months_list = list(map(int, paid_months.split(',')))
+        unpaid_months = set(months_array) - set(paid_months_list)
+        return ','.join(map(str, sorted(unpaid_months)))
 
 class TransportMasterResource(resources.ModelResource):
 
@@ -269,7 +300,7 @@ class TransportAdmin(ExportMixin,admin.ModelAdmin):
 
         # Add filter data to context for rendering the filters
         extra_context['bus_route_filter'] = range(1, 21)
-        extra_context['class_filter'] = self.CLASS_CHOICES
+        extra_context['class_filter'] = CLASS_CHOICES
         extra_context['destination_filter'] = busfees_master.objects.values_list('destination', flat=True).distinct()
 
         # Attach the filtered queryset to the changelist view
@@ -402,137 +433,102 @@ class TransportAdmin(ExportMixin,admin.ModelAdmin):
 
 admin.site.register(transport, TransportAdmin)
 
-# from django.contrib import admin
-# from .models import TuitionFeesDefaulter, student_master, student_classes
-# from datetime import date
-# from django.db.models import F, Value, CharField
-# from django.db.models.functions import Concat
+class PassedOutFilter(admin.SimpleListFilter):
+    title = 'PassedOut'
+    parameter_name = 'radioval'
 
-# class TuitionFeesDefaulterAdmin(admin.ModelAdmin):
-#     list_display = ('student_name', 'admission_no', 'class_no', 'section', 'tmpval')
+    def lookups(self, request, model_admin):
+        return []
+
+class YearFilter(admin.SimpleListFilter):
+    title = 'Year'
+    parameter_name = 'year'
+
+    def lookups(self, request, model_admin):
+        return []
     
-#     def get_year(self):
-#         current_month = date.today().month
-#         return date.today().year if current_month >= 4 else date.today().year - 1
 
-#     def get_queryset(self, request):
-#         # Current year
-#         year = self.get_year()
-#         # Get months for the year
-#         montharray = self.get_months_array(year)
-#         months_str = ','.join(map(str, montharray))
+class TuitionFeesDefaulterResource(resources.ModelResource):
 
-#         # Build the queryset based on the logic in the PHP code
-#         queryset = super().get_queryset(request)
-#         queryset = queryset.filter(year=year).annotate(
-#             months_paid=Concat(
-#                 'fees_period_month', output_field=CharField()
-#             ),
-#             tmpval=Value('', output_field=CharField())  # Placeholder for tmpval logic
-#         )
-        
-#         # Filter queryset
-#         queryset = queryset.annotate(
-#             months_diff=Value(months_str, output_field=CharField())
-#         ).filter(
-#             # Apply filtering logic for defaulters
-#             tuition_fees_paid__gt=0,
-#             funds_fees_paid__gt=0,
-#             sports_fees_paid__gt=0,
-#         ).exclude(
-#             months_paid=F('months_diff')
-#         )
+    class Meta:
+        model = tuition_fees_defaulter
+        fields = ('student_name', 'admission_no', 'class_no', 'section', 'tmpval')
 
-#         return queryset
+    student_name = Field(attribute='student_name', column_name='Student Name')
+    addmission_no = Field(attribute='addmission_no', column_name='Admission No')
+    class_no = Field(attribute='class_no', column_name='Class')
+    section = Field(attribute='section', column_name='Section')
+    tmpval = Field(attribute='tmpval', column_name='Tution Fees unpaid for months')
 
-#     # def get_months_array(self, year):
-#     #     # Returns months array similar to PHP function
-#     #     month_array = []
-#     #     current_month = date.today().month
-#     #     current_year = date.today().year
+    def dehydrate_class_no(self, obj):
+        # Assuming 'bus_driver' is a related field on the model
+        student_class_instance = student_class.objects.filter(student_id=obj.student_id.student_id).order_by('-started_on').first()
+        return student_class_instance.class_no if student_class_instance else None
 
-#     #     for i in range(1, 13):
-#     #         if current_year == year and i > current_month:
-#     #             break
-#     #         month_array.append(i)
-        
-#     #     return month_array
     
-#     def get_months_array(self, year):
-#         start_date = date(year, 4, 1)
-#         end_date = date(year + 1, 3, 31)
-#         current_date = date.today()
+    def dehydrate_section(self, obj):
+        student_class_instance = student_class.objects.filter(student_id=obj.student_id.student_id).order_by('-started_on').first()
+        return student_class_instance.section if student_class_instance else None
 
-#         months = []
-#         time = start_date
+    def dehydrate_tmpval(self, obj):
+        # Get the year from the object
+        year = int(obj.year)
+        month_array = get_months_array(year)
 
-#         if current_date < end_date:
-#             end_date = current_date
+        # Calculate the unpaid months
+        unpaid_months = calculate_unpaid_months(obj.months_paid, month_array)
 
-#         while time <= end_date:
-#             months.append(time.month)
-#             next_month = (time.month % 12) + 1
-#             next_year = time.year + (1 if next_month == 1 else 0)
-#             time = date(next_year, next_month, 1)
+        # If unpaid_months is an empty string, return None to exclude it from display
+        if not unpaid_months:
+            return None  # or you can return '' if you prefer an empty string to be displayed
+        
+        return unpaid_months
 
-#         return months
 
-#     def student_name(self, obj):
-#         return obj.student_master.student_name
-
-#     def admission_no(self, obj):
-#         return obj.student_master.admission_no
-
-#     def class_no(self, obj):
-#         return obj.student_class.class_no
-
-#     def section(self, obj):
-#         return obj.student_class.section
-
-#     def tmpval(self, obj):
-#         # Placeholder for tmpval logic, to be implemented based on months diff
-#         # You can compute the missing months logic here
-#         return obj.tmpval
+    
 
 
 
-
-
-
-class TuitionFeesDefaulterAdmin(admin.ModelAdmin):
+class TuitionFeesDefaulterAdmin(ExportMixin,admin.ModelAdmin):
+    resource_class = TuitionFeesDefaulterResource
     list_display = ('student_name', 'admission_no', 'class_no', 'section', 'tmpval')
+    list_filter = (PassedOutFilter, ClassFilter, YearFilter)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
     
     def get_year(self, request):
-        # Determine the current financial year based on today's date
         current_month = date.today().month
         return date.today().year if current_month >= 4 else date.today().year - 1
-    
 
-    change_list_template = 'admin/tuitionfeesdefaulter_change_list.html'
 
-    # Pass context to the changelist view to include class choices and year range
     def changelist_view(self, request, extra_context=None):
-        # Define year choices from 2024 to 2018
         year_choices = [str(year) for year in range(2024, 2017, -1)]
-        
-        # Provide class choices and year choices to the template context
         extra_context = extra_context or {}
         extra_context['class_choices'] = CLASS_CHOICES
         extra_context['year_choices'] = year_choices
-        
         return super().changelist_view(request, extra_context=extra_context)
 
+    change_list_template = 'admin/tuitionfeesdefaulter_change_list.html'
+    
+    def get_search_results(self, request, queryset, search_term):
+        radioval = request.GET.get('radioval', None)
+        year1 = request.GET.get('year', None)
+        class_no = request.GET.get('class_no', None)
 
-    def get_queryset(self, request):
-        # Get the current year and month array
-        year = self.get_year(request)
-        month_array = self.get_months_array(year)
+        year = int(year1) if year1 else self.get_year(request)
+        month_array = get_months_array(year)
         months_str = ','.join(map(str, month_array))
-        print('months_str',months_str)
-        # Build the queryset based on the logic in the PHP code
-        queryset = super().get_queryset(request)
 
-        # Using ExpressionWrapper to handle combined fees check
+        if not radioval and not year1 and not class_no:
+            return queryset.none(), False
+
         total_fees_paid = ExpressionWrapper(
             Coalesce(F('tuition_fees_paid'), 0) +
             Coalesce(F('funds_fees_paid'), 0) +
@@ -541,103 +537,80 @@ class TuitionFeesDefaulterAdmin(admin.ModelAdmin):
         )
 
         queryset = queryset.annotate(
-            total_fees_paid=total_fees_paid,  # Annotate the total fees paid
+            total_fees_paid=total_fees_paid
         ).filter(
-            year=year
-        ).filter(
-            Q(total_fees_paid__gt=0)  # Only include students who have paid fees greater than 0
-        )
-
-        # Annotate the months_paid using GROUP_CONCAT
-        # Ensure GROUP_CONCAT is used properly in the RawSQL and align with MySQL's requirements
-        queryset = queryset.annotate(
-            # months_paid=RawSQL(
-            #     """
-            #     SELECT GROUP_CONCAT(DISTINCT fees_period_month ORDER BY fees_period_month SEPARATOR ', ')
-            #     FROM student_fees AS sf
-            #     WHERE sf.student_id = student_fees.student_id
-            #     AND sf.year = %s
-            #     """, (year,)
-            # ),
+            year=year,
+            total_fees_paid__gt=0
+        ).annotate(
             months_paid=RawSQL(
                 """
-                SELECT GROUP_CONCAT(DISTINCT TRIM(sf.fees_period_month) ORDER BY sf.fees_period_month+0 SEPARATOR ', ')
+                SELECT GROUP_CONCAT(DISTINCT TRIM(sf.fees_period_month) 
+                ORDER BY sf.fees_period_month+0 SEPARATOR ', ')
                 FROM student_fees AS sf
                 WHERE sf.student_id = student_fees.student_id
                 AND sf.year = %s
                 """, (year,)
             ),
-            # Assuming the foreign key is student_id, use double underscore to access related fields
-            student_name=F('student_id__student_name'),  
-            admission_no=F('student_id__addmission_no'),  
-            class_no=F('student_class'),  # Since student_class is a CharField, reference it directly
-            section=F('student_section'),  # student_section field assumed as CharField or directly from the model
-            passedout_date=F('student_id__passedout_date'),  # Assuming this comes from a related model
+            student_name=F('student_id__student_name'),
+            admission_no=F('student_id__addmission_no'),
+            class_no=F('student_class'),
+            section=F('student_section'),
+            passedout_date=F('student_id__passedout_date'),
             tmpval=Value('', output_field=CharField())  # Placeholder for tmpval logic
         ).exclude(
-            months_paid=months_str  # Exclude students who have paid for all months
+            months_paid=months_str
         )
 
-        # Optionally filter by class if a class is selected
-        class_no = request.GET.get('class_no')
         if class_no:
             queryset = queryset.filter(class_no=class_no)
 
-        # Filter passed-out students if needed (assuming radioval is passed as a query parameter)
-        radioval = request.GET.get('radioval', 'withpassedout')
         queryset = self.filter_passed_out_students(queryset, radioval)
-
-        # Update tmpval for each student
         for obj in queryset:
-            # print('obj.months_paid',obj.months_paid)
-            obj.tmpval = self.calculate_unpaid_months(obj.months_paid, month_array)
-            # print('obj.tmpval',obj.tmpval)
+            obj.tmpval = calculate_unpaid_months(obj.months_paid, month_array)
 
-        return queryset
-        # filtered_queryset = []
-        # for obj in queryset:
-        #     obj.tmpval = self.calculate_unpaid_months(obj.months_paid, month_array)
-        #     if obj.tmpval:  # Only include objects where tmpval is not an empty string
-        #         filtered_queryset.append(obj)
+        # Filter out objects where `tmpval` is empty
+        filtered_queryset = [obj.student_fee_id for obj in queryset if obj.tmpval == '']
 
-        # return filtered_queryset
+        queryset = queryset.exclude(student_fee_id__in=filtered_queryset)
 
-    def get_months_array(self, year):
-        # Create an array of months based on the year
-        start_date = date(year, 4, 1)  # Start from April 1st of the financial year
-        end_date = date(year + 1, 3, 31)  # Till March 31st of the next year
-        current_date = date.today()
+        return queryset, False
 
-        months = []
-        time = start_date
+    # def get_months_array(self, year):
+    #     start_date = date(year, 4, 1)
+    #     end_date = date(year + 1, 3, 31)
+    #     current_date = date.today()
 
-        if current_date < end_date:
-            end_date = current_date
+    #     months = []
+    #     time = start_date
+    #     if current_date < end_date:
+    #         end_date = current_date
 
-        while time <= end_date:
-            months.append(time.month)
-            next_month = (time.month % 12) + 1
-            next_year = time.year + (1 if next_month == 1 else 0)
-            time = date(next_year, next_month, 1)
+    #     while time <= end_date:
+    #         months.append(time.month)
+    #         next_month = (time.month % 12) + 1
+    #         next_year = time.year + (1 if next_month == 1 else 0)
+    #         time = date(next_year, next_month, 1)
 
-        return months
+    #     return months
 
-    def calculate_unpaid_months(self, paid_months, months_array):
-        # Calculate unpaid months by comparing paid months with the full year/month array
-        paid_months_list = list(map(int, paid_months.split(',')))
-        # print('paid_months_list',paid_months_list)
-        unpaid_months = set(months_array) - set(paid_months_list)
-        # print('unpaid_months',unpaid_months)
-        return ','.join(map(str, sorted(unpaid_months)))
+    # def calculate_unpaid_months(self, paid_months, months_array):
+    #     print('paid_months in calculate_unpaid_months', paid_months)
+    #     print('months_array in calculate_unpaid_months', months_array)
+    #     if not paid_months:
+    #         return ','.join(map(str, months_array))  # Return all months if no months are paid
+
+    #     paid_months_list = list(map(int, paid_months.split(',')))
+    #     unpaid_months = set(months_array) - set(paid_months_list)
+    #     return ','.join(map(str, sorted(unpaid_months)))
 
     def filter_passed_out_students(self, queryset, radioval):
-        # Filter passed-out students if required
         current_date = date.today()
         if radioval != 'withpassedout':
             queryset = queryset.exclude(passedout_date__lt=current_date)
         return queryset
-
-    # Display functions for fields
+    
+    
+#     # Display functions for fields
     def student_name(self, obj):
         return obj.student_name
 
@@ -651,7 +624,20 @@ class TuitionFeesDefaulterAdmin(admin.ModelAdmin):
         return obj.section
 
     def tmpval(self, obj):
-        return obj.tmpval
+        # Get the year from the object
+        year = int(obj.year)
+        month_array = get_months_array(year)
+
+        # Calculate the unpaid months
+        unpaid_months = calculate_unpaid_months(obj.months_paid, month_array)
+
+        # If unpaid_months is an empty string, return None to exclude it from display
+        if not unpaid_months:
+            return None  # or you can return '' if you prefer an empty string to be displayed
+        
+        obj.tmpval = unpaid_months 
+        return unpaid_months
+    tmpval.short_description = 'Tuition Fees Unpaid for Months'
 
 
 admin.site.register(tuition_fees_defaulter, TuitionFeesDefaulterAdmin)

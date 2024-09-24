@@ -622,6 +622,31 @@ class BusFeesMaster(ExportMixin, admin.ModelAdmin):
     list_display = ( "route", "destination", "bus_fees", "get_bus_driver", "get_bus_attendant")
     search_fields = ['route']
     resource_class = BusFeesMasterResource
+
+    # Override delete_queryset to handle delete errors during confirmation
+    def delete_queryset(self, request, queryset):
+        try:
+            with transaction.atomic():
+                # Attempt to delete the selected objects inside a transaction block
+                num_deleted = queryset.count()  # Check the count before attempting to delete
+                queryset.delete()  # Attempt to delete
+                if num_deleted > 0:
+                    messages.success(request, _("Successfully deleted %d record(s)." % num_deleted))
+        except IntegrityError:
+            # If a foreign key constraint error occurs, show only the error message
+            messages.error(request, _("Cannot delete some of the selected records as they are referenced by other data. Please remove the dependencies first."))
+
+    # Optionally override the delete_model to handle individual deletion as well
+    def delete_model(self, request, obj):
+        try:
+            obj.delete()
+            # messages.success(request, _("Record deleted successfully!"))
+        except IntegrityError:
+            messages.error(request, _("Cannot delete the record because it is referenced by other data."))
+
+    class Media:
+        js = ('app/js/bus_master.js',)
+
     # Custom method to retrieve bus_driver from the related BusMaster model
     def get_bus_driver(self, obj):
         return obj.bus_driver
@@ -654,9 +679,6 @@ class BusFeesMaster(ExportMixin, admin.ModelAdmin):
 
         return render(request, 'admin/submit_fee_form.html', {'form': form})
 
-
-
-
     submit_fee_data.short_description = "Submit Fee Data for All Records"
 
     actions = ['submit_fee_data']
@@ -680,14 +702,53 @@ class BusMasterResource(resources.ModelResource):
         # Custom logic for displaying "Internal" or "External"
         return "Internal" if str(obj.internal).upper() == "TRUE" else "External"
 
+from django.contrib import messages
+from django.db import IntegrityError, transaction
+from django.utils.translation import gettext_lazy as _
 
 class BusMaster(ExportMixin, admin.ModelAdmin):
-    # list_display = ("busdetail_id", "bus_route", "bus_driver", "bus_conductor", "bus_attendant", "driver_phone", "conductor_phone", "attendant_phone")
     resource_class = BusMasterResource
     list_display = ("bus_route", "bus_driver", "bus_conductor", "bus_attendant", "driver_phone", "conductor_phone", "attendant_phone")
     search_fields = ("bus_route", "bus_driver", "bus_conductor", "bus_attendant", "driver_phone", "conductor_phone", "attendant_phone")
 
-admin.site.register(bus_master,BusMaster)
+    # Override delete_queryset to handle delete errors during confirmation
+    def delete_queryset(self, request, queryset):
+        try:
+            with transaction.atomic():
+                # Attempt to delete the selected objects inside a transaction block
+                num_deleted = queryset.count()  # Check the count before attempting to delete
+                queryset.delete()  # Attempt to delete
+                if num_deleted > 0:
+                    messages.success(request, _("Successfully deleted %d record(s)." % num_deleted))
+        except IntegrityError:
+            # If a foreign key constraint error occurs, show only the error message
+            messages.error(request, _("Cannot delete some of the selected records as they are referenced by other data. Please remove the dependencies first."))
+
+    # Optionally override the delete_model to handle individual deletion as well
+    def delete_model(self, request, obj):
+        try:
+            obj.delete()
+            # messages.success(request, _("Record deleted successfully!"))
+        except IntegrityError:
+            messages.error(request, _("Cannot delete the record because it is referenced by other data."))
+
+    # Override the save_model method to catch IntegrityError
+    def save_model(self, request, obj, form, change):
+        try:
+            with transaction.atomic():
+                super().save_model(request, obj, form, change)
+        except IntegrityError as e:
+            if '1451' in str(e):  # Check if it's the specific foreign key error
+                messages.error(request, _("Cannot update this bus route because it is referenced in the bus fees. Please update or remove the related records first."))
+            else:
+                messages.error(request, _("An error occurred while saving the record."))
+
+    class Media:
+        js = ('app/js/bus_master.js',)
+
+admin.site.register(bus_master, BusMaster)
+
+
 
 
 class ConcessionMasterForm(forms.ModelForm):

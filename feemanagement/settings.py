@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'import_export',
     'ckeditor',
     'Fees_Section',
-    'Reports'
+    'Reports',
+    'bootstrap5'
 ]
 
 AUTHENTICATION_BACKEND=[

@@ -1,15 +1,28 @@
 {% extends "admin/change_list.html" %}
 {% block content %}
+<head>
+    <!-- {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %} -->
+    <style>
+        h1 {
+            margin: 0 0 20px;
+            font-weight: 300;
+            font-size: 1.25rem !important;
+            color: var(--body-quiet-color);
+        }
+    </style>
+</head>
 
 <div class="custom-filter">
     <form method="GET" action="">
-        <div>
+        <div class='mb-3'>
             <label for="radioval">Passed-out Filter:</label>
             <input type="radio" name="radioval" value="withoutpassedout" {% if request.GET.radioval == "withoutpassedout" %}checked{% endif %}> Without Passed-out
             <input type="radio" name="radioval" value="withpassedout" {% if request.GET.radioval == "withpassedout" or not request.GET.radioval %}checked{% endif %}> With Passed-out
         </div>
 
-        <div>
+        <div class='mb-3'>
             <label for="class_no">Class:</label>
             <select name="class_no">
                 <option value="">All Classes</option>
@@ -21,7 +34,7 @@
             </select>
         </div>
 
-        <div>
+        <div class='mb-3'>
             <label for="year">Year:</label>
             <select name="year">
                 {% for year in year_choices %}

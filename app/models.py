@@ -3,6 +3,9 @@ from django.utils import timezone
 from datetime import date
 from django.core.validators import RegexValidator
 
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
+
 # Validator that allows only digits
 numeric_validator = RegexValidator(r'^\d+$', 'Enter a valid mobile number. Only digits are allowed.')
 
@@ -51,6 +54,53 @@ class busfees_master(models.Model):
         except bus_master.DoesNotExist:
             return None
   
+# class bus_master(models.Model):
+#     BUS_CHOICES = [
+#       ('', 'Please Select Route'),
+#       (1, '1'),
+#       (2, '2'),
+#       (3, '3'),
+#       (4, '4'),
+#       (5, '5'),
+#       (6, '6'),
+#       (7, '7'),
+#       (8, '8'),
+#       (9, '9'),
+#       (10, '10'),
+#       (11, '11'),
+#       (12, '12'),
+#       (13, '13'),
+#       (14, '14'),
+#       (15, '15'),
+#       (16, '16'),
+#       (17, '17'),
+#       (18, '18'),
+#       (19, '19'),
+#       (20, '20'),
+#     ]
+#     INTERNAL_CHOICES = [
+#         ('', 'Select'),
+#         ('True', 'True'),
+#         ('False', 'False'),
+#     ]
+#     busdetail_id = models.AutoField(primary_key=True)
+#     bus_route = models.IntegerField(null=True, choices=BUS_CHOICES, default='',unique=True)
+#     internal = models.CharField(max_length=10, null=True, choices=INTERNAL_CHOICES)
+#     bus_driver = models.CharField(max_length=50, null=True)
+#     bus_conductor = models.CharField(max_length=50, null=True)
+#     bus_attendant = models.CharField(max_length=50, null=True)
+#     driver_phone = models.CharField(max_length=50, null=True)
+#     conductor_phone = models.CharField(max_length=50, null=True)
+#     attendant_phone = models.CharField(max_length=50, null=True)
+
+#     class Meta:
+#         db_table = 'bus_master'  # Custom table name
+
+#     def __str__(self):
+#         return f"BusDetail {self.busdetail_id} - Route {self.bus_route}"
+    
+
+
 class bus_master(models.Model):
     BUS_CHOICES = [
       ('', 'Please Select Route'),
@@ -81,7 +131,7 @@ class bus_master(models.Model):
         ('False', 'False'),
     ]
     busdetail_id = models.AutoField(primary_key=True)
-    bus_route = models.IntegerField(null=True, choices=BUS_CHOICES, default='',unique=True)
+    bus_route = models.IntegerField(null=True, choices=BUS_CHOICES, default='', unique=True)
     internal = models.CharField(max_length=10, null=True, choices=INTERNAL_CHOICES)
     bus_driver = models.CharField(max_length=50, null=True)
     bus_conductor = models.CharField(max_length=50, null=True)
@@ -90,11 +140,22 @@ class bus_master(models.Model):
     conductor_phone = models.CharField(max_length=50, null=True)
     attendant_phone = models.CharField(max_length=50, null=True)
 
+    # Override the clean method to prevent uniqueness errors during update
+    def clean(self):
+        if self.bus_route:
+            # Check if a bus with the same route already exists, except for the current record
+            bus_route_exists = bus_master.objects.filter(bus_route=self.bus_route).exclude(busdetail_id=self.busdetail_id).exists()
+            if bus_route_exists:
+                raise ValidationError({
+                    'bus_route': _("Bus master with this bus route already exists.")
+                })
+
     class Meta:
         db_table = 'bus_master'  # Custom table name
 
     def __str__(self):
         return f"BusDetail {self.busdetail_id} - Route {self.bus_route}"
+
   
 class concession_master(models.Model):
   concession_id = models.AutoField(primary_key=True)
