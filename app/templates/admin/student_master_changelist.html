@@ -5,9 +5,9 @@
     <form method="GET">
         <input type="text" name="search_student_name" value="{{ search_student_name }}" placeholder="Search by Student Name" />
         <input type="text" name="search_admission_no" value="{{ search_admission_no }}" placeholder="Search by Admission No." />
-        <!-- <input type="text" name="search_class" value="{{ search_class }}" placeholder="Search by Class No." /> -->
         <input type="text" name="search_class_no" value="{{ search_class_no }}" placeholder="Search by Class No." />
-        <button type="submit" class="button">Search</button>
+        <input type="text" name="search_section" value="{{ search_section }}" placeholder="Search by Sectoin" />
+        <button type="submit" class="button" style="padding: 6px;margin-left: 6px;">Search</button>
     </form>
 </div>
 {% endblock %}
