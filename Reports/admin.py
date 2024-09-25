@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    transport, tuition_fees_defaulter
+    transport, tuition_fees_defaulter,admission_report
 )
 
 from app.models import (
@@ -516,7 +516,7 @@ class TuitionFeesDefaulterAdmin(ExportMixin,admin.ModelAdmin):
         return super().changelist_view(request, extra_context=extra_context)
 
     change_list_template = 'admin/tuitionfeesdefaulter_change_list.html'
-    
+
     def get_search_results(self, request, queryset, search_term):
         radioval = request.GET.get('radioval', None)
         year1 = request.GET.get('year', None)
@@ -641,6 +641,120 @@ class TuitionFeesDefaulterAdmin(ExportMixin,admin.ModelAdmin):
 
 
 admin.site.register(tuition_fees_defaulter, TuitionFeesDefaulterAdmin)
+
+
+# from django.utils.html import format_html
+# from django.db.models import Max
+
+# class AdmissionReportAdmin(admin.ModelAdmin):
+#     list_display = (
+#         'addmission_no', 'admission_date', 'student_name', 'birth_date',
+#         'class_no', 'section', 'father_name', 'mother_name', 'address'
+#     )
+#     # search_fields = ('student_name', 'admission_no', 'class_no', 'section')
+#     # list_filter = ('class_no', 'admission_date')  # Filter by class and date
+    
+#     def get_queryset(self, request):
+#         # Fetch the base queryset
+#         queryset = super().get_queryset(request)
+        
+#         # If a date range is specified, filter by that range
+#         date_from = request.GET.get('date_from')
+#         date_to = request.GET.get('date_to')
+#         cls = request.GET.get('class_no')
+
+#         if date_from and date_to:
+#             queryset = queryset.filter(admission_date__range=[date_from, date_to])
+
+#         if cls:
+#             queryset = queryset.filter(
+#                 student_classes__class_no=cls,  # Assuming related class model is student_classes
+#                 student_classes__student_class_id=Max('student_classes__student_class_id')
+#             )
+#         else:
+#             queryset = queryset.filter(
+#                 student_classes__class_no__in=[
+#                     'Play-way', 'Pre-nursery', 'nursery', 'KG', '1', '2', '3', '4', 
+#                     '5', '6', '7', '8', '9', '10', '11', '12'
+#                 ],
+#                 student_classes__student_class_id=Max('student_classes__student_class_id')
+#             )
+
+#         return queryset
+
+#     def class_no(self, obj):
+#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+#         return student_class_instance.class_no if student_class_instance else None
+#     # get_class_no.short_description = 'Class'
+
+#     def section(self, obj):
+#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+#         return student_class_instance.section if student_class_instance else None
+# # Register the AdmissionReport proxy model with the custom admin
+
+
+# from django.contrib import admin
+from django.db.models import Subquery, OuterRef
+# from .models import AdmissionReport, student_master, student_class  # Assuming these models are defined
+
+class AdmissionReportAdmin(admin.ModelAdmin):
+    list_display = (
+        'addmission_no', 'admission_date', 'student_name', 'birth_date',
+        'class_no', 'section', 'father_name', 'mother_name', 'address'
+    )
+    # search_fields = ('student_name', 'admission_no', 'class_no', 'section')
+    # list_filter = ('admission_date',)
+
+    def get_queryset(self, request):
+        # Get the base queryset from student_master (since AdmissionReport is a proxy model)
+        queryset = super().get_queryset(request)
+
+        # Apply date range filters if present in the request
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        cls = request.GET.get('class_no')
+
+        # Convert the queryset to a more complex query that joins with student_class
+        subquery = student_class.objects.filter(
+            student_id=OuterRef('student_id')
+        ).order_by('-student_class_id').values('class_no')[:1]  # Latest class_no for each student
+
+        queryset = queryset.annotate(
+            class_no=Subquery(subquery),  # Annotating with latest class_no
+            section=Subquery(  # Assuming section is also available in student_class
+                student_class.objects.filter(
+                    student_id=OuterRef('student_id')
+                ).order_by('-student_class_id').values('section')[:1]
+            )
+        )
+
+        # Apply class and date filters manually
+        if date_from and date_to:
+            queryset = queryset.filter(admission_date__range=[date_from, date_to])
+
+        if cls:
+            queryset = queryset.filter(class_no=cls)
+        else:
+            queryset = queryset.filter(class_no__in=[
+                'Play-way', 'Pre-nursery', 'nursery', 'KG', '1', '2', '3', '4', 
+                '5', '6', '7', '8', '9', '10', '11', '12'
+            ])
+
+        return queryset
+
+    def class_no(self, obj):
+        student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+        return student_class_instance.class_no if student_class_instance else None
+    # get_class_no.short_description = 'Class'
+
+    def section(self, obj):
+        student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+        return student_class_instance.section if student_class_instance else None
+# Register the AdmissionReport proxy model with the custom admin
+# admin.site.register(AdmissionReport, AdmissionReportAdmin)
+
+admin.site.register(admission_report, AdmissionReportAdmin)
+
 
 # admin.site.register(tuition_fees_defaulter, TuitionFeesDefaulterAdmin)
 
