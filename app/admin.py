@@ -86,14 +86,6 @@ SECTION = [
         ('I', 'I'),
         ('J', 'J'),
     ]
-MONTHS_APPL_CHOICES = [
-     ('', 'Please Select Months'),
-     ('4,5,6', '4,5,6'),
-     ('10,11,12', '10,11,12'),
-     ('1,2,3', '1,2,3'),
-     ('8', '8'),
-     ('9', '9')
-  ]
 MONTHS = [
     ('', 'Please Select Month'),
     ('1', 'January'),
@@ -328,32 +320,54 @@ class ClassNoFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         return []
 
+class SectionFilter(admin.SimpleListFilter):
+    title = 'Section'
+    parameter_name = 'search_section'
+
+    def lookups(self, request, model_admin):
+        return []
+
 class StudentMasterAdmin(admin.ModelAdmin):
     form = StudentMasterForm
     list_display = ('student_id', 'student_name', 'get_class_no', 'get_section', 'addmission_no', 'father_name', 'mother_name', 'gender', 'birth_date', 'category', 'status', 'admission_date', 'passedout_date')
     # search_fields = ('student_name', 'addmission_no', 'aadhaar_no', 'email', 'city', 'birth_date')
 
     # Add custom filters to the list filter
-    list_filter = (AdmissionNoFilter, StudentNameFilter, ClassNoFilter)
+    list_filter = (AdmissionNoFilter, StudentNameFilter, ClassNoFilter, SectionFilter)
+
+    def get_queryset(self, request):
+        # Get the base queryset
+        qs = super().get_queryset(request)
+
+        # Store the request in the instance for later use
+        self._request = request
+        
+        # Custom filtering for search_class_no
+        search_class_no = request.GET.get('search_class_no', None)
+        search_section = request.GET.get('search_section', None)
+
+        if search_class_no and search_section:
+            student_ids = student_class.objects.filter(class_no=search_class_no,section=search_section).values_list('student_id', flat=True)
+            qs = qs.filter(student_id__in=student_ids)
+        elif search_class_no:
+            student_ids = student_class.objects.filter(class_no=search_class_no).values_list('student_id', flat=True)
+            qs = qs.filter(student_id__in=student_ids)
+        elif search_section:
+            student_ids_by_section = student_class.objects.filter(section=search_section).values_list('student_id', flat=True)
+            qs = qs.filter(student_id__in=student_ids_by_section)
+                
+        return qs
 
     # Override get_search_results to handle custom search logic
     def get_search_results(self, request, queryset, search_term):
         search_admission_no = request.GET.get('search_admission_no', None)
         search_student_name = request.GET.get('search_student_name', None)
-        search_class_no = request.GET.get('search_class_no', None)
 
         # Apply custom filters for admission_no and student_name
         if search_admission_no:
             queryset = queryset.filter(addmission_no__icontains=search_admission_no)
         if search_student_name:
             queryset = queryset.filter(student_name__icontains=search_student_name)
-
-        if search_class_no:
-            # Get the student IDs from student_class based on class_no
-            student_ids = student_class.objects.filter(class_no=search_class_no).values_list('student_id', flat=True)
-            queryset = queryset.filter(student_id__in=student_ids)
-
-        print("++++++++++ queryset +++++++++++", queryset)
 
         # Return the modified queryset and a boolean for whether distinct is needed
         return queryset, False
@@ -364,6 +378,7 @@ class StudentMasterAdmin(admin.ModelAdmin):
         extra_context['search_admission_no'] = request.GET.get('search_admission_no', '')
         extra_context['search_student_name'] = request.GET.get('search_student_name', '')
         extra_context['search_class_no'] = request.GET.get('search_class_no', '')
+        extra_context['search_section'] = request.GET.get('search_section', '')
         
         return super().changelist_view(request, extra_context=extra_context)
 
@@ -371,12 +386,36 @@ class StudentMasterAdmin(admin.ModelAdmin):
     change_list_template = 'admin/student_master_changelist.html'
 
     def get_class_no(self, obj):
-        student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+        search_class_no = self._request.GET.get('search_class_no', None)
+        search_section = self._request.GET.get('search_section', None)
+
+        # Filter by class_no and/or section if available
+        if search_class_no and search_section:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id, class_no=search_class_no, section=search_section).order_by('-started_on').first()
+        elif search_class_no:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+        elif search_section:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id, section=search_section).order_by('-started_on').first()
+        else:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+
         return student_class_instance.class_no if student_class_instance else None
     get_class_no.short_description = 'Class'
 
     def get_section(self, obj):
-        student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+        search_class_no = self._request.GET.get('search_class_no', None)
+        search_section = self._request.GET.get('search_section', None)
+
+        # Filter by class_no and/or section if available
+        if search_class_no and search_section:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id, class_no=search_class_no, section=search_section).order_by('-started_on').first()
+        elif search_class_no:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+        elif search_section:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id, section=search_section).order_by('-started_on').first()
+        else:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+
         return student_class_instance.section if student_class_instance else None
     get_section.short_description = 'Section'
     
@@ -566,9 +605,126 @@ class FeesMasterForm(forms.ModelForm):
 
         return cleaned_data
 
+class ClassNoFilter(admin.SimpleListFilter):
+    title = 'Class No'
+    parameter_name = 'search_class_no'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class AnnualFeesFilter(admin.SimpleListFilter):
+    title = 'Annual Fees'
+    parameter_name = 'search_annual_fees'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class TuitionFeesFilter(admin.SimpleListFilter):
+    title = 'Tuition Fees'
+    parameter_name = 'search_tuition_fees'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class FundsFeesFilter(admin.SimpleListFilter):
+    title = 'Funds Fees'
+    parameter_name = 'search_funds_fees'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class SportsFeesFilter(admin.SimpleListFilter):
+    title = 'Sports Fees'
+    parameter_name = 'search_sports_fees'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class ActivityFeesFilter(admin.SimpleListFilter):
+    title = 'Activity Fees'
+    parameter_name = 'search_activity_fees'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class AdmissionFeesFilter(admin.SimpleListFilter):
+    title = 'Admission Fees'
+    parameter_name = 'search_admission_fees'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class DayboardingFeesFilter(admin.SimpleListFilter):
+    title = 'Dayboarding Fees'
+    parameter_name = 'search_dayboarding_fees'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class MiscellaneousFeesFilter(admin.SimpleListFilter):
+    title = 'Miscellaneous Fees'
+    parameter_name = 'search_miscel_fees'
+
+    def lookups(self, request, model_admin):
+        return []
+
 class FeesMasterAdmin(admin.ModelAdmin):
     form = FeesMasterForm
     list_display = ("fees_id", "class_no", "annual_fees", "tuition_fees", "funds_fees", "sports_fees", "activity_fees", "admission_fees", "dayboarding_fees", "miscellaneous_fees", "valid_from", "valid_to")
+    list_filter = (ClassNoFilter, AnnualFeesFilter, TuitionFeesFilter, FundsFeesFilter, SportsFeesFilter, ActivityFeesFilter, AdmissionFeesFilter, DayboardingFeesFilter, MiscellaneousFeesFilter)
+
+    def get_search_results(self, request, queryset, search_term):
+        search_class_no = request.GET.get('search_class_no', None)
+        search_annual_fees = request.GET.get('search_annual_fees', None)
+        search_tuition_fees = request.GET.get('search_tuition_fees', None)
+        search_funds_fees = request.GET.get('search_funds_fees', None)
+        search_sports_fees = request.GET.get('search_sports_fees', None)
+        search_activity_fees = request.GET.get('search_activity_fees', None)
+        search_admission_fees = request.GET.get('search_admission_fees', None)
+        search_dayboarding_fees = request.GET.get('search_dayboarding_fees', None)
+        search_miscel_fees = request.GET.get('search_miscel_fees', None)
+
+
+        # Apply custom filters for admission_no and student_name
+        if search_class_no:
+            queryset = queryset.filter(class_no=search_class_no)
+        if search_annual_fees:
+            queryset = queryset.filter(annual_fees=search_annual_fees)
+        if search_tuition_fees:
+            queryset = queryset.filter(tuition_fees=search_tuition_fees)
+        if search_funds_fees:
+            queryset = queryset.filter(funds_fees=search_funds_fees)
+        if search_sports_fees:
+            queryset = queryset.filter(sports_fees=search_sports_fees)
+        if search_activity_fees:
+            queryset = queryset.filter(activity_fees=search_activity_fees)
+        if search_admission_fees:
+            queryset = queryset.filter(admission_fees=search_admission_fees)
+        if search_dayboarding_fees:
+            queryset = queryset.filter(dayboarding_fees=search_dayboarding_fees)
+        if search_miscel_fees:
+            queryset = queryset.filter(miscellaneous_fees=search_miscel_fees)
+        
+
+        # Return the modified queryset and a boolean for whether distinct is needed
+        return queryset, False
+
+    def changelist_view(self, request, extra_context=None):
+        # Adding extra context for the search fields in the template
+        extra_context = extra_context or {}
+        extra_context['search_class_no'] = request.GET.get('search_class_no', '')
+        extra_context['search_annual_fees'] = request.GET.get('search_annual_fees', '')
+        extra_context['search_tuition_fees'] = request.GET.get('search_tuition_fees', '')
+        extra_context['search_funds_fees'] = request.GET.get('search_funds_fees', '')
+        extra_context['search_sports_fees'] = request.GET.get('search_sports_fees', '')
+        extra_context['search_activity_fees'] = request.GET.get('search_activity_fees', '')
+        extra_context['search_admission_fees'] = request.GET.get('search_admission_fees', '')
+        extra_context['search_dayboarding_fees'] = request.GET.get('search_dayboarding_fees', '')
+        extra_context['search_miscel_fees'] = request.GET.get('search_miscel_fees', '')
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+    change_list_template = 'admin/fees_master_changelist.html'
 
 # admin.site.register(student_master,StudentMasterAdmin)
 admin.site.register(user, UserDisplay)
@@ -1718,6 +1874,20 @@ admin.site.register(payment_schedule_master, PaymentScheduleMasterAdmin)
 
 # admin.site.register(payment_schedule_master)
 
+class FeeTypeFilter(admin.SimpleListFilter):
+    title = 'Fee Type'
+    parameter_name = 'search_fee_type'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class MonthsApplFilter(admin.SimpleListFilter):
+    title = 'Months Applicable'
+    parameter_name = 'search_months_appl'
+
+    def lookups(self, request, model_admin):
+        return []
+
 class SpecialFeeMasterForm(forms.ModelForm):
     class_no = forms.ChoiceField(choices=CLASS_CHOICES, required=True)
     student_name = forms.ChoiceField(choices=[('', 'Select Student')], required=False, label="Student Name*")
@@ -1726,7 +1896,8 @@ class SpecialFeeMasterForm(forms.ModelForm):
     # added_by = forms.CharField(widget=forms.HiddenInput())
     # updated_by = forms.CharField(widget=forms.HiddenInput())
     months_applicable_for = forms.MultipleChoiceField(
-        choices=[],
+        widget=forms.SelectMultiple,  # Use SelectMultiple for a multi-select dropdown
+        required=False
     )
 
     # Generate year choices dynamically
@@ -1737,7 +1908,7 @@ class SpecialFeeMasterForm(forms.ModelForm):
     class Meta:
         model = specialfee_master
         # fields = ['class_no', 'student_name', 'fee_type', 'months_applicable_for', 'year', 'amount', 'added_by', 'updated_by']
-        fields = ['class_no', 'student_name', 'fee_type', 'months_applicable_for', 'year', 'amount', 'added_by', 'updated_by']
+        fields = ['class_no', 'student_name', 'fee_type', 'months_applicable_for', 'year', 'amount']
 
     class Media:
         js = ('app/js/specialfee_master.js',)
@@ -1758,18 +1929,24 @@ class SpecialFeeMasterForm(forms.ModelForm):
         ('12', 'December')
     ]
 
-    MONTHS_APPL_CHOICES = [
-        ('', 'Please Select Months'),
-        ('4,5,6', '4,5,6'),
-        ('10,11,12', '10,11,12'),
-        ('1,2,3', '1,2,3'),
-        ('8', '8'),
-        ('9', '9')
-    ]
-
     def __init__(self, *args, **kwargs):
         super(SpecialFeeMasterForm, self).__init__(*args, **kwargs)
 
+        # Fetch all months (comma-separated groups) from payment_schedule_master
+        months_choices = payment_schedule_master.objects.values_list('fees_for_months', 'fees_for_months')
+        # Set the choices for the months_applicable_for field
+        self.fields['months_applicable_for'].choices = months_choices
+
+        # Handle initial value for edit case
+        if self.instance and self.instance.pk:
+            stored_months = self.instance.months_applicable_for
+            if stored_months:
+                print('+++ stored_months ++++', stored_months)
+                # Split the stored comma-separated string into a list of strings
+                self.fields['months_applicable_for'].initial = stored_months.split(',')
+            else:
+                self.fields['months_applicable_for'].initial = []
+        
         # Set the choices for months_applicable_for based on the initial fee_type
         self.update_months_choices()
 
@@ -1808,6 +1985,7 @@ class SpecialFeeMasterForm(forms.ModelForm):
             #                                         f"{self.instance.student_id} - {self.instance.student_class_id}")]
 
     def update_months_choices(self):
+        months_choices = payment_schedule_master.objects.values_list('fees_for_months', 'fees_for_months')
         fee_type = self.initial.get('fee_type', self.data.get('fee_type'))
         if fee_type == 'bus_fees':
             print("++++++++++++")
@@ -1819,10 +1997,9 @@ class SpecialFeeMasterForm(forms.ModelForm):
             self.fields['months_applicable_for'].required = False
         else:
             print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-            self.fields['months_applicable_for'].choices = self.MONTHS_APPL_CHOICES
+            self.fields['months_applicable_for'].choices = months_choices
             # self.fields['months_applicable_for'].required = True
 
-        
     def clean_months_applicable_for(self):
         months = self.cleaned_data.get('months_applicable_for', [])
         # Join the list into a comma-separated string
@@ -1839,7 +2016,33 @@ class SpecialFeeMasterForm(forms.ModelForm):
 
 class SpecialFeeMasterAdmin(admin.ModelAdmin):
     list_display = ("student_charge_id", "student_id", "student_class_id", "fee_type", "months_applicable_for", "year", "amount", "added_at", "updated_at")
+    # search_fields = ("student_charge_id", "student_id", "student_class_id", "fee_type", "months_applicable_for", "year", "amount", "added_at", "updated_at")
+    list_filter = (FeeTypeFilter, MonthsApplFilter)
+
     form = SpecialFeeMasterForm
+
+    def get_search_results(self, request, queryset, search_term):
+        search_fee_type = request.GET.get('search_fee_type', None)
+        search_months_appl = request.GET.get('search_months_appl', None)
+
+        # Apply custom filters for admission_no and student_name
+        if search_fee_type:
+            queryset = queryset.filter(fee_type__icontains=search_fee_type)
+        if search_months_appl:
+            queryset = queryset.filter(months_applicable_for__icontains=search_months_appl)
+
+        # Return the modified queryset and a boolean for whether distinct is needed
+        return queryset, False
+
+    def changelist_view(self, request, extra_context=None):
+        # Adding extra context for the search fields in the template
+        extra_context = extra_context or {}
+        extra_context['search_fee_type'] = request.GET.get('search_fee_type', '')
+        extra_context['search_months_appl'] = request.GET.get('search_months_appl', '')
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+    change_list_template = 'admin/specialfee_changelist.html'
 
     def get_urls(self):
         urls = super().get_urls()
@@ -1850,7 +2053,6 @@ class SpecialFeeMasterAdmin(admin.ModelAdmin):
 
     def get_students(self, request):
         class_no = request.GET.get('class_no', '')
-        print('++++++++ class_no ++++++++++', class_no)
         if class_no:
             current_year = datetime.now().year
 
@@ -1878,7 +2080,6 @@ class SpecialFeeMasterAdmin(admin.ModelAdmin):
                 student_info['section'] = student_class_info['section']
                 results.append(student_info)
 
-            print("++++++++ results +++++++", results)
             return JsonResponse(results, safe=False)
 
         return JsonResponse({'error': 'Student not found'}, status=404)
@@ -1895,6 +2096,8 @@ class ButtonWidget(forms.Widget):
 class StudentClassAdminForm(forms.ModelForm):
     student_name = forms.CharField(required=False, label="Student Name")
     admission_no = forms.IntegerField(required=False, label="Admission")
+    display_class_no = forms.ChoiceField(choices=CLASS_CHOICES, required=False, label="Class")
+    dispaly_section = forms.ChoiceField(choices=SECTION, required=False, label="Section")
     search_button = forms.CharField(widget=ButtonWidget(), required=False)
     search_results = forms.ModelChoiceField(queryset=student_master.objects.none(), required=False,blank=True, label="Select Student")
     display_admission_no = forms.IntegerField(required=False, label="Admission No")
@@ -1939,9 +2142,38 @@ class StudentClassAdminForm(forms.ModelForm):
             if student_id:
                 self.fields['search_results'].queryset = student_master.objects.filter(student_id=student_id)
 
+class ClassNoFilter(admin.SimpleListFilter):
+    title = 'Class No'
+    parameter_name = 'search_class'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class SectionFilter(admin.SimpleListFilter):
+    title = 'Section'
+    parameter_name = 'search_section'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class StudentNameFilter(admin.SimpleListFilter):
+    title = 'Student Name'
+    parameter_name = 'search_student'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class AdmissionNoFilter(admin.SimpleListFilter):
+    title = 'Admission Number'
+    parameter_name = 'search_admission_no'
+
+    def lookups(self, request, model_admin):
+        return []
+
 class StudentClassAdmin(admin.ModelAdmin):
-    list_display = ("student_class_id", "student_id", "class_no", "section", "started_on", "ended_on")
-    search_fields = ('student_id', 'class_no', 'section')
+    list_display = ("get_admission_no", "get_student_name", "class_no", "section", "started_on", "ended_on")
+    list_filter = (ClassNoFilter, StudentNameFilter, AdmissionNoFilter, SectionFilter)
+
     form = StudentClassAdminForm
 
     # def save_model(self, request, obj, form, change):
@@ -1949,6 +2181,49 @@ class StudentClassAdmin(admin.ModelAdmin):
     #         # Ensure the student_id is retained even if the field is readonly
     #         obj.student_id = form.cleaned_data['student_id']
     #     super().save_model(request, obj, form, change)
+
+    def get_search_results(self, request, queryset, search_term):
+        search_class = request.GET.get('search_class', None)
+        search_section = request.GET.get('search_section', None)
+        search_student = request.GET.get('search_student', None)
+        search_admission_no = request.GET.get('search_admission_no', None)
+
+        # Apply custom filters for admission_no and student_name
+        if search_class:
+            queryset = queryset.filter(class_no=search_class)
+        if search_section:
+            queryset = queryset.filter(section=search_section)
+        if search_student:
+            student_ids = student_master.objects.filter(student_name__icontains=search_student).values_list('student_id', flat=True)
+            queryset = queryset.filter(student_id__in=student_ids)
+        if search_admission_no:
+            student_ids = student_master.objects.filter(addmission_no__icontains=search_admission_no).values_list('student_id', flat=True)
+            queryset = queryset.filter(student_id__in=student_ids)
+
+        # Return the modified queryset and a boolean for whether distinct is needed
+        return queryset, False
+
+    def changelist_view(self, request, extra_context=None):
+        # Adding extra context for the search fields in the template
+        extra_context = extra_context or {}
+        extra_context['search_class'] = request.GET.get('search_class', '')
+        extra_context['search_section'] = request.GET.get('search_section', '')
+        extra_context['search_student'] = request.GET.get('search_student', '')
+        extra_context['search_admission_no'] = request.GET.get('search_admission_no', '')
+        
+        return super().changelist_view(request, extra_context=extra_context)
+
+    change_list_template = 'admin/student_class_changelist.html'
+
+    def get_student_name(self, obj):
+        student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
+        return student_master_instance.student_name if student_master_instance else None
+    get_student_name.short_description = 'Student Name'
+
+    def get_admission_no(self, obj):
+        student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
+        return student_master_instance.addmission_no if student_master_instance else None
+    get_admission_no.short_description = 'Admission Number'
 
     def get_fieldsets(self, request, obj=None):
         if obj:  # Editing an existing student_class
@@ -1961,7 +2236,7 @@ class StudentClassAdmin(admin.ModelAdmin):
             return [
                 ('Student Search', {
                     'classes': ('box',),  # Custom class to style the box
-                    'fields': ('student_name', 'admission_no', 'search_button', 'search_results'),
+                    'fields': ('student_name', 'admission_no', 'display_class_no', 'dispaly_section', 'search_button', 'search_results'),
                 }),
                 (None, {
                     'fields': ('student_id', 'display_admission_no', 'display_student_name', 'class_no', 'section', 'started_on', 'ended_on'),
@@ -1978,7 +2253,6 @@ class StudentClassAdmin(admin.ModelAdmin):
     
     def get_student(self, request):
         student_id = request.GET.get('student_id', '')
-        print("++++++ student_id +++++++++", student_id)
         if student_id:
             student = student_master.objects.get(student_id=student_id)
             return JsonResponse({'student_id': student.student_id,'student_name':student.student_name,'admission_no':student.addmission_no})
@@ -1987,12 +2261,21 @@ class StudentClassAdmin(admin.ModelAdmin):
     def load_students(self, request):
         student_name = request.GET.get('student_name', '')
         admission_no = request.GET.get('admission_no', '')
+        class_no = request.GET.get('class_no', '')
+        section = request.GET.get('section', '')
+        
         queryset = student_master.objects.all()
 
         if student_name:
             queryset = queryset.filter(student_name__icontains=student_name)
         if admission_no:
             queryset = queryset.filter(addmission_no=admission_no)
+        if class_no:
+            student_ids = student_class.objects.filter(class_no=class_no).values_list('student_id', flat=True)
+            queryset = queryset.filter(student_id__in=student_ids)
+        if section:
+            student_ids = student_class.objects.filter(section=section).values_list('student_id', flat=True)
+            queryset = queryset.filter(student_id__in=student_ids)
         results = list(queryset.values('student_id', 'student_name', 'addmission_no'))
         return JsonResponse(results, safe=False)
 
