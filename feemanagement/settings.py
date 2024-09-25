@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'app',
     'import_export',
     'ckeditor',
-    'multiselectfield'
+    # 'multiselectfield'
 ]
 
 AUTHENTICATION_BACKEND=[

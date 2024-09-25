@@ -57,7 +57,7 @@ from datetime import datetime
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
-from multiselectfield import MultiSelectField
+# from multiselectfield import MultiSelectField
 
 from .services import last_payment_record,fetch_fee_details_for_class,get_special_fee,calculate_late_fee
 
@@ -1312,6 +1312,16 @@ class StudentClassAdmin(admin.ModelAdmin):
 admin.site.register(student_class,StudentClassAdmin)
 
 
+def get_default_quarter():
+    current_month = datetime.now().month
+    if 4 <= current_month <= 6:
+        return '4,5,6'  # April - June
+    elif 7 <= current_month <= 9:
+        return '7,8,9'  # July - September
+    elif 10 <= current_month <= 12:
+        return '10,11,12'  # October - December
+    return '1,2,3'  # January - March
+
 class StudentFeesAdminForm(forms.ModelForm):
 
     class Meta:
@@ -1330,7 +1340,14 @@ class StudentFeesAdminForm(forms.ModelForm):
     class_no = forms.ChoiceField(choices=CLASS_CHOICES, required=False, label="Class")
     section = forms.ChoiceField(choices=SECTION, required=False, label="Section")
     search_button = forms.CharField(widget=forms.TextInput(attrs={'type': 'button', 'value': 'Find Student'}), label='', required=False)
-    search_results = forms.ModelChoiceField(queryset=student_master.objects.none(), required=False, blank=True, label="Select Student")
+    # search_results = forms.ModelChoiceField(queryset=student_master.objects.none(), required=False,blank=True, label="Select Student")
+    search_results = forms.ModelChoiceField(
+        queryset=student_master.objects.none(),
+        required=False,
+        blank=True,
+        label="Select Student",
+        widget=forms.Select(attrs={'id': 'student-dropdown'})  # Adding the id attribute
+    )
     
     # Student detail fields
     # student_id = forms.IntegerField(widget=forms.HiddenInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}), required=False)
@@ -1456,25 +1473,28 @@ class StudentFeesAdminForm(forms.ModelForm):
         print("======= I'M HERE ===========")
 
         # Fetch the initial data for update case
-        if self.instance and self.instance.fees_period_month:
-            selected_months = self.instance.fees_period_month.split(', ')
-            self.fields['fees_period_month'].initial = selected_months
-        print("======= I'M HERE ===========")
+        # if self.instance and self.instance.fees_period_month:
+        #     selected_months = self.instance.fees_period_month.split(', ')
+        #     self.fields['fees_period_month'].initial = selected_months
+        # print("======= I'M HERE ===========")
 
         # Calculate the current quarter based on the current month
-        current_month = datetime.now().month
-        if 4 <= current_month <= 6:
-            default_quarter = '4,5,6'  # April - June
-        elif 7 <= current_month <= 9:
-            default_quarter = '7,8,9'  # July - September
-        elif 10 <= current_month <= 12:
-            default_quarter = '10,11,12'  # October - December
-        else:
-            default_quarter = '1,2,3'  # January - March
+        # current_month = datetime.now().month
+        # if 4 <= current_month <= 6:
+        #     default_quarter = '4,5,6'  # April - June
+        # elif 7 <= current_month <= 9:
+        #     default_quarter = '7,8,9'  # July - September
+        # elif 10 <= current_month <= 12:
+        #     default_quarter = '10,11,12'  # October - December
+        # else:
+        #     default_quarter = '1,2,3'  # January - March
 
-        # Set the default value for fees_for_months
-        self.fields['fees_for_months'].initial = default_quarter
-        print("======= I'M HERE ===========")
+        # # Set the default value for fees_for_months
+        # self.fields['fees_for_months'].initial = default_quarter
+        # print("======= I'M HERE ===========")
+
+        # Call this in __init__
+        self.fields['fees_for_months'].initial = get_default_quarter()
 
         if self.instance and self.instance.pk:
             
@@ -1691,9 +1711,130 @@ class StudentFeesAdmin(admin.ModelAdmin):
         'added_by'
     )
 
-    fieldsets = (
-        # Section 1: Search and Previous Fees
-        ('Search Student', {
+    # fieldsets = (
+    #     # Section 1: Search and Previous Fees
+    #     ('Search Student', {
+    #         'fields': (
+    #             'student_name',
+    #             'admission_no',
+    #             'class_no',
+    #             'section',
+    #             'search_button',
+    #         ),
+    #         'classes': ('half-width-container',),  # Custom CSS class for layout
+    #     }),
+    #     ('Previous Fees Record', {
+    #         'fields': (),
+    #         'classes': ('collapse',),  # Optional: initially collapsed
+    #     }),
+
+    #     # Section 2: Student Details, Fees, and Payment
+    #     ('Selected Student Details', {
+    #         'fields': (
+    #             'display_admission_no',
+    #             'display_student_name',
+    #             'display_father_name',
+    #             'display_student_class',
+    #             'display_student_section',
+    #             'started_on',
+    #             'student_id',
+    #         ),
+    #         'classes': ('half-width-container',),  # Custom CSS class for layout
+    #     }),
+    #     ('Fees Section', {
+    #         'fields': (
+    #             'fees_for_months',
+    #             'fees_period_month',
+    #             'annual_fees_paid',
+    #             'tuition_fees_paid',
+    #             'funds_fees_paid',
+    #             'sports_fees_paid',
+    #             'activity_fees',
+    #             'admission_fees_paid',
+    #             'miscellaneous_fees_paid',
+    #             'late_fees_paid',
+    #             'dayboarding_fees_paid',
+    #             'bus_fees_paid',
+    #             'concession_type',
+    #             'concession_applied',
+    #             'total_amount',
+    #         ),
+    #     }),
+    #     ('Payment Section', {
+    #         'fields': (
+    #             'date_payment',
+    #             'payment_mode',
+    #             'cheque_no',
+    #             'bank_name',
+    #             'branch_name',
+    #             'amount_paid',
+    #             'realized_date',
+    #             'cheque_status',
+    #             'remarks',
+    #         ),
+    #     }),
+    # )
+
+    # change_form_template = 'admin/student_fee/change_form.html'
+
+    def get_fieldsets(self, request, obj=None):
+        if obj:  # Editing an existing student_class
+            return [
+                ('Previous Fees Record', {
+                    'fields': (),
+                    'classes': ('collapse',),  # Optional: initially collapsed
+                }),
+
+                # Section 2: Student Details, Fees, and Payment
+                ('Selected Student Details', {
+                    'fields': (
+                        'display_admission_no',
+                        'display_student_name',
+                        'display_father_name',
+                        'display_student_class',
+                        'display_student_section',
+                        'started_on',
+                        'student_id',
+                    ),
+                    'classes': ('half-width-container',),  # Custom CSS class for layout
+                }),
+                ('Fees Section', {
+                    'fields': (
+                        'fees_for_months',
+                        'fees_period_month',
+                        'annual_fees_paid',
+                        'tuition_fees_paid',
+                        'funds_fees_paid',
+                        'sports_fees_paid',
+                        'activity_fees',
+                        'admission_fees_paid',
+                        'miscellaneous_fees_paid',
+                        'late_fees_paid',
+                        'dayboarding_fees_paid',
+                        'bus_fees_paid',
+                        'concession_type',
+                        'concession_applied',
+                        'total_amount',
+                    ),
+                }),
+                ('Payment Section', {
+                    'fields': (
+                        'date_payment',
+                        'payment_mode',
+                        'cheque_no',
+                        'bank_name',
+                        'branch_name',
+                        'amount_paid',
+                        'realized_date',
+                        'cheque_status',
+                        'remarks',
+                    ),
+                }),
+
+            ]
+        else:  # Adding a new student_class
+            return [
+                ('Search Student', {
             'fields': (
                 'student_name',
                 'admission_no',
@@ -1704,8 +1845,8 @@ class StudentFeesAdmin(admin.ModelAdmin):
             'classes': ('half-width-container',),  # Custom CSS class for layout
         }),
         ('Previous Fees Record', {
-            'fields': (),
-            'classes': ('collapse',),  # Optional: initially collapsed
+            'fields': ( 'search_results',),
+            # 'classes': ('collapse',),  # Optional: initially collapsed
         }),
 
         # Section 2: Student Details, Fees, and Payment
@@ -1753,9 +1894,9 @@ class StudentFeesAdmin(admin.ModelAdmin):
                 'remarks',
             ),
         }),
-    )
+    
+            ]
 
-    # change_form_template = 'admin/student_fee/change_form.html'
 
     def get_urls(self):
         urls = super().get_urls()
@@ -1768,18 +1909,73 @@ class StudentFeesAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
     
+    # def load_students(self, request):
+    #     if request.method == 'GET':
+    #         admission_no = request.GET.get('admission_no')
+    #         class_no = request.GET.get('class_no')
+    #         section = request.GET.get('section')
+    #         student_name = request.GET.get('student_name')
+            
+    #         # Base query with distinct students
+    #         students = student_master.objects.distinct()
+
+    #         print(f'students==={students}')
+            
+
+    #         # Apply filters based on the provided parameters
+    #         if admission_no:
+    #             students = students.filter(addmission_no=admission_no)
+    #         if student_name:
+    #             students = students.filter(student_name__istartswith=student_name)
+
+    #         # Prefetch related student classes to avoid querying in a loop
+    #         students = students.prefetch_related('classes') 
+
+    #         print(f'studentsssss==={students}')
+
+    #         # Create the final response
+    #         student_data = []
+    #         for student in students:
+    #             # Filter related student classes and get the latest with class_no and section filtering
+    #             # latest_class = student_class.objects.filter(
+    #             #     student_id=student.student_id,
+    #             #     class_no=class_no if class_no else None,  # Filter by class_no if provided
+    #             #     section=section if section else None  # Filter by section if provided
+    #             # ).order_by('-student_class_id').first()
+
+    #             latest_class = student_class.objects.filter(
+    #                 student_id=student.student_id,
+                    
+    #             ).order_by('-student_class_id').first()
+
+    #             print(f'latest_class----{latest_class}')
+
+    #             # If latest_class exists, add it to the student_data
+    #             if latest_class:
+    #                 student_data.append({
+    #                     'student_id': student.student_id,
+    #                     'student_name': student.student_name,
+    #                     'class_no': latest_class.class_no,
+    #                     'section': latest_class.section
+    #                 })
+
+    #         # Convert the student_data list into the desired format
+    #         formatted_data = ','.join([f"{d['student_id']}${d['student_name']}:{d['class_no']}-{d['section']}" for d in student_data])
+
+    #         return JsonResponse({'data': formatted_data})
+        
+    #     return JsonResponse({'error': 'Bad Request'}, status=400)
+
     def load_students(self, request):
         if request.method == 'GET':
+            # Extract query parameters from the GET request
             admission_no = request.GET.get('admission_no')
             class_no = request.GET.get('class_no')
             section = request.GET.get('section')
             student_name = request.GET.get('student_name')
-            
-            # Base query with distinct students
-            students = student_master.objects.distinct()
 
-            print(f'students==={students}')
-            
+            # Base query: Get distinct students and join with student_classes
+            students = student_master.objects.all().distinct()
 
             # Apply filters based on the provided parameters
             if admission_no:
@@ -1787,29 +1983,23 @@ class StudentFeesAdmin(admin.ModelAdmin):
             if student_name:
                 students = students.filter(student_name__istartswith=student_name)
 
-            # Prefetch related student classes to avoid querying in a loop
-            students = students.prefetch_related('classes') 
-
-            print(f'studentsssss==={students}')
-
-            # Create the final response
+            # Filter student_classes based on class_no and section if provided
             student_data = []
             for student in students:
-                # Filter related student classes and get the latest with class_no and section filtering
-                # latest_class = student_class.objects.filter(
-                #     student_id=student.student_id,
-                #     class_no=class_no if class_no else None,  # Filter by class_no if provided
-                #     section=section if section else None  # Filter by section if provided
-                # ).order_by('-student_class_id').first()
+                # Fetch the latest student_class for each student
+                latest_class_query = student_class.objects.filter(
+                    student_id=student.student_id
+                ).order_by('-student_class_id')
 
-                latest_class = student_class.objects.filter(
-                    student_id=student.student_id,
-                    
-                ).order_by('-student_class_id').first()
+                # Apply filters for class_no and section if they are provided
+                if class_no:
+                    latest_class_query = latest_class_query.filter(class_no=class_no)
+                if section:
+                    latest_class_query = latest_class_query.filter(section=section)
 
-                print(f'latest_class----{latest_class}')
+                latest_class = latest_class_query.first()
 
-                # If latest_class exists, add it to the student_data
+                # If latest_class exists, add the student and class details to student_data
                 if latest_class:
                     student_data.append({
                         'student_id': student.student_id,
@@ -1818,11 +2008,16 @@ class StudentFeesAdmin(admin.ModelAdmin):
                         'section': latest_class.section
                     })
 
-            # Convert the student_data list into the desired format
-            formatted_data = ','.join([f"{d['student_id']}${d['student_name']}:{d['class_no']}-{d['section']}" for d in student_data])
+            # Convert the student_data list into the desired output format
+            formatted_data = ','.join([
+                f"{d['student_id']}${d['student_name']}:{d['class_no']}-{d['section']}"
+                for d in student_data
+            ])
 
+            # Return the response in JSON format
             return JsonResponse({'data': formatted_data})
         
+        # If the request method is not GET, return a 400 Bad Request error
         return JsonResponse({'error': 'Bad Request'}, status=400)
 
 

@@ -1,7 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-
-  console.log("=========== testing DOMContentLoaded =====");
-
   // Get the form elements
   const admissionNoField = document.querySelector('input[name="admission_no"]');
   const studentNameField = document.querySelector('input[name="student_name"]');
@@ -12,29 +9,16 @@ document.addEventListener("DOMContentLoaded", function () {
   const feesForMonthsField = document.getElementById("id_fees_for_months");
   const feesPeriodMonthField = document.getElementById("id_fees_period_month");
 
-  const studentDropdown = document.getElementById("student-dropdown");
-
   let month = "";
   let stuId = "";
 
-
-  console.log("admissionNo", admissionNoField);
-  console.log("studentName", studentNameField);
-  console.log("classNo", classNoField);
-  console.log("section", sectionField);
-
-
-
   // Function to load students based on the search criteria
   async function loadStudents() {
-
     const admissionNo = admissionNoField.value.trim();
     const studentName = studentNameField.value.trim();
     const classNo = classNoField.value.trim();
     const section = sectionField.value.trim();
 
-    console.log("admissionNo", admissionNo);
-    console.log("studentName", studentName);
     console.log("classNo", classNo);
     console.log("section", section);
 
@@ -52,69 +36,27 @@ document.addEventListener("DOMContentLoaded", function () {
         const response = await fetch(url);
         if (!response.ok) throw new Error("Network response was not ok");
         const data = await response.json();
-
-        console.log("++++++ response +++++++",response);
-
-        // Clear the dropdown
-        studentDropdown.innerHTML = '<option value="">Select a Student</option>';
-
         const students = data.data.split(",");
 
-        console.log("++++++ students +++++++",students);
-        
-
-        students.forEach(student => {
-          const [idName, classNo] = student.split(":");
-          console.log("++++++ idName classNo +++++++",idName,classNo);
-          const [id,sname] = idName.split("$");
-          console.log("++++++ id +++++++",id);
-          const option = document.createElement("option");
-          option.value = id;  // Use the student_id for the option value
-          option.textContent = `${sname} (${classNo})`;  // Display name and class number
-          studentDropdown.appendChild(option);
-        });
-
-      } catch (error) {
-        console.error("There was a problem with the fetch operation:", error);
-      }
-
-      /* try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.json();
-        const students = data.data.split(",");
-
-        console.log("data", data);
+        console.log("students", students);
 
         students.forEach(async (student) => {
           const [idName, classNo] = student.split(":");
           const [id] = idName.split("$");
 
-          // Enhanced console logging
-          console.log(`Student ID Name: ${idName}`);
-          console.log(`Extracted ID: ${id}`);
-          console.log(`Class Number: ${classNo}`);
-          
+          console.log(id);
 
           await handleStudentId(id);
         });
       } catch (error) {
         console.error("There was a problem with the fetch operation:", error);
-      }*/
+      }
     } else {
       console.warn(
         "Please enter either admission number or student name to search."
       );
     }
   }
-
-  studentDropdown.addEventListener('change', async function () {
-    const selectedId = this.value;
-    if (selectedId) {
-      await handleStudentId(selectedId);
-    }
-  });
-
 
   async function handleStudentId(studentId) {
     stuId = studentId;
@@ -1050,8 +992,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Update fees_for_months based on the periodValue
       updateFeesMonthsBasedOnPeriod(periodValue);
-
-
+      
+      
     });
   } else {
     console.error("fees_period_month element not found!");
@@ -1066,7 +1008,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Update fees_period_month based on monthsValue
       updateFeesPeriodBasedOnMonths(monthsValue);
-
+     
 
     });
   } else {
@@ -1102,7 +1044,7 @@ document.addEventListener("DOMContentLoaded", function () {
       console.error("fees_for_months element not found!");
     }
 
-
+    
   }
 
   // Update fees_period_month based on fees_for_months
