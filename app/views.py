@@ -23,9 +23,9 @@ from decimal import Decimal
 from django.views.decorators.http import require_GET
 
 from .models import (
-    teacher_master, student_master, student_fee, student_class, specialfee_master,
+    user, student_master, student_fee, student_class, specialfee_master,
     payment_schedule_master, latefee_master, fees_master, expense,
-    concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list, cheque_status
+    concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list
 )
 from app import models
 import time

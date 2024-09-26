@@ -1,0 +1,33 @@
+{% extends "admin/index.html" %}
+
+{% block content %}
+<div id="content-main">
+    <h2>Admin Section</h2>
+    <ul class="app-list">
+        {% for model in app_list %}
+            {% if model.name in ['student_master', 'student_fee'] %}
+                <li><a href="{{ model.admin_url }}">{{ model.name }}</a></li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+
+    <h2>Fees Section</h2>
+    <ul class="app-list">
+        {% for model in app_list %}
+            {% if model.name in ['cheque_status'] %}
+                <li><a href="{{ model.admin_url }}">{{ model.name }}</a></li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+
+    <h2>Reports</h2>
+    <ul class="app-list">
+        {% for model in app_list %}
+            {% if model.name in ['transport'] %}
+                <li><a href="{{ model.admin_url }}">{{ model.name }}</a></li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
+    

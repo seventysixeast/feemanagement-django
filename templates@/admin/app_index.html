@@ -1,0 +1,19 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+    <h2>Admin Section</h2>
+    <ul>
+        <li><a href="{% url 'admin:app_student_master_changelist' %}">Student Master</a></li>
+        <li><a href="{% url 'admin:app_student_fee_changelist' %}">Student Fees</a></li>
+    </ul>
+
+    <h2>Fees Section</h2>
+    <ul>
+        <li><a href="{% url 'admin:app_cheque_status_changelist' %}">Cheque Status</a></li>
+    </ul>
+
+    <h2>Reports</h2>
+    <ul>
+        <li><a href="{% url 'admin:app_transport_changelist' %}">Transport</a></li>
+    </ul>
+{% endblock %}

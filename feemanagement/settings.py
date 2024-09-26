@@ -25,8 +25,8 @@ SECRET_KEY = 'django-insecure-7a=vigulfe7j_y#zh57a2td5nc=#$e8%p6#mvu#-4^k^8nih^=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS = ['*']
-ALLOWED_HOSTS = ['127.0.0.1','66.235.194.119','76east.com', 'www.76east.com']
+ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['127.0.0.1','66.235.194.119','76east.com', 'www.76east.com']
 
 CORS_ALLOW_METHODS = ['*']
 CORS_ALLOW_HEADERS = ['*']
@@ -44,7 +44,9 @@ INSTALLED_APPS = [
     'app',
     'import_export',
     'ckeditor',
-    # 'multiselectfield'
+    'Fees_Section',
+    'Reports',
+    # 'bootstrap5'
 ]
 
 AUTHENTICATION_BACKEND=[
@@ -63,10 +65,26 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'feemanagement.urls'
 
+# TEMPLATES = [
+#     {
+#         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+#         'DIRS': [],
+#         'APP_DIRS': True,
+#         'OPTIONS': {
+#             'context_processors': [
+#                 'django.template.context_processors.debug',
+#                 'django.template.context_processors.request',
+#                 'django.contrib.auth.context_processors.auth',
+#                 'django.contrib.messages.context_processors.messages',
+#             ],
+#         },
+#     },
+# ]
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # Add this line
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -78,6 +96,7 @@ TEMPLATES = [
         },
     },
 ]
+
 
 WSGI_APPLICATION = 'feemanagement.wsgi.application'
 
@@ -157,9 +176,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-# STATIC_URL = 'static/'
-STATIC_URL = '/school-admin/static/'
-MEDIA_URL = '/school-admin/media/'
+STATIC_URL = 'static/'
+# STATIC_URL = '/school-admin/static/'
+# MEDIA_URL = '/school-admin/media/'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_FILES_DIRS = [
@@ -176,3 +195,5 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # URL prefix for accessing media files
 MEDIA_URL = '/media/'
+
+DAB_FIELD_RENDERER = 'django_admin_bootstrapped.renderers.BootstrapFieldRenderer'

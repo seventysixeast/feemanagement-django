@@ -5,12 +5,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (class_no) {
         class_no.addEventListener('change', function () {
             const selectedClass = this.value;
-            console.log('+++++++ selected class +++++++', selectedClass);
             if (selectedClass) {
                 fetch(`/school-admin/app/specialfee_master/ajax/get-students/?class_no=${selectedClass}`)
                 .then(response => response.json())
                 .then(data => {
-                    console.log('++++++ data ++++++++', data);
 
                     var studentNames = document.getElementById("id_student_name");
                     studentNames.innerHTML = "";  // Clear previous results
@@ -42,13 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (student_name) {
         student_name.addEventListener('change', function () {
             const selectedValue = this.value;
-            console.log('+++++ CHANGE ++++++', selectedValue);
     
             if (selectedValue) {
                 const [student_id, student_class_id] = selectedValue.split('-');
-                console.log('+++++ student_id ++++++', student_id);
-                console.log('+++++ student_class_id ++++++', student_class_id);
-    
                 // Assign the values to the hidden input fields
                 document.getElementById('id_student_id').value = student_id;
                 document.getElementById('id_student_class_id').value = student_class_id;
