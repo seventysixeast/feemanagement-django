@@ -1322,6 +1322,36 @@ def get_default_quarter():
         return '10,11,12'  # October - December
     return '1,2,3'  # January - March
 
+
+class ClassNoFilter(admin.SimpleListFilter):
+    title = 'Class No'
+    parameter_name = 'search_class'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class SectionFilter(admin.SimpleListFilter):
+    title = 'Section'
+    parameter_name = 'search_section'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class StudentNameFilter(admin.SimpleListFilter):
+    title = 'Student Name'
+    parameter_name = 'search_student'
+
+    def lookups(self, request, model_admin):
+        return []
+
+class AdmissionNoFilter(admin.SimpleListFilter):
+    title = 'Admission Number'
+    parameter_name = 'search_admission_no'
+
+    def lookups(self, request, model_admin):
+        return []
+
+
 class StudentFeesAdminForm(forms.ModelForm):
 
     class Meta:
@@ -1331,8 +1361,6 @@ class StudentFeesAdminForm(forms.ModelForm):
     # student_id = forms.ModelChoiceField(queryset=student_master.objects.all())
     # Define current year at the top
     current_year = datetime.now().year
-
-
 
     # Existing fields
     student_name = forms.CharField(label="Student Name", required=False)
@@ -1348,20 +1376,6 @@ class StudentFeesAdminForm(forms.ModelForm):
         label="Select Student",
         widget=forms.Select(attrs={'id': 'student-dropdown'})  # Adding the id attribute
     )
-    
-    # Student detail fields
-    # student_id = forms.IntegerField(widget=forms.HiddenInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}), required=False)
-    # display_admission_no = forms.CharField(required=False, label="Admission No", widget=forms.TextInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}))
-    # display_student_name = forms.CharField(required=False, label="Student Name", widget=forms.TextInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}))
-    # display_father_name = forms.CharField(required=False, label="Father Name", widget=forms.TextInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}))
-    # display_student_class = forms.CharField(required=False, label="Student Class", widget=forms.TextInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}))
-    # display_student_section = forms.CharField(required=False, label="Student Section", widget=forms.TextInput(attrs={'readonly': 'readonly','id': 'id_fees_for_months'}))
-    # started_on = forms.ChoiceField(
-    #     choices=[(str(year), str(year)) for year in range(current_year - 1, current_year + 2)],
-    #     required=False, 
-    #     label="Year", 
-    #     widget=forms.Select()
-    # )
 
     student_id = forms.IntegerField(widget=forms.HiddenInput(attrs={'readonly': 'readonly', 'id': 'id_student_id'}), required=False)
 
@@ -1699,83 +1713,18 @@ class StudentFeesAdmin(admin.ModelAdmin):
     )
     
     # Fields to search in the search bar
-    search_fields = (
-        'student_class',
-        'fees_for_months',
-        'fees_period_month',
-        'year',
-        'date_payment',
-        'total_amount',
-        'amount_paid',
-        'receipt_url',
-        'added_by'
-    )
-
-    # fieldsets = (
-    #     # Section 1: Search and Previous Fees
-    #     ('Search Student', {
-    #         'fields': (
-    #             'student_name',
-    #             'admission_no',
-    #             'class_no',
-    #             'section',
-    #             'search_button',
-    #         ),
-    #         'classes': ('half-width-container',),  # Custom CSS class for layout
-    #     }),
-    #     ('Previous Fees Record', {
-    #         'fields': (),
-    #         'classes': ('collapse',),  # Optional: initially collapsed
-    #     }),
-
-    #     # Section 2: Student Details, Fees, and Payment
-    #     ('Selected Student Details', {
-    #         'fields': (
-    #             'display_admission_no',
-    #             'display_student_name',
-    #             'display_father_name',
-    #             'display_student_class',
-    #             'display_student_section',
-    #             'started_on',
-    #             'student_id',
-    #         ),
-    #         'classes': ('half-width-container',),  # Custom CSS class for layout
-    #     }),
-    #     ('Fees Section', {
-    #         'fields': (
-    #             'fees_for_months',
-    #             'fees_period_month',
-    #             'annual_fees_paid',
-    #             'tuition_fees_paid',
-    #             'funds_fees_paid',
-    #             'sports_fees_paid',
-    #             'activity_fees',
-    #             'admission_fees_paid',
-    #             'miscellaneous_fees_paid',
-    #             'late_fees_paid',
-    #             'dayboarding_fees_paid',
-    #             'bus_fees_paid',
-    #             'concession_type',
-    #             'concession_applied',
-    #             'total_amount',
-    #         ),
-    #     }),
-    #     ('Payment Section', {
-    #         'fields': (
-    #             'date_payment',
-    #             'payment_mode',
-    #             'cheque_no',
-    #             'bank_name',
-    #             'branch_name',
-    #             'amount_paid',
-    #             'realized_date',
-    #             'cheque_status',
-    #             'remarks',
-    #         ),
-    #     }),
+    list_filter = (ClassNoFilter, StudentNameFilter, AdmissionNoFilter, SectionFilter)
+    # search_fields = (
+    #     'student_class',
+    #     'fees_for_months',
+    #     'fees_period_month',
+    #     'year',
+    #     'date_payment',
+    #     'total_amount',
+    #     'amount_paid',
+    #     'receipt_url',
+    #     'added_by'
     # )
-
-    # change_form_template = 'admin/student_fee/change_form.html'
 
     def get_fieldsets(self, request, obj=None):
         if obj:  # Editing an existing student_class
@@ -1844,7 +1793,7 @@ class StudentFeesAdmin(admin.ModelAdmin):
             ),
             'classes': ('half-width-container',),  # Custom CSS class for layout
         }),
-        ('Previous Fees Record', {
+        ('Select Student', {
             'fields': ( 'search_results',),
             # 'classes': ('collapse',),  # Optional: initially collapsed
         }),
@@ -1896,6 +1845,54 @@ class StudentFeesAdmin(admin.ModelAdmin):
         }),
     
             ]
+
+
+
+    def get_search_results(self, request, queryset, search_term):
+        search_class = request.GET.get('search_class', None)
+        search_section = request.GET.get('search_section', None)
+        search_student = request.GET.get('search_student', None)
+        search_admission_no = request.GET.get('search_admission_no', None)
+
+        # Apply custom filters for admission_no and student_name
+        if search_class:
+            queryset = queryset.filter(class_no=search_class)
+        if search_section:
+            queryset = queryset.filter(section=search_section)
+        if search_student:
+            student_ids = student_master.objects.filter(student_name__icontains=search_student).values_list('student_id', flat=True)
+            queryset = queryset.filter(student_id__in=student_ids)
+        if search_admission_no:
+            student_ids = student_master.objects.filter(addmission_no__icontains=search_admission_no).values_list('student_id', flat=True)
+            queryset = queryset.filter(student_id__in=student_ids)
+
+        # Return the modified queryset and a boolean for whether distinct is needed
+        return queryset, False
+
+    def changelist_view(self, request, extra_context=None):
+        # Adding extra context for the search fields in the template
+        extra_context = extra_context or {}
+        extra_context['search_class'] = request.GET.get('search_class', '')
+        extra_context['search_section'] = request.GET.get('search_section', '')
+        extra_context['search_student'] = request.GET.get('search_student', '')
+        extra_context['search_admission_no'] = request.GET.get('search_admission_no', '')
+        
+        return super().changelist_view(request, extra_context=extra_context)
+
+    change_list_template = 'admin/student_fee/student_fees_changelist.html'
+
+    def get_student_name(self, obj):
+        pass
+        # student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
+        # return student_master_instance.student_name if student_master_instance else None
+    get_student_name.short_description = 'Student Name'
+
+    def get_admission_no(self, obj):
+        pass
+        # student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
+        # return student_master_instance.addmission_no if student_master_instance else None
+    get_admission_no.short_description = 'Admission Number'
+
 
 
     def get_urls(self):
