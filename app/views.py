@@ -23,7 +23,7 @@ from decimal import Decimal
 from django.views.decorators.http import require_GET
 
 from .models import (
-    user, student_master, student_fee, student_class, specialfee_master,
+    student_master, student_fee, student_class, specialfee_master,
     payment_schedule_master, latefee_master, fees_master, expense,
     concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list
 )
@@ -55,6 +55,22 @@ from xhtml2pdf import pisa
 from io import BytesIO
 from django.conf import settings
 import os
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login, get_user
+from django.contrib import messages
+# from django.contrib.auth.models import User  # Add this import
+from django.urls import reverse
+from .forms import OTPVerificationForm
+import random  # For generating OTP
+
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth import login
+from django.http import JsonResponse
+from django.conf import settings
+
+User = get_user_model()
 # import datetime
 
 
@@ -112,8 +128,8 @@ def register_view(request):
     if request.method =='POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request,user)
+            # user = form.save()
+            # login(request,user)
             return redirect('dashboard')
     else:
         initial_data = { 'username':'', 'password1':'', 'password2':''}
@@ -125,8 +141,8 @@ def login_view(request):
     if request.method =='POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
-            user = form.get_user()
-            login(request,user)
+            # user = form.get_user()
+            # login(request,user)
             return redirect('dashboard')
     else:
         initial_data = { 'username':'', 'password':''}
@@ -2305,4 +2321,61 @@ def action_generate_pdf(request, txn_id):
 #             'remarks': fee.remarks,
 #         }
 #     return None
+
+
+# Function to simulate sending an OTP (implement your own logic)
+def send_otp(user):
+    otp = random.randint(1000, 9999)  # Generate a random 6-digit OTP
+    user.last_name = otp  # Store OTP in user instance (you might want to save it in the database or cache)
+    user.save()
+    print(f"OTP sent to {user.first_name}: {otp}")  # Replace with actual sending logic (email/SMS)
+
+def custom_login(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        # Authenticate user
+        # user = authenticate(request, username=email, password=password)
+        user = authenticate(request, email=email, password=password)
+        if user is not None:
+            # Login user and send OTP
+            send_otp(user)
+            request.session['user_id'] = user.id  # Store user ID in session for later use
+            return redirect('otp_verification')  # Redirect to OTP verification page
+        else:
+            messages.error(request, "Invalid email or password.")
+            return render(request, 'app/login.html')
+
+    else:
+        print('checing----------')
+        return render(request, 'app/login.html')  # Render the custom login template
+
+
+def otp_verification(request):
+    if request.method == 'POST':
+        otp = request.POST.get('otp')
+        user_id = request.session.get('user_id')  # Get user ID from session
+        print('user_id in otp_verification:', user_id)
+        
+        try:
+            # Fetch the complete user object
+            user = User.objects.get(pk=user_id)
+            print('user in otp_verification:', user)
+        except User.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'User does not exist'})
+
+        # Validate the OTP using the user's last_name (for your scenario)
+        if user.last_name and int(otp) == int(user.last_name):
+            # Set the backend manually
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
+
+            # Log the user in
+            login(request, user)  # Log the user in
+            return JsonResponse({'success': True})  # Respond with success status
+        else:
+            return JsonResponse({'success': False, 'error': 'Invalid OTP'})
+
+    return render(request, 'admin/otp_verification.html')
+
 
