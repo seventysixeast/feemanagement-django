@@ -55,54 +55,9 @@ class busfees_master(models.Model):
             bus_master_instance = bus_master.objects.filter(bus_route=self.route).first()
             return bus_master_instance.bus_attendant if bus_master_instance else None
         except bus_master.DoesNotExist:
-            return None
-  
-# class bus_master(models.Model):
-#     BUS_CHOICES = [
-#       ('', 'Please Select Route'),
-#       (1, '1'),
-#       (2, '2'),
-#       (3, '3'),
-#       (4, '4'),
-#       (5, '5'),
-#       (6, '6'),
-#       (7, '7'),
-#       (8, '8'),
-#       (9, '9'),
-#       (10, '10'),
-#       (11, '11'),
-#       (12, '12'),
-#       (13, '13'),
-#       (14, '14'),
-#       (15, '15'),
-#       (16, '16'),
-#       (17, '17'),
-#       (18, '18'),
-#       (19, '19'),
-#       (20, '20'),
-#     ]
-#     INTERNAL_CHOICES = [
-#         ('', 'Select'),
-#         ('True', 'True'),
-#         ('False', 'False'),
-#     ]
-#     busdetail_id = models.AutoField(primary_key=True)
-#     bus_route = models.IntegerField(null=True, choices=BUS_CHOICES, default='',unique=True)
-#     internal = models.CharField(max_length=10, null=True, choices=INTERNAL_CHOICES)
-#     bus_driver = models.CharField(max_length=50, null=True)
-#     bus_conductor = models.CharField(max_length=50, null=True)
-#     bus_attendant = models.CharField(max_length=50, null=True)
-#     driver_phone = models.CharField(max_length=50, null=True)
-#     conductor_phone = models.CharField(max_length=50, null=True)
-#     attendant_phone = models.CharField(max_length=50, null=True)
-
-#     class Meta:
-#         db_table = 'bus_master'  # Custom table name
-
-#     def __str__(self):
-#         return f"BusDetail {self.busdetail_id} - Route {self.bus_route}"
-    
-
+            return None    
+        
+        
 
 class bus_master(models.Model):
     BUS_CHOICES = [
