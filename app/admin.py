@@ -1323,28 +1323,28 @@ def get_default_quarter():
     return '1,2,3'  # January - March
 
 
-class ClassNoFilter(admin.SimpleListFilter):
+class StudentFeeClassNoFilter(admin.SimpleListFilter):
     title = 'Class No'
     parameter_name = 'search_class'
 
     def lookups(self, request, model_admin):
         return []
 
-class SectionFilter(admin.SimpleListFilter):
+class StudentFeeSectionFilter(admin.SimpleListFilter):
     title = 'Section'
     parameter_name = 'search_section'
 
     def lookups(self, request, model_admin):
         return []
 
-class StudentNameFilter(admin.SimpleListFilter):
+class StudentFeeStudentNameFilter(admin.SimpleListFilter):
     title = 'Student Name'
     parameter_name = 'search_student'
 
     def lookups(self, request, model_admin):
         return []
 
-class AdmissionNoFilter(admin.SimpleListFilter):
+class StudentFeeAdmissionNoFilter(admin.SimpleListFilter):
     title = 'Admission Number'
     parameter_name = 'search_admission_no'
 
@@ -1700,20 +1700,18 @@ class StudentFeesAdmin(admin.ModelAdmin):
         'edited_at',
         'remarks',
         'entry_date',
-        # 'bus_id',
-        # 'fees_for_months',
-        # 'sports_fees_paid',
-        # 'security_paid',
-        # 'late_fees_paid',
-        # 'concession_type_id',
-        # 'processing_fees_paid',
-        # 'isdefault',
-        
-        
+       
     )
     
     # Fields to search in the search bar
-    list_filter = (ClassNoFilter, StudentNameFilter, AdmissionNoFilter, SectionFilter)
+    list_filter = (StudentFeeClassNoFilter, StudentFeeSectionFilter, StudentFeeStudentNameFilter,StudentFeeAdmissionNoFilter)
+
+    # list_filter = (
+    #     'student_class',           # Direct field on StudentFee model
+    #     'student_section',         # Direct field on StudentFee model
+    #     'student_id__student_name', # ForeignKey to student_master, filtering by student name
+    #     'student_id__addmission_no' # ForeignKey to student_master, filtering by admission number
+    # )
     # search_fields = (
     #     'student_class',
     #     'fees_for_months',
@@ -1856,9 +1854,9 @@ class StudentFeesAdmin(admin.ModelAdmin):
 
         # Apply custom filters for admission_no and student_name
         if search_class:
-            queryset = queryset.filter(class_no=search_class)
+            queryset = queryset.filter(student_class=search_class)
         if search_section:
-            queryset = queryset.filter(section=search_section)
+            queryset = queryset.filter(student_section=search_section)
         if search_student:
             student_ids = student_master.objects.filter(student_name__icontains=search_student).values_list('student_id', flat=True)
             queryset = queryset.filter(student_id__in=student_ids)
@@ -1881,17 +1879,15 @@ class StudentFeesAdmin(admin.ModelAdmin):
 
     change_list_template = 'admin/student_fee/student_fees_changelist.html'
 
-    def get_student_name(self, obj):
-        pass
-        # student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
-        # return student_master_instance.student_name if student_master_instance else None
-    get_student_name.short_description = 'Student Name'
+    # def get_student_name(self, obj):
+    #     student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
+    #     return student_master_instance.student_name if student_master_instance else None
+    # get_student_name.short_description = 'Student Name'
 
-    def get_admission_no(self, obj):
-        pass
-        # student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
-        # return student_master_instance.addmission_no if student_master_instance else None
-    get_admission_no.short_description = 'Admission Number'
+    # def get_admission_no(self, obj):
+    #     student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
+    #     return student_master_instance.addmission_no if student_master_instance else None
+    # get_admission_no.short_description = 'Admission Number'
 
 
 
