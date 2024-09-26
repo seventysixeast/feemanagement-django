@@ -800,7 +800,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Update fees_for_months based on fees_period_month
-  function updateFeesMonthsBasedOnPeriod(periodValue) {
+  async function updateFeesMonthsBasedOnPeriod(periodValue) {
     const feesForMonthsElement = document.querySelector(
       'select[name="fees_for_months"]'
     ); // Select element for fees_for_months
@@ -824,14 +824,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
 
-      feesformonths();
+      await feesformonths();
     } else {
       console.error("fees_for_months element not found!");
     }
   }
 
   // Update fees_period_month based on fees_for_months
-  function updateFeesPeriodBasedOnMonths(monthsValue) {
+  async function updateFeesPeriodBasedOnMonths(monthsValue) {
     const feesPeriodMonthElement = document.querySelector(
       'select[name="fees_period_month"]'
     ); // Select element for fees_period_month
@@ -855,7 +855,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
 
-      feespay();
+      await feespay();
     } else {
       console.error("fees_period_month element not found!");
     }
