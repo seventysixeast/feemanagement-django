@@ -114,13 +114,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'shishuniketanmoh_schoolmanagement',
-        'USER':'shishuniketan',
-        'PASSWORD':'Rahul@1234',
-        'HOST':'127.0.0.1',
+        # 'USER':'shishuniketan',
+        # 'PASSWORD':'Rahul@1234',
+        # 'HOST':'127.0.0.1',
         # 'NAME': 'schoolmanagement',
-        # 'USER':'root',
-        # 'PASSWORD':'Honda@76east',
-        # 'HOST':'66.235.194.119',
+        'USER':'root',
+        'PASSWORD':'Honda@76east',
+        'HOST':'66.235.194.119',
         'PORT':'3306'
     }
 }
