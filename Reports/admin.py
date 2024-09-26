@@ -32,6 +32,12 @@ from django.db.models import DecimalField
 
 from django.db.models import Case, When, Value, F, Q, CharField, ExpressionWrapper, DecimalField
 
+from django.utils.html import format_html
+from django.utils import timezone
+from datetime import datetime
+
+from django.db.models import Subquery, OuterRef
+from django.db.models import Exists, OuterRef
 
 # from .models import transport, BusFeesMaster, BusMaster, StudentClasses
 
@@ -694,66 +700,383 @@ admin.site.register(tuition_fees_defaulter, TuitionFeesDefaulterAdmin)
 
 
 # from django.contrib import admin
-from django.db.models import Subquery, OuterRef
-# from .models import AdmissionReport, student_master, student_class  # Assuming these models are defined
+# from django.db.models import Subquery, OuterRef
+# # from .models import AdmissionReport, student_master, student_class  # Assuming these models are defined
 
-class AdmissionReportAdmin(admin.ModelAdmin):
-    list_display = (
-        'addmission_no', 'admission_date', 'student_name', 'birth_date',
-        'class_no', 'section', 'father_name', 'mother_name', 'address'
-    )
-    # search_fields = ('student_name', 'admission_no', 'class_no', 'section')
-    # list_filter = ('admission_date',)
+# class AdmissionReportAdmin(admin.ModelAdmin):
+#     list_display = (
+#         'addmission_no', 'admission_date', 'student_name', 'birth_date',
+#         'class_no', 'section', 'father_name', 'mother_name', 'address'
+#     )
+#     # search_fields = ('student_name', 'admission_no', 'class_no', 'section')
+#     # list_filter = ('admission_date',)
 
-    def get_queryset(self, request):
-        # Get the base queryset from student_master (since AdmissionReport is a proxy model)
-        queryset = super().get_queryset(request)
+#     def get_queryset(self, request):
+#         # Get the base queryset from student_master (since AdmissionReport is a proxy model)
+#         queryset = super().get_queryset(request)
 
-        # Apply date range filters if present in the request
-        date_from = request.GET.get('date_from')
-        date_to = request.GET.get('date_to')
-        cls = request.GET.get('class_no')
+#         # Apply date range filters if present in the request
+#         date_from = request.GET.get('date_from')
+#         date_to = request.GET.get('date_to')
+#         cls = request.GET.get('class_no')
 
-        # Convert the queryset to a more complex query that joins with student_class
-        subquery = student_class.objects.filter(
-            student_id=OuterRef('student_id')
-        ).order_by('-student_class_id').values('class_no')[:1]  # Latest class_no for each student
+#         # Convert the queryset to a more complex query that joins with student_class
+#         subquery = student_class.objects.filter(
+#             student_id=OuterRef('student_id')
+#         ).order_by('-student_class_id').values('class_no')[:1]  # Latest class_no for each student
 
-        queryset = queryset.annotate(
-            class_no=Subquery(subquery),  # Annotating with latest class_no
-            section=Subquery(  # Assuming section is also available in student_class
-                student_class.objects.filter(
-                    student_id=OuterRef('student_id')
-                ).order_by('-student_class_id').values('section')[:1]
-            )
-        )
+#         queryset = queryset.annotate(
+#             class_no=Subquery(subquery),  # Annotating with latest class_no
+#             section=Subquery(  # Assuming section is also available in student_class
+#                 student_class.objects.filter(
+#                     student_id=OuterRef('student_id')
+#                 ).order_by('-student_class_id').values('section')[:1]
+#             )
+#         )
 
-        # Apply class and date filters manually
-        if date_from and date_to:
-            queryset = queryset.filter(admission_date__range=[date_from, date_to])
+#         # Apply class and date filters manually
+#         if date_from and date_to:
+#             queryset = queryset.filter(admission_date__range=[date_from, date_to])
 
+#         if cls:
+#             queryset = queryset.filter(class_no=cls)
+#         else:
+#             queryset = queryset.filter(class_no__in=[
+#                 'Play-way', 'Pre-nursery', 'nursery', 'KG', '1', '2', '3', '4', 
+#                 '5', '6', '7', '8', '9', '10', '11', '12'
+#             ])
+
+#         return queryset
+
+#     def class_no(self, obj):
+#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+#         return student_class_instance.class_no if student_class_instance else None
+#     # get_class_no.short_description = 'Class'
+
+#     def section(self, obj):
+#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+#         return student_class_instance.section if student_class_instance else None
+# # Register the AdmissionReport proxy model with the custom admin
+# # admin.site.register(AdmissionReport, AdmissionReportAdmin)
+
+# admin.site.register(admission_report, AdmissionReportAdmin)
+
+# admin.py
+
+
+# admin.py
+
+
+# Custom Filter for Class No
+class ClassNoFilter1(admin.SimpleListFilter):
+    title = 'Class'
+    parameter_name = 'class_no'
+
+    def lookups(self, request, model_admin):
+        # Define class choices as per your requirements
+        return CLASS_CHOICES
+
+    def queryset(self, request, queryset):
+        cls = self.value()
         if cls:
-            queryset = queryset.filter(class_no=cls)
-        else:
-            queryset = queryset.filter(class_no__in=[
-                'Play-way', 'Pre-nursery', 'nursery', 'KG', '1', '2', '3', '4', 
-                '5', '6', '7', '8', '9', '10', '11', '12'
-            ])
-
+            subquery = student_class.objects.filter(
+                student_id=OuterRef('student_id'),
+                class_no=cls
+            ).order_by('-student_class_id').values('student_class_id')[:1]
+            return queryset.filter(
+                student_id__in=Subquery(subquery)
+            )
         return queryset
 
+
+    
+# Custom Filter for Admission Date From
+class DateFromFilter(admin.SimpleListFilter):
+    title = 'Admission Date From'
+    parameter_name = 'date_from'
+
+    def lookups(self, request, model_admin):
+        # return ()
+        return []
+
+    # def queryset(self, request, queryset):
+    #     date_from = request.GET.get('date_from')
+    #     if date_from:
+    #         return queryset.filter(admission_date__gte=date_from)
+    #     return queryset
+
+    # def choices(self, changelist):
+    #     # Override to remove the 'All' option
+    #     return []
+
+# Custom Filter for Admission Date To
+class DateToFilter(admin.SimpleListFilter):
+    title = 'Admission Date To'
+    parameter_name = 'date_to'
+
+    def lookups(self, request, model_admin):
+        # return ()
+        return []
+
+    # def queryset(self, request, queryset):
+    #     date_to = request.GET.get('date_to')
+    #     if date_to:
+    #         return queryset.filter(admission_date__lte=date_to)
+    #     return queryset
+
+    # def choices(self, changelist):
+    #     # Override to remove the 'All' option
+    #     return []
+
+# class AdmissionReportAdmin(admin.ModelAdmin):
+
+#     def has_add_permission(self, request):
+#         return False
+
+#     def has_change_permission(self, request, obj=None):
+#         return False
+
+#     def has_delete_permission(self,z0 request, obj=None):
+#         return False
+    
+#     list_display = (
+#         'addmission_no', 'formatted_admission_date', 'student_name', 'birth_date',
+#         'class_no', 'section', 'father_name', 'mother_name', 'address'
+#     )
+#     search_fields = ('student_name', 'admission_no')
+#     list_filter = (ClassNoFilter, DateFromFilter, DateToFilter)
+
+#     def get_search_results(self, request, queryset, search_term):
+#         """
+#         Override get_search_results to filter by class_no and date range using search term.
+#         """
+#         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+
+#         # Fetch custom filter parameters
+#         date_from = request.GET.get('date_from', None)
+#         date_to = request.GET.get('date_to', None)
+#         cls = request.GET.get('class_no', None)
+
+#         # Apply date range filtering
+#         if date_from:
+#             queryset = queryset.filter(admission_date__gte=date_from)
+#         if date_to:
+#             queryset = queryset.filter(admission_date__lte=date_to)
+
+#         # Apply class_no filtering if provided
+#         if cls:
+#             # Manually filter class_no without foreign key using subquery
+#             subquery = student_class.objects.filter(
+#                 student_id=OuterRef('student_id'),
+#                 class_no=cls
+#             ).order_by('-student_class_id').values('student_class_id')[:1]
+
+#             queryset = queryset.filter(student_id__in=Subquery(subquery))
+
+#         return queryset, use_distinct
+
+#     def formatted_admission_date(self, obj):
+#         # Format the admission date in dd-mm-yyyy
+#         return obj.admission_date.strftime('%d-%m-%Y')
+#     formatted_admission_date.short_description = 'Admission Date'
+
+#     def class_no(self, obj):
+#         # Subquery to fetch class_no from student_class without foreign key
+#         subquery = student_class.objects.filter(
+#             student_id=obj.student_id
+#         ).order_by('-student_class_id').values('class_no')[:1]
+#         result = subquery.first()
+#         return result.get('class_no') if result else None
+
+#     def section(self, obj):
+#         # Subquery to fetch section from student_class without foreign key
+#         subquery = student_class.objects.filter(
+#             student_id=obj.student_id
+#         ).order_by('-student_class_id').values('section')[:1]
+#         result = subquery.first()
+#         return result.get('section') if result else None
+
+# # Register the AdmissionReport proxy model with the custom admin
+# admin.site.register(admission_report, AdmissionReportAdmin)
+
+# admin.py
+# admin.py
+
+
+class AdmissionReportAdmin(admin.ModelAdmin):
+    change_list_template = 'admin/admissionreport_change_list.html'
+
+    list_display = (
+        'addmission_no', 'formatted_admission_date', 'student_name', 'birth_date',
+        'class_no', 'section', 'father_name', 'mother_name', 'address'
+    )
+    # search_fields = ('student_name', 'admission_no')
+    list_filter = (ClassFilter, DateFromFilter, DateToFilter)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    # def changelist_view(self, request, extra_context=None):
+    #     """
+    #     Handle the custom filters and pass them to the context for rendering the change list view.
+    #     """
+    #     extra_context = extra_context or {}
+
+    #     # Get the filter values from GET parameters
+    #     class_no = request.GET.get('class_no', '')
+    #     date_from = request.GET.get('date_from', '')
+    #     date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+
+    #     # Pass filter values to the template to retain them
+    #     extra_context['class_no'] = class_no
+    #     extra_context['date_from'] = date_from
+    #     extra_context['date_to'] = date_to
+    #     extra_context['class_choices'] = CLASS_CHOICES
+
+    #     # Call the default changelist_view with the extra context
+    #     return super().changelist_view(request, extra_context=extra_context)
+
+    def changelist_view(self, request, extra_context=None):
+        """
+        Handle the custom filters and pass them to the context for rendering the change list view.
+        """
+        extra_context = extra_context or {}
+
+        # Get the filter values from GET parameters
+        class_no = request.GET.get('class_no', '')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+
+        # Pass filter values to the template to retain them
+        extra_context['class_no'] = class_no
+        extra_context['date_from'] = date_from
+        extra_context['date_to'] = date_to
+
+        # Retrieve distinct class numbers from student_class to populate the filter options
+        distinct_classes = student_class.objects.values_list('class_no', flat=True).distinct()
+        # extra_context['class_choices'] = [(cls, cls) for cls in distinct_classes]
+        extra_context['class_choices'] = CLASS_CHOICES
+
+        # Call the default changelist_view with the extra context
+        return super().changelist_view(request, extra_context=extra_context)
+
+    # def get_search_results(self, request, queryset, search_term):
+    #     """
+    #     Override get_search_results to filter by class_no and date range.
+    #     """
+    #     queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+
+    #     # Get custom filter parameters from the request
+    #     class_no = request.GET.get('class_no', '')
+    #     date_from = request.GET.get('date_from', '')
+    #     date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+
+    #     # Apply class_no filter if provided
+    #     if class_no:
+    #         subquery = student_class.objects.filter(
+    #             student_id=OuterRef('student_id'),
+    #             class_no=class_no
+    #         ).order_by('-student_class_id').values('student_class_id')[:1]
+    #         queryset = queryset.filter(student_id__in=Subquery(subquery))
+
+    #     # Apply date filters if provided
+    #     if date_from:
+    #         queryset = queryset.filter(admission_date__gte=date_from)
+    #     if date_to:
+    #         queryset = queryset.filter(admission_date__lte=date_to)
+
+    #     return queryset, use_distinct
+
+
+    # def get_search_results(self, request, queryset, search_term):
+    #     """
+    #     Override get_search_results to filter by class_no and date range.
+    #     """
+    #     queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+
+    #     # Get custom filter parameters from the request
+    #     class_no = request.GET.get('class_no', '')
+    #     date_from = request.GET.get('date_from', '')
+    #     date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+
+    #     # Apply class_no filter if provided using Exists() instead of Subquery
+    #     if class_no:
+    #         student_class_qs = student_class.objects.filter(
+    #             student_id=OuterRef('student_id'),
+    #             class_no=class_no
+    #         ).order_by('-student_class_id')
+
+    #         queryset = queryset.annotate(class_exists=Exists(student_class_qs)).filter(class_exists=True)
+
+    #     # Apply date filters if provided
+    #     if date_from:
+    #         queryset = queryset.filter(admission_date__gte=date_from)
+    #     if date_to:
+    #         queryset = queryset.filter(admission_date__lte=date_to)
+
+    #     return queryset, use_distinct
+
+
+    def get_search_results(self, request, queryset, search_term):
+        """
+        Override get_search_results to filter by class_no and date range.
+        """
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+
+        # Get custom filter parameters from the request
+        class_no = request.GET.get('class_no', '')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+
+        # Apply strict class_no filter if provided using Exists() with exact class_no match
+        if class_no:
+            student_class_qs = student_class.objects.filter(
+                student_id=OuterRef('student_id'),
+                class_no=class_no
+            ).order_by('-student_class_id')  # Ensure you're checking the latest class
+
+            queryset = queryset.annotate(class_exists=Exists(student_class_qs)).filter(class_exists=True)
+
+        # Apply date filters if provided
+        if date_from:
+            queryset = queryset.filter(admission_date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(admission_date__lte=date_to)
+
+        return queryset, use_distinct
+
+    def formatted_admission_date(self, obj):
+        # Format the admission date in dd-mm-yyyy
+        return obj.admission_date.strftime('%d-%m-%Y')
+    formatted_admission_date.short_description = 'Admission Date'
+
     def class_no(self, obj):
-        student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-        return student_class_instance.class_no if student_class_instance else None
-    # get_class_no.short_description = 'Class'
+        # Subquery to fetch class_no from student_class without foreign key
+        subquery = student_class.objects.filter(
+            student_id=obj.student_id
+        ).order_by('-student_class_id').values('class_no')[:1]
+        result = subquery.first()
+        return result.get('class_no') if result else None
 
     def section(self, obj):
-        student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-        return student_class_instance.section if student_class_instance else None
-# Register the AdmissionReport proxy model with the custom admin
-# admin.site.register(AdmissionReport, AdmissionReportAdmin)
+        # Subquery to fetch section from student_class without foreign key
+        subquery = student_class.objects.filter(
+            student_id=obj.student_id
+        ).order_by('-student_class_id').values('section')[:1]
+        result = subquery.first()
+        return result.get('section') if result else None
 
+# Register the AdmissionReport proxy model with the custom admin
 admin.site.register(admission_report, AdmissionReportAdmin)
+
+
+
 
 
 # admin.site.register(tuition_fees_defaulter, TuitionFeesDefaulterAdmin)

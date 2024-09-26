@@ -1,0 +1,33 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="form-container">
+    <form method="get">
+        <fieldset>
+            <!-- <legend>Filter by</legend> -->
+            <div>
+                <label for="id_class_no">Class</label>
+                <select name="class_no" id="id_class_no">
+                    <option value="">All</option>
+                    {% for value, name in class_choices %}
+                    <option value="{{ value }}" {% if value == class_no %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="id_date_from">Admission Date From</label>
+                <input type="date" name="date_from" id="id_date_from" value="{{ date_from|default_if_none:'' }}">
+            </div>
+            <div>
+                <label for="id_date_to">Admission Date To</label>
+                <input type="date" name="date_to" id="id_date_to" value="{{ date_to|default_if_none:'' }}">
+            </div>
+            <button type="submit">Filter</button>
+        </fieldset>
+    </form>
+</div>
+
+<!-- Render the usual admin list view content -->
+{{ block.super }}
+{% endblock %}
