@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'ckeditor',
     'Fees_Section',
     'Reports',
-    'bootstrap5'
+    # 'bootstrap5'
 ]
 
 AUTHENTICATION_BACKEND=[
@@ -115,8 +115,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'shishuniketanmoh_schoolmanagement',
         'USER':'root',
-        # 'PASSWORD':'Rahul@1234',
-        'PASSWORD':'',
+        'PASSWORD':'Rahul@1234',
+        # 'PASSWORD':'',
         'HOST':'127.0.0.1',
         # 'NAME': 'schoolmanagement',
         # 'USER':'root',
