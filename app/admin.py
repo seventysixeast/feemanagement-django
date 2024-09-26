@@ -6,7 +6,7 @@ from .models import (
 )
 from django.db.models import Max
 from django import forms
-# from datetime import date, timezone
+from datetime import date
 from django.urls import path
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError
@@ -179,39 +179,6 @@ FEE_MONTHS_CHOICES = [
         ('1,2,3', '1,2,3')
     ]
 
-
-
-# working
-# from django.contrib import admin
-# from django.contrib.auth.admin import UserAdmin
-# from django.contrib.auth.models import User
-# from .forms import CustomUserCreationForm
-
-# class CustomUserAdmin(UserAdmin):
-#     add_form = CustomUserCreationForm  # Use the custom form for user creation
-
-#     # Modify fields for the admin list view
-#     list_display = ('email', 'username', 'first_name', 'is_staff')
-#     search_fields = ('email', 'username')
-
-#     # Modify the fields shown in the add and edit forms
-#     fieldsets = (
-#         (None, {'fields': ('email', 'username', 'first_name', 'password')}),
-#         ('Permissions', {'fields': ('is_staff', 'is_superuser', 'is_active')}),
-#         ('Important dates', {'fields': ('last_login', 'date_joined')}),
-#     )
-    
-#     add_fieldsets = (
-#         (None, {
-#             'classes': ('wide',),
-#             'fields': ('email', 'username', 'first_name', 'role', 'password'),
-#         }),
-#     )
-
-# # Unregister the default UserAdmin and register the customized one
-# admin.site.unregister(User)
-# admin.site.register(User, CustomUserAdmin)
-
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
@@ -237,7 +204,7 @@ class CustomUserAdmin(UserAdmin):
     #     (None, {'fields': ('email', 'username', 'first_name', 'role', 'password'),}),
     # )
     fieldsets = (
-        (None, {'fields': ('email', 'username', 'first_name', 'role', 'teacher_name', 'password')}),
+        (None, {'fields': ('email', 'username', 'first_name', 'role', 'password')}),
     )
     
     add_fieldsets = (
