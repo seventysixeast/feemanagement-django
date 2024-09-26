@@ -157,6 +157,12 @@ USE_I18N = True
 
 USE_TZ = True
 
+AUTHENTICATION_BACKENDS = [
+    'app.backends.EmailBackend',  # Your custom backend for email authentication
+    'django.contrib.auth.backends.ModelBackend',  # Default backend for username authentication
+]
+
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

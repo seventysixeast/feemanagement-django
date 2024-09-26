@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    user, student_master, student_fee, student_class, specialfee_master,
+    student_master, student_fee, student_class, specialfee_master,
     payment_schedule_master, latefee_master, fees_master, expense,
     concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list, 
 )
@@ -49,6 +49,10 @@ from datetime import datetime
 from datetime import datetime, timedelta
 from django.utils.dateparse import parse_date
 from django.db.models import Sum, F, Q
+
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.utils.translation import gettext_lazy as _
+
 import time
 import logging
 
@@ -175,55 +179,148 @@ FEE_MONTHS_CHOICES = [
         ('1,2,3', '1,2,3')
     ]
 
+
+
+# working
+# from django.contrib import admin
+# from django.contrib.auth.admin import UserAdmin
+# from django.contrib.auth.models import User
+# from .forms import CustomUserCreationForm
+
+# class CustomUserAdmin(UserAdmin):
+#     add_form = CustomUserCreationForm  # Use the custom form for user creation
+
+#     # Modify fields for the admin list view
+#     list_display = ('email', 'username', 'first_name', 'is_staff')
+#     search_fields = ('email', 'username')
+
+#     # Modify the fields shown in the add and edit forms
+#     fieldsets = (
+#         (None, {'fields': ('email', 'username', 'first_name', 'password')}),
+#         ('Permissions', {'fields': ('is_staff', 'is_superuser', 'is_active')}),
+#         ('Important dates', {'fields': ('last_login', 'date_joined')}),
+#     )
+    
+#     add_fieldsets = (
+#         (None, {
+#             'classes': ('wide',),
+#             'fields': ('email', 'username', 'first_name', 'role', 'password'),
+#         }),
+#     )
+
+# # Unregister the default UserAdmin and register the customized one
+# admin.site.unregister(User)
+# admin.site.register(User, CustomUserAdmin)
+
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User
+from .forms import CustomUserCreationForm, CustomUserChangeForm
+from django.http import HttpResponseRedirect 
+
+class CustomUserAdmin(UserAdmin):
+    add_form = CustomUserCreationForm
+
+    form = CustomUserChangeForm
+
+    # list_display = ('email', 'username', 'first_name', 'is_staff')  # Use username as teacher_name
+    list_display = ('email', 'get_teacher_name', 'get_mobile', 'get_role_display')
+    search_fields = ('email', 'username')
+    list_filter = ()
+
+    # fieldsets = (
+    #     (None, {'fields': ('email', 'username', 'first_name', 'password')}),
+    #     ('Permissions', {'fields': ('is_staff', 'is_superuser', 'is_active')}),
+    #     ('Important dates', {'fields': ('last_login', 'date_joined')}),
+    # )
+    # fieldsets = (
+    #     (None, {'fields': ('email', 'username', 'first_name', 'role', 'password'),}),
+    # )
+    fieldsets = (
+        (None, {'fields': ('email', 'username', 'first_name', 'role', 'teacher_name', 'password')}),
+    )
+    
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'username', 'first_name', 'role', 'password'),
+        }),
+    )
+
+    def get_teacher_name(self, obj):
+        """ Return the username as Teacher Name. """
+        return obj.username
+    get_teacher_name.short_description = 'Teacher Name'  # Set column name
+
+    def get_mobile(self, obj):
+        """ Return the first_name as Mobile Number. """
+        return obj.first_name
+    get_mobile.short_description = 'Mobile'  # Set column name
+
+    def get_role_display(self, obj):
+        """ Return Admin or Super Admin based on is_superuser. """
+        return 'Super Admin' if obj.is_superuser else 'Admin'
+    get_role_display.short_description = 'Role'  # Set column name
+
+    def response_add(self, request, obj, post_url_continue=None):
+        """ Redirect to the user list page after successfully adding a user. """
+        return HttpResponseRedirect("/school-admin/auth/user/") 
+
+# Unregister the default UserAdmin and register the customized one
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
+
+
+
+
+
 # Define choices for months (1 to 12)
 #MONTH_CHOICES = [(str(i), str(i)) for i in range(1, 13)]
 # Register your models here.
 
-class TeacherMasterForm(forms.ModelForm):
-    # role = forms.ChoiceField(choices=teacher_master.ROLES_CHOICES, required=True)
-    role = forms.ChoiceField(choices=user.ROLES_CHOICES, required=True)
+# class TeacherMasterForm(forms.ModelForm):
+#     # role = forms.ChoiceField(choices=teacher_master.ROLES_CHOICES, required=True)
+#     role = forms.ChoiceField(choices=user.ROLES_CHOICES, required=True)
 
-    class Meta:
-        model = user
-        fields = [
-            "user_name", "email", "mobile","role"
-        ]
+#     class Meta:
+#         model = user
+#         fields = [
+#             "user_name", "email", "mobile","role"
+#         ]
+
 
 # class UserDisplay(admin.ModelAdmin):
-#     list_display = ("user_name", "email", "created_at",)
+#     form = TeacherMasterForm
+#     list_display = ("teacher_name", "email", "mobile", "role")
+#     search_fields = ("user_name", "email", "mobile", "role")
+#     list_filter = ("role",)
 
-class UserDisplay(admin.ModelAdmin):
-    form = TeacherMasterForm
-    list_display = ("teacher_name", "email", "mobile", "role")
-    search_fields = ("user_name", "email", "mobile", "role")
-    list_filter = ("role",)
-
-    def teacher_name(self, obj):
-        return obj.user_name  # Assuming user_name is the field in the model
+#     def teacher_name(self, obj):
+#         return obj.user_name  # Assuming user_name is the field in the model
     
-    teacher_name.short_description = 'Teacher Name'
+#     teacher_name.short_description = 'Teacher Name'
 
-    def get_queryset(self, request):
-        # Get the original queryset
-        queryset = super().get_queryset(request)
+#     def get_queryset(self, request):
+#         # Get the original queryset
+#         queryset = super().get_queryset(request)
 
-        # Retrieve the search terms from the GET parameters
-        user_name = request.GET.get('user_name', '')
-        email = request.GET.get('email', '')
-        mobile = request.GET.get('mobile', '')
-        role = request.GET.get('role', '')
+#         # Retrieve the search terms from the GET parameters
+#         user_name = request.GET.get('user_name', '')
+#         email = request.GET.get('email', '')
+#         mobile = request.GET.get('mobile', '')
+#         role = request.GET.get('role', '')
 
-        # Apply filters based on the search terms
-        if user_name:
-            queryset = queryset.filter(user_name__icontains=user_name)
-        if email:
-            queryset = queryset.filter(email__icontains=email)
-        if mobile:
-            queryset = queryset.filter(mobile__icontains=mobile)
-        if role:
-            queryset = queryset.filter(role__icontains=role)
+#         # Apply filters based on the search terms
+#         if user_name:
+#             queryset = queryset.filter(user_name__icontains=user_name)
+#         if email:
+#             queryset = queryset.filter(email__icontains=email)
+#         if mobile:
+#             queryset = queryset.filter(mobile__icontains=mobile)
+#         if role:
+#             queryset = queryset.filter(role__icontains=role)
 
-        return queryset
+#         return queryset
 
 class StudentMasterForm(forms.ModelForm):
     class_no = forms.ChoiceField(choices=student_class.CLASS_CHOICES, required=True)
@@ -571,7 +668,7 @@ class FeesMasterAdmin(admin.ModelAdmin):
     list_display = ("fees_id", "class_no", "annual_fees", "tuition_fees", "funds_fees", "sports_fees", "activity_fees", "admission_fees", "dayboarding_fees", "miscellaneous_fees", "valid_from", "valid_to")
 
 # admin.site.register(student_master,StudentMasterAdmin)
-admin.site.register(user, UserDisplay)
+# admin.site.register(user, UserDisplay)
 # admin.site.register(teacher_master, UserDisplay)
 # admin.site.register(user, UserDisplay)
 # admin.site.register(account_head)

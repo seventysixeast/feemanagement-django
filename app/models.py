@@ -6,8 +6,11 @@ from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 # Validator that allows only digits
 numeric_validator = RegexValidator(r'^\d+$', 'Enter a valid mobile number. Only digits are allowed.')
+
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 # Create your models here.
 
@@ -475,48 +478,34 @@ class student_class(models.Model):
     def __str__(self):
         return f"Class {self.class_no} Section {self.section}"
 
-class user(models.Model):
-# class teacher_master(models.Model):
-  ROLES_CHOICES = [
-      ('', 'Select Type'),
-      ('admin', 'Admin'),
-      ('superadmin', 'Super Admin'),
-  ]
-  user_id = models.AutoField(primary_key=True)
-  user_name = models.CharField(max_length=200)
-  email = models.EmailField(max_length=200, unique=True)
-  mobile = models.CharField(max_length=15, validators=[numeric_validator])
-  # mobile = models.IntegerField(max_length=15)
+# class user(models.Model):
+# # class teacher_master(models.Model):
+#   ROLES_CHOICES = [
+#       ('', 'Select Type'),
+#       ('admin', 'Admin'),
+#       ('superadmin', 'Super Admin'),
+#   ]
+#   user_id = models.AutoField(primary_key=True)
+#   user_name = models.CharField(max_length=200)
+#   email = models.EmailField(max_length=200, unique=True)
+#   mobile = models.CharField(max_length=15, validators=[numeric_validator])
+#   # mobile = models.IntegerField(max_length=15)
   
-  # password = models.CharField(max_length=255)
-  role = models.CharField(max_length=50, choices=ROLES_CHOICES,default='')
-  created_at = models.DateTimeField(auto_now_add=True)
-  updated_at = models.DateTimeField(auto_now=True)
-  otp = models.CharField(max_length=255, null=True, blank=True)
-  otp_created_at = models.DateTimeField(null=True, blank=True)
-  otp_verified = models.BooleanField(default=False)
+#   # password = models.CharField(max_length=255)
+#   role = models.CharField(max_length=50, choices=ROLES_CHOICES,default='')
+#   created_at = models.DateTimeField(auto_now_add=True)
+#   updated_at = models.DateTimeField(auto_now=True)
+#   otp = models.CharField(max_length=255, null=True, blank=True)
+#   otp_created_at = models.DateTimeField(null=True, blank=True)
+#   otp_verified = models.BooleanField(default=False)
 
-  class Meta:
-    db_table = 'users'  # Custom table name
+#   class Meta:
+#     db_table = 'users'  # Custom table name
 
-  def __str__(self):
-      return self.user_name
+#   def __str__(self):
+#       return self.user_name
   
 class generate_mobile_number_list(student_master):
   class Meta:
       proxy = True  # Use this model as a proxy for the original model
 
-
-# class cheque_status(student_master):
-#   class Meta:
-#       proxy = True  # Use this model as a proxy for the original model
-#       # verbose_name = "Model 3"
-#       # verbose_name_plural = "Model 3 Group"
-#       # app_label = 'group2'
-
-# class transport(student_master):
-#   class Meta:
-#       proxy = True  # Use this model as a proxy for the original model
-#       # verbose_name = "Model 4"
-#       # verbose_name_plural = "Model 4 Group"
-#       # app_label = 'group2'
