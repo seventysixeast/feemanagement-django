@@ -2324,10 +2324,18 @@ def action_generate_pdf(request, txn_id):
 
 
 # Function to simulate sending an OTP (implement your own logic)
+# def send_otp(user):
+#     otp = random.randint(1000, 9999)  # Generate a random 6-digit OTP
+#     user.last_name = otp  # Store OTP in user instance (you might want to save it in the database or cache)
+#     user.save()
+#     print(f"OTP sent to {user.first_name}: {otp}")  # Replace with actual sending logic (email/SMS)
+
 def send_otp(user):
     otp = random.randint(1000, 9999)  # Generate a random 6-digit OTP
     user.last_name = otp  # Store OTP in user instance (you might want to save it in the database or cache)
     user.save()
+    sms_response = send_otp_via_textlocal(user.first_name, otp)
+    print('sms_response',sms_response)
     print(f"OTP sent to {user.first_name}: {otp}")  # Replace with actual sending logic (email/SMS)
 
 def custom_login(request):
