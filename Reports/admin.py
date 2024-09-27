@@ -707,11 +707,310 @@ class DateToFilter(admin.SimpleListFilter):
 
     # def choices(self, changelist):
     #     # Override to remove the 'All' option
-    #     
+    #   
+    # 
 
-class AdmissionReportAdmin(admin.ModelAdmin):
+# class AdmissionReportResource(resources.ModelResource):
+
+#     class Meta:
+#         model = admission_report
+#         fields = ('addmission_no', 'admission_date', 'student_name', 'birth_date',
+#         'class_no', 'section', 'father_name', 'mother_name', 'address')
+
+#     student_name = Field(attribute='student_name', column_name='Student Name')
+#     addmission_no = Field(attribute='addmission_no', column_name='Admission No')
+#     admission_date = Field(attribute='admission_date', column_name='Admission Date')
+#     class_no = Field(attribute='class_no', column_name='Class')
+#     section = Field(attribute='section', column_name='Section')
+
+#     father_name = Field(attribute='father_name', column_name='Father Name')
+#     mother_name = Field(attribute='phone_no', column_name='Mother Name')
+#     address = Field(attribute='address', column_name='Address')
+#     birth_date = Field(attribute='birth_date', column_name='Birth Date')
+
+
+#     def dehydrate_class_no(self, obj):
+#         # Assuming 'bus_driver' is a related field on the model
+#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+#         return student_class_instance.class_no if student_class_instance else None
+#         # return obj.class_no if obj.class_no else ''
 
     
+#     def dehydrate_section(self, obj):
+#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+#         return student_class_instance.section if student_class_instance else None
+    
+#     # def dehydrate_class_no(self, obj):
+#     #     # Subquery to fetch class_no from student_class without foreign key
+#     #     # subquery = student_class.objects.filter(
+#     #     #     student_id=obj.student_id
+#     #     # ).order_by('-student_class_id').values('class_no')[:1]
+#     #     # result = subquery.first()
+#     #     # return result.get('class_no') if result else None
+#     #     search_class_no = self._request.GET.get('class_no', None)
+
+#     #     # Filter by class_no and/or section if available
+#     #     if search_class_no:
+#     #         student_class_instance = student_class.objects.filter(student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+#     #     else:
+#     #         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+
+#     #     return student_class_instance.class_no if student_class_instance else None
+
+#     # def dehydrate_section(self, obj):
+#     #     # Subquery to fetch section from student_class without foreign key
+#     #     # subquery = student_class.objects.filter(
+#     #     #     student_id=obj.student_id
+#     #     # ).order_by('-student_class_id').values('section')[:1]
+#     #     # result = subquery.first()
+#     #     # return result.get('section') if result else None
+#     #     search_class_no = self._request.GET.get('class_no', None)
+
+#     #     # Filter by class_no and/or section if available
+#     #     if search_class_no:
+#     #         student_class_instance = student_class.objects.filter(student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+#     #     else:
+#     #         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+
+#     #     return student_class_instance.section if student_class_instance else None
+
+#     # # get_section.short_description = 'Section'
+
+
+  
+#         # return obj.bus_driver
+    
+# class AdmissionReportResource(resources.ModelResource):
+#     def __init__(self, request=None):
+#         super().__init__()
+#         self._request = request
+
+#     class Meta:
+#         model = admission_report
+#         fields = ('addmission_no', 'admission_date', 'student_name', 'birth_date',
+#                   'class_no', 'section', 'father_name', 'mother_name', 'address')
+
+#     # Define fields
+#     student_name = Field(attribute='student_name', column_name='Student Name')
+#     addmission_no = Field(attribute='addmission_no', column_name='Admission No')
+#     admission_date = Field(attribute='admission_date', column_name='Admission Date')
+#     class_no = Field(attribute='class_no', column_name='Class')
+#     section = Field(attribute='section', column_name='Section')
+#     father_name = Field(attribute='father_name', column_name='Father Name')
+#     mother_name = Field(attribute='phone_no', column_name='Mother Name')
+#     address = Field(attribute='address', column_name='Address')
+#     birth_date = Field(attribute='birth_date', column_name='Birth Date')
+
+#     # Custom dehydrate methods
+#     def dehydrate_class_no(self, obj):
+#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
+
+#         if search_class_no:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+#         else:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id).order_by('-started_on').first()
+
+#         return student_class_instance.class_no if student_class_instance else None
+
+#     def dehydrate_section(self, obj):
+#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
+
+#         if search_class_no:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+#         else:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id).order_by('-started_on').first()
+
+#         return student_class_instance.section if student_class_instance else None
+
+# class AdmissionReportResource(resources.ModelResource):
+#     def __init__(self, request=None):
+#         super().__init__()
+#         self._request = request  # Store the request passed from the Admin class
+
+#     class Meta:
+#         model = admission_report
+#         fields = ('addmission_no', 'admission_date', 'student_name', 'birth_date',
+#                   'class_no', 'section', 'father_name', 'mother_name', 'address')
+
+#     # Define fields
+#     student_name = Field(attribute='student_name', column_name='Student Name')
+#     addmission_no = Field(attribute='addmission_no', column_name='Admission No')
+#     admission_date = Field(attribute='admission_date', column_name='Admission Date')
+#     class_no = Field(attribute='class_no', column_name='Class')
+#     section = Field(attribute='section', column_name='Section')
+#     father_name = Field(attribute='father_name', column_name='Father Name')
+#     mother_name = Field(attribute='phone_no', column_name='Mother Name')
+#     address = Field(attribute='address', column_name='Address')
+#     birth_date = Field(attribute='birth_date', column_name='Birth Date')
+
+#     # Custom dehydrate methods
+#     def dehydrate_class_no(self, obj):
+#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
+
+#         if search_class_no:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+#         else:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id).order_by('-started_on').first()
+
+#         return student_class_instance.class_no if student_class_instance else None
+
+#     def dehydrate_section(self, obj):
+#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
+
+#         if search_class_no:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+#         else:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id).order_by('-started_on').first()
+
+#         return student_class_instance.section if student_class_instance else None
+
+# class AdmissionReportResource(resources.ModelResource):
+#     def __init__(self, request=None, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self._request = request  # Store the request passed from the Admin class
+#         # Handle other keyword arguments like 'encoding'
+#         self.extra_args = kwargs
+
+#     class Meta:
+#         model = admission_report
+#         fields = ('addmission_no', 'admission_date', 'student_name', 'birth_date',
+#                   'class_no', 'section', 'father_name', 'mother_name', 'address')
+
+#     # Define fields
+#     student_name = Field(attribute='student_name', column_name='Student Name')
+#     addmission_no = Field(attribute='addmission_no', column_name='Admission No')
+#     admission_date = Field(attribute='admission_date', column_name='Admission Date')
+#     class_no = Field(attribute='class_no', column_name='Class')
+#     section = Field(attribute='section', column_name='Section')
+#     father_name = Field(attribute='father_name', column_name='Father Name')
+#     mother_name = Field(attribute='phone_no', column_name='Mother Name')
+#     address = Field(attribute='address', column_name='Address')
+#     birth_date = Field(attribute='birth_date', column_name='Birth Date')
+
+#     # Custom dehydrate methods
+#     def dehydrate_class_no(self, obj):
+#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
+#         print('search_class_no',search_class_no)
+#         if search_class_no:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+#         else:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id).order_by('-started_on').first()
+
+#         return student_class_instance.class_no if student_class_instance else None
+
+#     def dehydrate_section(self, obj):
+#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
+
+#         if search_class_no:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+#         else:
+#             student_class_instance = student_class.objects.filter(
+#                 student_id=obj.student_id).order_by('-started_on').first()
+
+#         return student_class_instance.section if student_class_instance else None
+
+class AdmissionReportResource(resources.ModelResource):
+    # def __init__(self, request=None, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     self._request = request  # Store the request passed from the Admin class
+    #     # Handle other keyword arguments like 'encoding'
+    #     # self.extra_args = kwargs
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._request = None  # Default to None; it will be set later if passed
+    
+
+    class Meta:
+        model = admission_report
+        fields = ('addmission_no', 'admission_date', 'student_name', 'birth_date',
+                  'class_no', 'section', 'father_name', 'mother_name', 'address')
+
+    # Define fields
+    student_name = Field(attribute='student_name', column_name='Student Name')
+    addmission_no = Field(attribute='addmission_no', column_name='Admission No')
+    admission_date = Field(attribute='admission_date', column_name='Admission Date')
+    class_no = Field(attribute='class_no', column_name='Class')
+    section = Field(attribute='section', column_name='Section')
+    father_name = Field(attribute='father_name', column_name='Father Name')
+    mother_name = Field(attribute='phone_no', column_name='Mother Name')
+    address = Field(attribute='address', column_name='Address')
+    birth_date = Field(attribute='birth_date', column_name='Birth Date')
+
+    # Custom dehydrate methods
+    # def dehydrate_class_no(self, obj):
+    #     search_class_no = self._request.GET.get('class_no', None) if self._request else None
+    #     print('search_class_no',search_class_no)
+    #     if search_class_no:
+    #         student_class_instance = student_class.objects.filter(
+    #             student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+    #     else:
+    #         student_class_instance = student_class.objects.filter(
+    #             student_id=obj.student_id).order_by('-started_on').first()
+
+    #     return student_class_instance.class_no if student_class_instance else None
+
+    # def dehydrate_section(self, obj):
+    #     search_class_no = self._request.GET.get('class_no', None) if self._request else None
+
+    #     if search_class_no:
+    #         student_class_instance = student_class.objects.filter(
+    #             student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+    #     else:
+    #         student_class_instance = student_class.objects.filter(
+    #             student_id=obj.student_id).order_by('-started_on').first()
+
+    #     return student_class_instance.section if student_class_instance else None
+
+
+    def dehydrate_class_no(self, obj):
+        # Check if request is available
+        if self._request:
+            search_class_no = self._request.GET.get('class_no', None)
+        else:
+            search_class_no = None
+
+        # Filter by class_no if available
+        if search_class_no:
+            student_class_instance = student_class.objects.filter(
+                student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+        else:
+            student_class_instance = student_class.objects.filter(
+                student_id=obj.student_id).order_by('-started_on').first()
+
+        return student_class_instance.class_no if student_class_instance else None
+
+    def dehydrate_section(self, obj):
+        # Check if request is available
+        if self._request:
+            search_class_no = self._request.GET.get('class_no', None)
+        else:
+            search_class_no = None
+
+        # Filter by class_no and return section if available
+        if search_class_no:
+            student_class_instance = student_class.objects.filter(
+                student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+        else:
+            student_class_instance = student_class.objects.filter(
+                student_id=obj.student_id).order_by('-started_on').first()
+
+        return student_class_instance.section if student_class_instance else None
+
+class AdmissionReportAdmin(ExportMixin, admin.ModelAdmin):
+
+    resource_class = AdmissionReportResource
     list_display = (
         'addmission_no', 'formatted_admission_date', 'student_name', 'birth_date',
         'class_no', 'section', 'father_name', 'mother_name', 'address'
@@ -727,6 +1026,8 @@ class AdmissionReportAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+    
+    
 
     def changelist_view(self, request, extra_context=None):
         """
@@ -734,7 +1035,7 @@ class AdmissionReportAdmin(admin.ModelAdmin):
         """
         extra_context = extra_context or {}
         # Store the request object in the instance
-        self._request = request
+        
         # Get the filter values from GET parameters
         class_no = request.GET.get('class_no', '')
         date_from = request.GET.get('date_from', '')
@@ -749,12 +1050,35 @@ class AdmissionReportAdmin(admin.ModelAdmin):
         distinct_classes = student_class.objects.values_list('class_no', flat=True).distinct()
         # extra_context['class_choices'] = [(cls, cls) for cls in distinct_classes]
         extra_context['class_choices'] = CLASS_CHOICES
-
+        self._request = request
         # Call the default changelist_view with the extra context
         return super().changelist_view(request, extra_context=extra_context)
     
     change_list_template = 'admin/admissionreport_change_list.html'
 
+    # def get_export_resource_class(self):
+    #     """
+    #     Pass the stored request object to the ModelResource class constructor.
+    #     """
+    #     # Return an instance of the resource class with request passed
+    #     return self.resource_class
+
+    # def get_export_resource_instance(self):
+    #     """
+    #     Pass the stored request object when instantiating the resource class.
+    #     """
+    #     # Debugging: Log the request being passed
+    #     print("Passing request to resource:", self._request.GET)  
+    #     return self.resource_class(request=self._request)  
+    def get_export_resource_instance(self):
+        """
+        Pass the stored request object when instantiating the resource class.
+        """
+        resource = self.resource_class()  # Create an instance of the resource class
+        # Inject the request into the resource class
+        if hasattr(self, '_request'):
+            resource._request = self._request  # Set the _request attribute
+        return resource
     # def get_search_results(self, request, queryset, search_term):
     #     """
     #     Override get_search_results to filter by class_no and date range.
@@ -822,6 +1146,9 @@ class AdmissionReportAdmin(admin.ModelAdmin):
         class_no = request.GET.get('class_no', '')
         date_from = request.GET.get('date_from', '')
         date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+
+        if not class_no and not date_from:
+            return queryset.none(), use_distinct
 
         # Apply strict class_no filter if provided using Exists() with exact class_no match
         if class_no:
