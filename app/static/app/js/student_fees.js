@@ -161,7 +161,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  async function calculateFees(studentId, studentClass, month, year) {
+  /* async function calculateFees(studentId, studentClass, month, year) {
     try {
       // Get current value of fees_for_months field
       const selectedMonths = feesForMonthsField.value; // Get current value of fees_for_months
@@ -196,7 +196,7 @@ document.addEventListener("DOMContentLoaded", function () {
             element.value = parseInt(value) > 0 ? parseInt(value) : defaultValue;
           }
         }
-        */
+        
 
         function setValue(selector, value, defaultValue = "0") {
           console.log("value---", value);
@@ -317,7 +317,7 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch (error) {
       console.error("There was a problem calculating fees:", error);
     }
-  }
+  } */
 
   // Function to load previous fees
   async function loadPreviousFees(studentId) {
@@ -330,11 +330,62 @@ document.addEventListener("DOMContentLoaded", function () {
       const data = await response.json();
       const fees = data.data.split("&");
 
+      console.log("fees=============",fees);
+      
       const feesElement = document.querySelector("#previous-fees-section");
 
       let feesSection = "";
 
       if (feesElement) {
+        let tableHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Fees For Months</th>
+              <th>Date Payment</th>
+              <th>Amount Paid</th>
+              <th>Fees Period Month</th>
+              <th>Class</th>
+            </tr>
+          </thead>
+          <tbody>
+        `;
+  
+        if (fees && fees.length > 0) {
+          fees.forEach((fee) => {
+            const [
+              feesForMonths,
+              datePayment,
+              amountPaid,
+              feesPeriodMonth,
+              studentClass,
+            ] = fee.split("$");
+  
+            tableHTML += `
+            <tr>
+              <td>${feesForMonths}</td>
+              <td>${datePayment}</td>
+              <td>${amountPaid}</td>
+              <td>${feesPeriodMonth}</td>
+              <td>${studentClass}</td>
+            </tr>
+          `;
+          });
+        } else {
+          tableHTML += `
+          <tr>
+            <td colspan="5" style="text-align: center;">No previous fees found for this student.</td>
+          </tr>
+          `;
+        }
+  
+        tableHTML += `</tbody></table>`;
+        feesElement.innerHTML = tableHTML;
+      } else {
+        console.error("Error: Element #previous-fees-section not found in the DOM.");
+      }
+
+      /* if (feesElement) {
         // Check if the element exists before trying to set innerHTML
 
         let tableHTML = `
@@ -378,7 +429,7 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error(
           "Error: Element #previous-fees-section not found in the DOM."
         );
-      }
+      } */
     } catch (error) {
       console.error("Error loading previous fees:", error);
     }

@@ -2642,7 +2642,6 @@ class StudentFeesAdmin(admin.ModelAdmin):
     form = StudentFeesAdminForm
 
     change_form_template = 'admin/student_fee/change_form.html'
-    # change_form_template = 'admin/student_fee/change_form.html'
 
     # Fields to display in the list view
     list_display = (
@@ -2859,17 +2858,6 @@ class StudentFeesAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context=extra_context)
 
     change_list_template = 'admin/student_fee/student_fees_changelist.html'
-
-    # def get_student_name(self, obj):
-    #     student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
-    #     return student_master_instance.student_name if student_master_instance else None
-    # get_student_name.short_description = 'Student Name'
-
-    # def get_admission_no(self, obj):
-    #     student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
-    #     return student_master_instance.addmission_no if student_master_instance else None
-    # get_admission_no.short_description = 'Admission Number'
-
 
 
     def get_urls(self):
@@ -3114,6 +3102,274 @@ class StudentFeesAdmin(admin.ModelAdmin):
             return JsonResponse({'success': False, 'message': 'Invalid request method'})
     
     # Calculate fees
+    # def calculate_fees(self, request):
+    #     if request.method == "GET":
+    #         sid = request.GET.get("sid")
+    #         cls = request.GET.get("cls")
+    #         mf = request.GET.get("mf")
+    #         yr = request.GET.get("yr")
+
+    #     # Validate that required parameters are provided
+    #     if not sid:
+    #         return JsonResponse({"error": "Student ID not provided"}, status=400)
+    #     if not cls:
+    #         return JsonResponse({"error": "Class not provided"}, status=400)
+    #     if not mf:
+    #         return JsonResponse({"error": "Month not provided"}, status=400)
+    #     if not yr:
+    #         return JsonResponse({"error": "Year not provided"}, status=400)
+
+    #     # Fetch previous payment record
+    #     previous_fee_info = last_payment_record(sid)
+
+    #     print(f" +++++++ previous_fee_info +++++++ {previous_fee_info}")
+
+    #     include_admission_fee = (
+    #         previous_fee_info is None
+    #     )  # Include admission fee if no previous record exists
+    #     pay_months = mf
+    #     months_in_quarters = ["4,5,6", "7,8,9", "10,11,12", "1,2,3"]
+
+    #     target_months = pay_months
+    #     target_months_array = target_months.split(",")
+    #     quarters = []
+
+    #     for quarter in months_in_quarters:
+    #         quarter_months = quarter.split(",")
+    #         intersection = list(set(quarter_months) & set(target_months_array))
+
+    #         if intersection:
+    #             quarters.append(
+    #                 {
+    #                     "quarter": quarter,
+    #                     "months_paid": ",".join(intersection),
+    #                 }
+    #             )
+
+    #     student_id = sid
+    #     class_no = cls
+    #     year = yr
+    #     total_fees_payable = 0
+
+    #     fee_details = fetch_fee_details_for_class(student_id, class_no)
+
+    #     print(f" +++++++ fee_details +++++++ {fee_details}")
+
+    #     current_payment_details_array = []
+
+    #     if fee_details:
+    #         current_payment_details = {
+    #             "class_no": class_no,
+    #             "annual_fees": fee_details['annual_fees'],
+    #             "tuition_fees": fee_details['tuition_fees'],
+    #             "funds_fees": fee_details['funds_fees'],
+    #             "sports_fees": fee_details['sports_fees'],
+    #             "admission_fees": fee_details['admission_fees'],
+    #             "security_fees": fee_details['security_fees'],
+    #             "dayboarding_fees": fee_details['dayboarding_fees'],
+    #             "miscellaneous_fees": fee_details['miscellaneous_fees'],
+    #             "bus_fees": fee_details['bus_fees'],
+    #             "busfee_not_applicable_in_months": fee_details['busfee_not_applicable_in_months'],
+    #             "bus_id": fee_details['bus_id'],
+    #             "concession_percent": fee_details['concession_percent'],
+    #             "concession_type": fee_details['concession_type'],
+    #             "activity_fees": fee_details['activity_fees'],
+    #             "activity_fees_mandatory": fee_details['activity_fees_mandatory'],
+    #             "concession_amount": fee_details['concession_amount'],
+    #             "concession_id": fee_details['concession_id'],
+    #             "is_april_checked": fee_details['is_april_checked'],
+    #             "concession_applied": 0,
+    #         }
+
+    #         for quarter in quarters:
+    #             current_date = datetime.now().strftime("%Y-%m-%d")  # Example current date
+    #             fees_for_months = quarter["quarter"]
+    #             months_paid_for = quarter["months_paid"]
+    #             payment_details = current_payment_details.copy()
+    #             payment_details["fees_for_months"] = fees_for_months
+    #             payment_details["fees_period_month"] = months_paid_for
+
+    #             total = 0
+    #             if include_admission_fee:
+    #                 # total = payment_details['admission_fees']
+    #                 include_admission_fee = False
+    #             else:
+    #                 payment_details["admission_fees"] = 0
+
+    #             fields_to_calculate = [
+    #                 "tuition_fees",
+    #                 "funds_fees",
+    #                 "sports_fees",
+    #                 "bus_fees",
+    #                 "activity_fees",
+    #                 "dayboarding_fees",
+    #                 "miscellaneous_fees",
+    #                 "annual_fees",
+    #                 "admission_fees",
+    #             ]
+
+    #             activity_fees_mandatory = payment_details["activity_fees_mandatory"]
+    #             fees_for_months_array = payment_details["fees_period_month"].split(",")
+
+    #             for field in fields_to_calculate:
+    #                 numeric_value = (
+    #                     float(payment_details[field])
+    #                     if isinstance(payment_details[field], (int, float))
+    #                     else 0
+    #                 )
+
+    #                 if field == "activity_fees":
+    #                     activity_fee_applicable = get_special_fee(
+    #                         student_id, year, payment_details["fees_period_month"], field
+    #                     )
+    #                     if activity_fee_applicable is not None:
+    #                         numeric_value = activity_fee_applicable
+    #                     elif activity_fees_mandatory != 1:
+    #                         numeric_value = 0
+    #                 elif field == "bus_fees":
+    #                     not_applicable_months_array = (
+    #                         payment_details["busfee_not_applicable_in_months"].split(",")
+    #                         if payment_details["busfee_not_applicable_in_months"]
+    #                         else []
+    #                     )
+    #                     overlap_months = list(
+    #                         set(not_applicable_months_array) & set(fees_for_months_array)
+    #                     )
+    #                     applicable_months = list(
+    #                         set(fees_for_months_array) - set(overlap_months)
+    #                     )
+    #                     bus_fee_applied = 0
+    #                     if applicable_months:
+    #                         bus_fee_for_applicable_months = get_special_fee(
+    #                             student_id, year, ",".join(applicable_months), "bus_fees"
+    #                         )
+    #                         for month in applicable_months:
+    #                             bus_fees_value = payment_details.get("bus_fees", 0)  # Default to 0 if not present
+    #                             if bus_fees_value is None:  # Explicitly check for None
+    #                                 bus_fees_value = 0
+    #                             bus_fee_applied += bus_fee_for_applicable_months.get(month, int(bus_fees_value))
+    #                         numeric_value = bus_fee_applied
+
+    #                 elif numeric_value > 0 and field in ["tuition_fees", "funds_fees"]:
+    #                     fee_applicable = get_special_fee(
+    #                         student_id, year, payment_details["fees_for_months"], field
+    #                     )
+    #                     if fee_applicable:
+    #                         numeric_value = float(fee_applicable)
+    #                     numeric_value *= len(fees_for_months_array)
+    #                 elif field in [
+    #                     "annual_fees",
+    #                     "miscellaneous_fees",
+    #                     "sports_fees",
+    #                     "admission_fees",
+    #                 ]:
+    #                     if fees_for_months == "4,5,6":
+    #                         fee_applicable = get_special_fee(
+    #                             student_id, year, payment_details["fees_for_months"], field
+    #                         )
+    #                         if fee_applicable:
+    #                             numeric_value = float(fee_applicable)
+    #                     else:
+    #                         numeric_value = 0
+
+    #                 payment_details[field] = numeric_value
+    #                 total += numeric_value
+
+    #             concession_amount = 0
+    #             if payment_details["concession_percent"] == "percentage":
+    #                 concession_percent = float(payment_details["concession_amount"])
+    #                 tuition_fees = float(payment_details["tuition_fees"])
+    #                 concession_amount = (tuition_fees * concession_percent) / 100
+    #             elif payment_details["concession_percent"] == "amount":
+    #                 concession_amount = float(payment_details["concession_amount"])
+
+    #             if (
+    #                 "4" in fees_for_months_array
+    #                 and concession_amount > 0
+    #                 and payment_details["is_april_checked"] == 0
+    #             ):
+    #                 concession_amount = (concession_amount / len(fees_for_months_array)) * (
+    #                     len(fees_for_months_array) - 1
+    #                 )
+    #                 concession_amount = round(concession_amount)
+
+    #             total -= concession_amount
+    #             payment_details["concession_applied"] = concession_amount
+
+    #             late_fee = calculate_late_fee(total, fees_for_months, year, current_date)
+    #             payment_details["late_fee"] = late_fee
+    #             total += late_fee
+    #             payment_details["total_fee"] = total
+    #             payment_details["year"] = year
+    #             total_fees_payable += total
+
+    #             current_payment_details_array.append(payment_details)
+
+    #     print(f" +++++++ payment_details +++++++ {payment_details}")
+
+    #     sum_dict = {
+    #         "annual_fees": 0,
+    #         "tuition_fees": 0,
+    #         "funds_fees": 0,
+    #         "sports_fees": 0,
+    #         "activity_fees": 0,
+    #         "admission_fees": 0,
+    #         "security_fees": 0,
+    #         "dayboarding_fees": 0,
+    #         "miscellaneous_fees": 0,
+    #         "bus_fees": 0,
+    #         "concession_amount": 0,
+    #         "concession_applied": 0,
+    #         "concession_percent": "",
+    #         "concession_type_id": "",
+    #         "concession_type": "",
+    #         "late_fee": 0,
+    #         "total_fee": 0,
+    #     }
+
+    #     sum_keys = [
+    #         "annual_fees",
+    #         "tuition_fees",
+    #         "funds_fees",
+    #         "sports_fees",
+    #         "activity_fees",
+    #         "admission_fees",
+    #         "security_fees",
+    #         "dayboarding_fees",
+    #         "miscellaneous_fees",
+    #         "bus_fees",
+    #         "concession_applied",
+    #         "late_fee",
+    #         "total_fee",
+    #     ]
+
+    #     excluded_keys = [
+    #         "concession_amount",
+    #         "concession_percent",
+    #         "concession_id",
+    #         "concession_type",
+    #     ]
+
+    #     for details in current_payment_details_array:
+    #         for key in sum_keys:
+    #             sum_dict[key] += details[key]
+    #             print(f"Updated {key}: {sum_dict[key]}")
+
+    #         for key in excluded_keys:
+    #             sum_dict[key] = details[key]
+    #             print(f"Set {key}: {sum_dict[key]}")
+
+    #     response_data = "|".join([str(sum_dict[key]) for key in sum_keys])
+
+    #     # return JsonResponse(response_data, safe=False)
+    #     return JsonResponse({
+    #             'success': True,
+    #             'data': response_data,
+    #         })
+
+
+
+
     def calculate_fees(self, request):
         if request.method == "GET":
             sid = request.GET.get("sid")
@@ -3130,246 +3386,191 @@ class StudentFeesAdmin(admin.ModelAdmin):
             return JsonResponse({"error": "Month not provided"}, status=400)
         if not yr:
             return JsonResponse({"error": "Year not provided"}, status=400)
-
-        # Fetch previous payment record
+        
         previous_fee_info = last_payment_record(sid)
-        include_admission_fee = (
-            previous_fee_info is None
-        )  # Include admission fee if no previous record exists
+
+        print(f" +++++++ previous_fee_info +++++++ {previous_fee_info}")
+
+        include_admission_fee = not previous_fee_info  # Include admission fee if no previous fee record
         pay_months = mf
-        months_in_quarters = ["4,5,6", "7,8,9", "10,11,12", "1,2,3"]
+        months_in_quarters = [
+            '4,5,6',
+            '7,8,9',
+            '10,11,12',
+            '1,2,3'
+        ]
 
         target_months = pay_months
-        target_months_array = target_months.split(",")
+        target_months_array = target_months.split(',')
         quarters = []
 
         for quarter in months_in_quarters:
-            quarter_months = quarter.split(",")
+            quarter_months = quarter.split(',')
             intersection = list(set(quarter_months) & set(target_months_array))
-
             if intersection:
-                quarters.append(
-                    {
-                        "quarter": quarter,
-                        "months_paid": ",".join(intersection),
-                    }
-                )
+                quarters.append({
+                    'quarter': quarter,
+                    'months_paid': ','.join(intersection),
+                })
 
         student_id = sid
         class_no = cls
         year = yr
+        class_year = yr
         total_fees_payable = 0
-
         fee_details = fetch_fee_details_for_class(student_id, class_no)
-        current_payment_details_array = []
+
+        print(f" +++++++ fee_details +++++++ {fee_details}")
 
         if fee_details:
             current_payment_details = {
-                "class_no": class_no,
-                "annual_fees": fee_details['annual_fees'],
-                "tuition_fees": fee_details['tuition_fees'],
-                "funds_fees": fee_details['funds_fees'],
-                "sports_fees": fee_details['sports_fees'],
-                "admission_fees": fee_details['admission_fees'],
-                "security_fees": fee_details['security_fees'],
-                "dayboarding_fees": fee_details['dayboarding_fees'],
-                "miscellaneous_fees": fee_details['miscellaneous_fees'],
-                "bus_fees": fee_details['bus_fees'],
-                "busfee_not_applicable_in_months": fee_details['busfee_not_applicable_in_months'],
-                "bus_id": fee_details['bus_id'],
-                "concession_percent": fee_details['concession_percent'],
-                "concession_type": fee_details['concession_type'],
-                "activity_fees": fee_details['activity_fees'],
-                "activity_fees_mandatory": fee_details['activity_fees_mandatory'],
-                "concession_amount": fee_details['concession_amount'],
-                "concession_id": fee_details['concession_id'],
-                "is_april_checked": fee_details['is_april_checked'],
-                "concession_applied": 0,
+                'class_no': class_no,
+                'annual_fees': fee_details.get('annual_fees', 0),
+                'tuition_fees': fee_details.get('tuition_fees', 0),
+                'funds_fees': fee_details.get('funds_fees', 0),
+                'sports_fees': fee_details.get('sports_fees', 0),
+                'admission_fees': fee_details.get('admission_fees', 0),
+                'security_fees': fee_details.get('security_fees', 0),
+                'dayboarding_fees': fee_details.get('dayboarding_fees', 0),
+                'miscellaneous_fees': fee_details.get('miscellaneous_fees', 0),
+                'bus_fees': fee_details.get('bus_fees', 0),
+                'busfee_not_applicable_in_months': fee_details.get('busfee_not_applicable_in_months', ''),
+                'bus_id': fee_details.get('bus_id', 0),
+                'concession_percent': fee_details.get('concession_percent', ''),
+                'concession_type': fee_details.get('concession_type', ''),
+                'activity_fees': fee_details.get('activity_fees', 0),
+                'activity_fees_mandatory': fee_details.get('activity_fees_mandatory', 0),
+                'concession_amount': fee_details.get('concession_amount', 0),
+                'concession_id': fee_details.get('concession_id', 0),
+                'is_april_checked': fee_details.get('is_april_checked', 0),
+                'concession_applied': 0
             }
+
+            current_payment_details_array = []
 
             for quarter in quarters:
                 current_date = datetime.now().strftime("%Y-%m-%d")  # Example current date
-                fees_for_months = quarter["quarter"]
-                months_paid_for = quarter["months_paid"]
+                fees_for_months = quarter['quarter']
+                months_paid_for = quarter['months_paid']
+
+                # Clone current payment details to modify and calculate total
                 payment_details = current_payment_details.copy()
-                payment_details["fees_for_months"] = fees_for_months
-                payment_details["fees_period_month"] = months_paid_for
+                payment_details['fees_for_months'] = fees_for_months
+                payment_details['fees_period_month'] = months_paid_for
 
                 total = 0
                 if include_admission_fee:
-                    # total = payment_details['admission_fees']
                     include_admission_fee = False
                 else:
-                    payment_details["admission_fees"] = 0
+                    payment_details['admission_fees'] = 0
 
                 fields_to_calculate = [
-                    "tuition_fees",
-                    "funds_fees",
-                    "sports_fees",
-                    "bus_fees",
-                    "activity_fees",
-                    "dayboarding_fees",
-                    "miscellaneous_fees",
-                    "annual_fees",
-                    "admission_fees",
+                    'tuition_fees', 'funds_fees', 'sports_fees', 'bus_fees', 'activity_fees', 
+                    'dayboarding_fees', 'miscellaneous_fees', 'annual_fees', 'admission_fees'
                 ]
 
-                activity_fees_mandatory = payment_details["activity_fees_mandatory"]
-                fees_for_months_array = payment_details["fees_period_month"].split(",")
+                activity_fees_mandatory = payment_details['activity_fees_mandatory']
+                fees_for_months_array = payment_details['fees_period_month'].split(',')
 
                 for field in fields_to_calculate:
-                    numeric_value = (
-                        float(payment_details[field])
-                        if isinstance(payment_details[field], (int, float))
-                        else 0
-                    )
+                    numeric_value = float(payment_details.get(field, 0) or 0)
 
-                    if field == "activity_fees":
-                        activity_fee_applicable = get_special_fee(
-                            student_id, year, payment_details["fees_period_month"], field
-                        )
+                    if field == 'activity_fees':
+                        activity_fee_applicable = get_special_fee(student_id, year, payment_details['fees_period_month'], field)
                         if activity_fee_applicable is not None:
                             numeric_value = activity_fee_applicable
                         elif activity_fees_mandatory != 1:
                             numeric_value = 0
-                    elif field == "bus_fees":
-                        not_applicable_months_array = (
-                            payment_details["busfee_not_applicable_in_months"].split(",")
-                            if payment_details["busfee_not_applicable_in_months"]
-                            else []
-                        )
-                        overlap_months = list(
-                            set(not_applicable_months_array) & set(fees_for_months_array)
-                        )
-                        applicable_months = list(
-                            set(fees_for_months_array) - set(overlap_months)
-                        )
+
+                    elif field == 'bus_fees':
+                        not_applicable_months_array = (payment_details.get('busfee_not_applicable_in_months') or '').split(',')
+
+                        overlap_months = set(not_applicable_months_array) & set(fees_for_months_array)
+                        applicable_months = set(fees_for_months_array) - overlap_months
                         bus_fee_applied = 0
+
                         if applicable_months:
-                            bus_fee_for_applicable_months = get_special_fee(
-                                student_id, year, ",".join(applicable_months), "bus_fees"
-                            )
+                            bus_fee_for_applicable_months = get_special_fee(student_id, year, ','.join(applicable_months), 'bus_fees')
                             for month in applicable_months:
-                                bus_fees_value = payment_details.get("bus_fees", 0)  # Default to 0 if not present
-                                if bus_fees_value is None:  # Explicitly check for None
-                                    bus_fees_value = 0
-                                bus_fee_applied += bus_fee_for_applicable_months.get(month, int(bus_fees_value))
+                                bus_fee_applied += bus_fee_for_applicable_months.get(month, numeric_value)
+
                             numeric_value = bus_fee_applied
 
-                    elif numeric_value > 0 and field in ["tuition_fees", "funds_fees"]:
-                        fee_applicable = get_special_fee(
-                            student_id, year, payment_details["fees_for_months"], field
-                        )
-                        if fee_applicable:
+                    elif numeric_value > 0 and field in ['tuition_fees', 'funds_fees']:
+                        fee_applicable = get_special_fee(student_id, year, payment_details['fees_for_months'], field)
+                        if fee_applicable is not None:
                             numeric_value = float(fee_applicable)
                         numeric_value *= len(fees_for_months_array)
-                    elif field in [
-                        "annual_fees",
-                        "miscellaneous_fees",
-                        "sports_fees",
-                        "admission_fees",
-                    ]:
-                        if fees_for_months == "4,5,6":
-                            fee_applicable = get_special_fee(
-                                student_id, year, payment_details["fees_for_months"], field
-                            )
-                            if fee_applicable:
+
+                    elif field in ['annual_fees', 'miscellaneous_fees', 'sports_fees', 'admission_fees']:
+                        if fees_for_months == '4,5,6':
+                            fee_applicable = get_special_fee(student_id, year, payment_details['fees_for_months'], field)
+                            if fee_applicable is not None:
                                 numeric_value = float(fee_applicable)
                         else:
                             numeric_value = 0
 
-                    payment_details[field] = numeric_value
                     total += numeric_value
+                    payment_details[field] = numeric_value
 
+                # Apply concession
                 concession_amount = 0
-                if payment_details["concession_percent"] == "percentage":
-                    concession_percent = float(payment_details["concession_amount"])
-                    tuition_fees = float(payment_details["tuition_fees"])
-                    concession_amount = (tuition_fees * concession_percent) / 100
-                elif payment_details["concession_percent"] == "amount":
-                    concession_amount = float(payment_details["concession_amount"])
+                if payment_details['concession_percent'] == 'percentage':
+                    concession_amount = (float(payment_details['tuition_fees']) * float(payment_details['concession_amount'])) / 100
+                elif payment_details['concession_percent'] == 'amount':
+                    concession_amount = float(payment_details['concession_amount'])
 
-                if (
-                    "4" in fees_for_months_array
-                    and concession_amount > 0
-                    and payment_details["is_april_checked"] == 0
-                ):
-                    concession_amount = (concession_amount / len(fees_for_months_array)) * (
-                        len(fees_for_months_array) - 1
-                    )
-                    concession_amount = round(concession_amount)
+                if '4' in fees_for_months_array and payment_details['is_april_checked'] == 0:
+                    concession_amount = round(concession_amount / len(fees_for_months_array) * (len(fees_for_months_array) - 1), 0)
 
                 total -= concession_amount
-                payment_details["concession_applied"] = concession_amount
+                payment_details['concession_applied'] = concession_amount
 
-                late_fee = calculate_late_fee(total, fees_for_months, year, current_date)
-                payment_details["late_fee"] = late_fee
+                # Calculate late fee
+                late_fee = calculate_late_fee(total, fees_for_months, class_year, current_date, None)
+                payment_details['late_fee'] = late_fee
                 total += late_fee
-                payment_details["total_fee"] = total
-                payment_details["year"] = year
+
+                payment_details['total_fee'] = total
                 total_fees_payable += total
 
                 current_payment_details_array.append(payment_details)
 
-        sum_dict = {
-            "annual_fees": 0,
-            "tuition_fees": 0,
-            "funds_fees": 0,
-            "sports_fees": 0,
-            "activity_fees": 0,
-            "admission_fees": 0,
-            "security_fees": 0,
-            "dayboarding_fees": 0,
-            "miscellaneous_fees": 0,
-            "bus_fees": 0,
-            "concession_amount": 0,
-            "concession_applied": 0,
-            "concession_percent": "",
-            "concession_type_id": "",
-            "concession_type": "",
-            "late_fee": 0,
-            "total_fee": 0,
+                fee_details
+
+            sum_dict = {
+            'annual_fees': 0,
+            'tuition_fees': 0,
+            'funds_fees': 0,
+            'sports_fees': 0,
+            'activity_fees': 0,
+            'admission_fees': 0,
+            'security_fees': 0,
+            'dayboarding_fees': 0,
+            'miscellaneous_fees': 0,
+            'bus_fees': 0,
+            'concession_applied': 0,
+            'late_fee': 0,
+            'total_fee': 0,
         }
 
-        sum_keys = [
-            "annual_fees",
-            "tuition_fees",
-            "funds_fees",
-            "sports_fees",
-            "activity_fees",
-            "admission_fees",
-            "security_fees",
-            "dayboarding_fees",
-            "miscellaneous_fees",
-            "bus_fees",
-            "concession_applied",
-            "late_fee",
-            "total_fee",
-        ]
-
-        excluded_keys = [
-            "concession_amount",
-            "concession_percent",
-            "concession_id",
-            "concession_type",
-        ]
+        excluded_keys = ['concession_amount', 'concession_percent', 'concession_id', 'concession_type']
 
         for details in current_payment_details_array:
-            for key in sum_keys:
-                sum_dict[key] += details[key]
-                print(f"Updated {key}: {sum_dict[key]}")
-
+            for key in sum_dict:
+                sum_dict[key] += details.get(key, 0)
             for key in excluded_keys:
-                sum_dict[key] = details[key]
-                print(f"Set {key}: {sum_dict[key]}")
+                sum_dict[key] = details.get(key)
 
-        response_data = "|".join([str(sum_dict[key]) for key in sum_keys])
+            # return JsonResponse(sum_dict)
+            response_data = "|".join([str(sum_dict[key]) for key in sum_dict])
 
-        # return JsonResponse(response_data, safe=False)
-        return JsonResponse({
-                'success': True,
-                'data': response_data,
-            })
+            # return JsonResponse(sum_fees)
+            return JsonResponse({
+                        'success': True,
+                        'data': response_data,
+                    })
+    
 
     def action_payfees(self, request):
         fm = request.GET.get('fm')
@@ -3419,24 +3620,24 @@ class StudentFeesAdmin(admin.ModelAdmin):
             else:
                 return JsonResponse({"error": "Student not found"}, status=404)
 
-    # def save_model(self, request, obj, form, change):
-    #     if request.method == 'POST':
-    #         print("testing")
-    #         print(request.POST)
-    #     # Fetch the student ID from the POST data
-    #         student_id = request.POST.get('student_id')
-    #         print(f"request.POST.get('student_id') :{student_id}")
+        # def save_model(self, request, obj, form, change):
+        #     if request.method == 'POST':
+        #         print("testing")
+        #         print(request.POST)
+        #     # Fetch the student ID from the POST data
+        #         student_id = request.POST.get('student_id')
+        #         print(f"request.POST.get('student_id') :{student_id}")
 
-    #         if student_id:
-    #             # Get the student_master instance using the student_id
-    #             try:
-    #                 student_instance = student_master.objects.get(pk=student_id)
-    #                 obj.student_id = student_instance  # Assign the student_master instance to the student_fee object
-    #             except student_master.DoesNotExist:
-    #                 raise ValueError(f"Student with ID {student_id} does not exist")
+        #         if student_id:
+        #             # Get the student_master instance using the student_id
+        #             try:
+        #                 student_instance = student_master.objects.get(pk=student_id)
+        #                 obj.student_id = student_instance  # Assign the student_master instance to the student_fee object
+        #             except student_master.DoesNotExist:
+        #                 raise ValueError(f"Student with ID {student_id} does not exist")
 
-    #         # Proceed with the rest of the save operation
-    #         super().save_model(request, obj, form, change)
+        #         # Proceed with the rest of the save operation
+        #         super().save_model(request, obj, form, change)
 
 
 
@@ -3551,217 +3752,217 @@ class StudentFeesAdmin(admin.ModelAdmin):
 
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
-        # Fetch the student_fee instance
-        obj = get_object_or_404(student_fee, pk=object_id)
-        
-        if request.method == 'POST':
-            # Custom logic for updating the object
-            stuid = request.POST.get('student_id')
+            # Fetch the student_fee instance
+            obj = get_object_or_404(student_fee, pk=object_id)
             
-            try:
-                student_instance = student_master.objects.get(student_id=stuid)
-            except student_master.DoesNotExist:
-                raise ValueError(f"Student with ID {stuid} does not exist")
-            
-            # Assign the student_master instance to obj.student_id
-            obj.student_id = student_instance
+            if request.method == 'POST':
+                # Custom logic for updating the object
+                stuid = request.POST.get('student_id')
+                
+                try:
+                    student_instance = student_master.objects.get(student_id=stuid)
+                except student_master.DoesNotExist:
+                    raise ValueError(f"Student with ID {stuid} does not exist")
+                
+                # Assign the student_master instance to obj.student_id
+                obj.student_id = student_instance
 
-            # Custom logic before saving the object
-            today = datetime.now()
-            year = int(request.POST.get('started_on'))
+                # Custom logic before saving the object
+                today = datetime.now()
+                year = int(request.POST.get('started_on'))
 
-            if today.month < 4:
-                year -= 1
+                if today.month < 4:
+                    year -= 1
 
-            student_class = request.POST.get('display_student_class', '')
-            montharray = self.get_months_array(year)
-            months = ','.join(map(str, montharray))
+                student_class = request.POST.get('display_student_class', '')
+                montharray = self.get_months_array(year)
+                months = ','.join(map(str, montharray))
 
-            if student_class:
-                months_paid = student_fee.objects.filter(
-                    student_id=stuid,
-                    student_class=student_class,
-                    year=year
-                ).values_list('fees_for_months', flat=True).distinct()
-            else:
-                months_paid = student_fee.objects.filter(
-                    student_id=stuid,
-                    student_class='',
-                    year=year
-                ).values_list('fees_for_months', flat=True).distinct()
+                if student_class:
+                    months_paid = student_fee.objects.filter(
+                        student_id=stuid,
+                        student_class=student_class,
+                        year=year
+                    ).values_list('fees_for_months', flat=True).distinct()
+                else:
+                    months_paid = student_fee.objects.filter(
+                        student_id=stuid,
+                        student_class='',
+                        year=year
+                    ).values_list('fees_for_months', flat=True).distinct()
 
-            months_paid = set(map(str.strip, ','.join(months_paid).split(',')))
-            tmp = set(montharray) - months_paid
-            tmpval = ','.join(map(str, tmp))
+                months_paid = set(map(str.strip, ','.join(months_paid).split(',')))
+                tmp = set(montharray) - months_paid
+                tmpval = ','.join(map(str, tmp))
 
-            if tmpval:
-                alert_message = f'Fee pending for {tmpval} month '
+                if tmpval:
+                    alert_message = f'Fee pending for {tmpval} month '
 
-            # Setting model attributes from the form data
-            obj.payment_mode = request.POST.get('payment_mode')
-            if obj.payment_mode == 'Cheque' and not obj.cheque_status:
-                obj.cheque_status = 'Open'
+                # Setting model attributes from the form data
+                obj.payment_mode = request.POST.get('payment_mode')
+                if obj.payment_mode == 'Cheque' and not obj.cheque_status:
+                    obj.cheque_status = 'Open'
 
-            obj.date_payment = parse_date(request.POST.get('date_payment'))
-            if obj.payment_mode != 'Cheque':
-                obj.realized_date = obj.date_payment
+                obj.date_payment = parse_date(request.POST.get('date_payment'))
+                if obj.payment_mode != 'Cheque':
+                    obj.realized_date = obj.date_payment
 
-            obj.entry_date = parse_date(request.POST.get('date_payment'))
-            obj.student_class = request.POST.get('display_student_class')
-            obj.student_section = request.POST.get('display_student_section')
-            obj.fees_for_months = request.POST.get('fees_for_months')
+                obj.entry_date = parse_date(request.POST.get('date_payment'))
+                obj.student_class = request.POST.get('display_student_class')
+                obj.student_section = request.POST.get('display_student_section')
+                obj.fees_for_months = request.POST.get('fees_for_months')
 
-            fees_period_month_list = request.POST.getlist('fees_period_month')
-            obj.fees_period_month = ', '.join(fees_period_month_list)
+                fees_period_month_list = request.POST.getlist('fees_period_month')
+                obj.fees_period_month = ', '.join(fees_period_month_list)
 
-            obj.year = request.POST.get('started_on')
-            obj.total_amount = float(request.POST.get('total_amount', 0))
-            obj.amount_paid = float(request.POST.get('amount_paid', 0))
+                obj.year = request.POST.get('started_on')
+                obj.total_amount = float(request.POST.get('total_amount', 0))
+                obj.amount_paid = float(request.POST.get('amount_paid', 0))
 
-            if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
-                obj.concession_applied = float(request.POST.get('concession_applied'))
-                obj.concession_type_id = request.POST.get('concession_type')
-            else:
-                obj.concession_type_id = None
-                obj.concession_applied = None
+                if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
+                    obj.concession_applied = float(request.POST.get('concession_applied'))
+                    obj.concession_type_id = request.POST.get('concession_type')
+                else:
+                    obj.concession_type_id = None
+                    obj.concession_applied = None
 
-            obj.bus_fees_paid = float(request.POST.get('bus_fees_paid', 0))
-            obj.dayboarding_fees_paid = float(request.POST.get('dayboarding_fees_paid', 0))
-            obj.miscellaneous_fees_paid = float(request.POST.get('miscellaneous_fees_paid', 0))
-            obj.late_fees_paid = float(request.POST.get('late_fees_paid', 0))
-            obj.security_paid = float(request.POST.get('security_paid', 0))
-            obj.admission_fees_paid = float(request.POST.get('admission_fees_paid', 0))
-            obj.activity_fees = float(request.POST.get('activity_fees', 0))
-            obj.sports_fees_paid = float(request.POST.get('sports_fees_paid', 0))
-            obj.funds_fees_paid = float(request.POST.get('funds_fees_paid', 0))
-            obj.tuition_fees_paid = float(request.POST.get('tuition_fees_paid', 0))
-            obj.annual_fees_paid = float(request.POST.get('annual_fees_paid', 0))
-            obj.isdefault = request.POST.get('isdefault')
-            obj.remarks = request.POST.get('remarks')
-            obj.added_by = request.user.username
+                obj.bus_fees_paid = float(request.POST.get('bus_fees_paid', 0))
+                obj.dayboarding_fees_paid = float(request.POST.get('dayboarding_fees_paid', 0))
+                obj.miscellaneous_fees_paid = float(request.POST.get('miscellaneous_fees_paid', 0))
+                obj.late_fees_paid = float(request.POST.get('late_fees_paid', 0))
+                obj.security_paid = float(request.POST.get('security_paid', 0))
+                obj.admission_fees_paid = float(request.POST.get('admission_fees_paid', 0))
+                obj.activity_fees = float(request.POST.get('activity_fees', 0))
+                obj.sports_fees_paid = float(request.POST.get('sports_fees_paid', 0))
+                obj.funds_fees_paid = float(request.POST.get('funds_fees_paid', 0))
+                obj.tuition_fees_paid = float(request.POST.get('tuition_fees_paid', 0))
+                obj.annual_fees_paid = float(request.POST.get('annual_fees_paid', 0))
+                obj.isdefault = request.POST.get('isdefault')
+                obj.remarks = request.POST.get('remarks')
+                obj.added_by = request.user.username
 
-            # Save the updated object
-            obj.save()
-            
-            # Generate the PDF for the fee record
-            self.generate_pdf(obj.student_fee_id)
+                # Save the updated object
+                obj.save()
+                
+                # Generate the PDF for the fee record
+                self.generate_pdf(obj.student_fee_id)
 
-            self.message_user(request, "Student fee record updated successfully.")
-            return HttpResponseRedirect(reverse('admin:app_student_fee_changelist'))
+                self.message_user(request, "Student fee record updated successfully.")
+                return HttpResponseRedirect(reverse('admin:app_student_fee_changelist'))
 
-        return super().change_view(request, object_id, form_url, extra_context)
-
-
-    # def save_model(self, request, obj, form, change):
+            return super().change_view(request, object_id, form_url, extra_context)
 
 
-    #     # Fetch the student ID from the POST data
-    #     stuid = request.POST.get('student_id')
-    #     # print(f"request.POST.get('student_id') :{request.POST.get('student_id')}")
+        # def save_model(self, request, obj, form, change):
 
-    #     # Fetch the student_master instance using the primary key (stuid)
-    #     try:
-    #         #student_instance = student_master.objects.get(pk=stuid)
-    #         student_instance = student_master.objects.get(student_id=stuid)
-    #     except student_master.DoesNotExist:
-    #         # Handle the case where the student does not exist
-    #         raise ValueError(f"Student with ID {stuid} does not exist")
 
-    #     # Now assign the student_master instance to obj.student_id
-    #     obj.student_id = student_instance
+        #     # Fetch the student ID from the POST data
+        #     stuid = request.POST.get('student_id')
+        #     # print(f"request.POST.get('student_id') :{request.POST.get('student_id')}")
 
-    #     # Custom logic before saving the object
-    #     today = datetime.now()  # Do not convert to string here
-    #     year = int(request.POST.get('started_on'))
+        #     # Fetch the student_master instance using the primary key (stuid)
+        #     try:
+        #         #student_instance = student_master.objects.get(pk=stuid)
+        #         student_instance = student_master.objects.get(student_id=stuid)
+        #     except student_master.DoesNotExist:
+        #         # Handle the case where the student does not exist
+        #         raise ValueError(f"Student with ID {stuid} does not exist")
 
-    #     # Now, you can access 'today.month' without issues
-    #     if today.month < 4:
-    #         year -= 1
+        #     # Now assign the student_master instance to obj.student_id
+        #     obj.student_id = student_instance
 
-    #     print(f"student_instance {student_instance}")
+        #     # Custom logic before saving the object
+        #     today = datetime.now()  # Do not convert to string here
+        #     year = int(request.POST.get('started_on'))
 
-    #     print(f"Student ID: {student_instance.student_id}, Name: {student_instance.student_name}")
+        #     # Now, you can access 'today.month' without issues
+        #     if today.month < 4:
+        #         year -= 1
 
-    #     # Assign the instance to the ForeignKey field
-    #     # obj.student_id = student_instance
+        #     print(f"student_instance {student_instance}")
 
-    #     student_class = request.POST.get('display_student_class', '')
-    #     montharray = self.get_months_array(year)
-    #     months = ','.join(map(str, montharray))
+        #     print(f"Student ID: {student_instance.student_id}, Name: {student_instance.student_name}")
 
-    #     if student_class:
-    #         months_paid = student_fee.objects.filter(
-    #             student_id=stuid,
-    #             student_class=student_class,
-    #             year=year
-    #         ).values_list('fees_for_months', flat=True).distinct()
-    #     else:
-    #         months_paid = student_fee.objects.filter(
-    #             student_id=stuid,
-    #             student_class='',
-    #             year=year
-    #         ).values_list('fees_for_months', flat=True).distinct()
+        #     # Assign the instance to the ForeignKey field
+        #     # obj.student_id = student_instance
 
-    #     months_paid = set(map(str.strip, ','.join(months_paid).split(',')))
-    #     tmp = set(montharray) - months_paid
-    #     tmpval = ','.join(map(str, tmp))
+        #     student_class = request.POST.get('display_student_class', '')
+        #     montharray = self.get_months_array(year)
+        #     months = ','.join(map(str, montharray))
 
-    #     if tmpval:
-    #         alert_message = f'Fee pending for {tmpval} month '
-    #         # Optionally use this alert message
+        #     if student_class:
+        #         months_paid = student_fee.objects.filter(
+        #             student_id=stuid,
+        #             student_class=student_class,
+        #             year=year
+        #         ).values_list('fees_for_months', flat=True).distinct()
+        #     else:
+        #         months_paid = student_fee.objects.filter(
+        #             student_id=stuid,
+        #             student_class='',
+        #             year=year
+        #         ).values_list('fees_for_months', flat=True).distinct()
 
-    #     # Setting model attributes
-    #     obj.payment_mode = request.POST.get('payment_mode')
-    #     if obj.payment_mode == 'Cheque' and not obj.cheque_status:
-    #         obj.cheque_status = 'Open'
+        #     months_paid = set(map(str.strip, ','.join(months_paid).split(',')))
+        #     tmp = set(montharray) - months_paid
+        #     tmpval = ','.join(map(str, tmp))
 
-    #     obj.date_payment = parse_date(request.POST.get('date_payment'))
-    #     if obj.payment_mode != 'Cheque':
-    #         obj.realized_date = obj.date_payment
+        #     if tmpval:
+        #         alert_message = f'Fee pending for {tmpval} month '
+        #         # Optionally use this alert message
 
-    #     obj.entry_date = parse_date(request.POST.get('date_payment'))
-    #     obj.student_class = request.POST.get('display_student_class')
-    #     obj.student_section = request.POST.get('display_student_section')
-    #     obj.fees_for_months = request.POST.get('fees_for_months')
+        #     # Setting model attributes
+        #     obj.payment_mode = request.POST.get('payment_mode')
+        #     if obj.payment_mode == 'Cheque' and not obj.cheque_status:
+        #         obj.cheque_status = 'Open'
 
-    #     fees_period_month_list = request.POST.getlist('fees_period_month')  # Get the list of selected months
-    #     obj.fees_period_month = ', '.join(fees_period_month_list)  # Join them as a string (e.g., '1, 2, 3')
-    #     # request.POST.getlist('fees_period_month')
+        #     obj.date_payment = parse_date(request.POST.get('date_payment'))
+        #     if obj.payment_mode != 'Cheque':
+        #         obj.realized_date = obj.date_payment
 
-    #     obj.year = request.POST.get('started_on')
-    #     obj.total_amount = float(request.POST.get('total_amount', 0))
-    #     obj.amount_paid = float(request.POST.get('amount_paid', 0))
+        #     obj.entry_date = parse_date(request.POST.get('date_payment'))
+        #     obj.student_class = request.POST.get('display_student_class')
+        #     obj.student_section = request.POST.get('display_student_section')
+        #     obj.fees_for_months = request.POST.get('fees_for_months')
 
-    #     # Handle concessions
-    #     if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
-    #         obj.concession_applied = float(request.POST.get('concession_applied'))
-    #         obj.concession_type_id = request.POST.get('concession_type')
-    #     else:
-    #         obj.concession_type_id = None
-    #         obj.concession_applied = None
+        #     fees_period_month_list = request.POST.getlist('fees_period_month')  # Get the list of selected months
+        #     obj.fees_period_month = ', '.join(fees_period_month_list)  # Join them as a string (e.g., '1, 2, 3')
+        #     # request.POST.getlist('fees_period_month')
 
-    #     # Setting other attributes
-    #     # obj.bank_name = request.POST.get('bankname')
-    #     # obj.branch_name = request.POST.get('branchname')
-    #     # obj.cheq_no = request.POST.get('cheqno')
-    #     obj.bus_fees_paid = float(request.POST.get('bus_fees_paid', 0))
-    #     obj.dayboarding_fees_paid = float(request.POST.get('dayboarding_fees_paid', 0))
-    #     obj.miscellaneous_fees_paid = float(request.POST.get('miscellaneous_fees_paid', 0))
-    #     obj.late_fees_paid = float(request.POST.get('late_fees_paid', 0))
-    #     obj.security_paid = float(request.POST.get('security_paid', 0))
-    #     obj.admission_fees_paid = float(request.POST.get('admission_fees_paid', 0))
-    #     obj.activity_fees = float(request.POST.get('activity_fees', 0))
-    #     obj.sports_fees_paid = float(request.POST.get('sports_fees_paid', 0))
-    #     obj.funds_fees_paid = float(request.POST.get('funds_fees_paid', 0))
-    #     obj.tuition_fees_paid = float(request.POST.get('tuition_fees_paid', 0))
-    #     obj.annual_fees_paid = float(request.POST.get('annual_fees_paid', 0))
-    #     obj.isdefault = request.POST.get('isdefault')
-    #     obj.remarks = request.POST.get('remarks')
-    #     obj.added_by = request.user.username
+        #     obj.year = request.POST.get('started_on')
+        #     obj.total_amount = float(request.POST.get('total_amount', 0))
+        #     obj.amount_paid = float(request.POST.get('amount_paid', 0))
 
-    #     obj.save()
-    #     self.generate_pdf(obj.student_fee_id)
-        # self.message_user(request, "Student fee record saved successfully.")
+        #     # Handle concessions
+        #     if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
+        #         obj.concession_applied = float(request.POST.get('concession_applied'))
+        #         obj.concession_type_id = request.POST.get('concession_type')
+        #     else:
+        #         obj.concession_type_id = None
+        #         obj.concession_applied = None
+
+        #     # Setting other attributes
+        #     # obj.bank_name = request.POST.get('bankname')
+        #     # obj.branch_name = request.POST.get('branchname')
+        #     # obj.cheq_no = request.POST.get('cheqno')
+        #     obj.bus_fees_paid = float(request.POST.get('bus_fees_paid', 0))
+        #     obj.dayboarding_fees_paid = float(request.POST.get('dayboarding_fees_paid', 0))
+        #     obj.miscellaneous_fees_paid = float(request.POST.get('miscellaneous_fees_paid', 0))
+        #     obj.late_fees_paid = float(request.POST.get('late_fees_paid', 0))
+        #     obj.security_paid = float(request.POST.get('security_paid', 0))
+        #     obj.admission_fees_paid = float(request.POST.get('admission_fees_paid', 0))
+        #     obj.activity_fees = float(request.POST.get('activity_fees', 0))
+        #     obj.sports_fees_paid = float(request.POST.get('sports_fees_paid', 0))
+        #     obj.funds_fees_paid = float(request.POST.get('funds_fees_paid', 0))
+        #     obj.tuition_fees_paid = float(request.POST.get('tuition_fees_paid', 0))
+        #     obj.annual_fees_paid = float(request.POST.get('annual_fees_paid', 0))
+        #     obj.isdefault = request.POST.get('isdefault')
+        #     obj.remarks = request.POST.get('remarks')
+        #     obj.added_by = request.user.username
+
+        #     obj.save()
+        #     self.generate_pdf(obj.student_fee_id)
+            # self.message_user(request, "Student fee record saved successfully.")
 
     def get_months_array(self, year):
         # Format the start and end date for the financial year
