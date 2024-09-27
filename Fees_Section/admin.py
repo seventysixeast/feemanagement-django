@@ -21,11 +21,14 @@ class ChequeStatusListAdmin(admin.ModelAdmin):
         'ChequeStatus', 'CheqNo', 'BankName', 'BranchName', 'TotalAmount', 'AmountPaid',
         'DateEntry'
     )
+    # search_fields = [
+    #     'addmission_no', 'student_name', 'student_fee__year', 'student_fee__date_payment',
+    #     'student_fee__cheque_status', 'student_fee__cheq_no', 'student_fee__bank_name',
+    #     'student_fee__branch_name', 'student_fee__total_amount', 'student_fee__amount_paid',
+    #     'student_fee__entry_date'
+    # ]
     search_fields = [
-        'addmission_no', 'student_name', 'student_fee__year', 'student_fee__date_payment',
-        'student_fee__cheque_status', 'student_fee__cheq_no', 'student_fee__bank_name',
-        'student_fee__branch_name', 'student_fee__total_amount', 'student_fee__amount_paid',
-        'student_fee__entry_date'
+        'addmission_no', 'student_name'
     ]
 
     def has_add_permission(self, request):

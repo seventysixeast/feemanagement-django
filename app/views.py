@@ -70,6 +70,10 @@ from django.contrib.auth import login
 from django.http import JsonResponse
 from django.conf import settings
 
+
+from django.db.models import OuterRef, Subquery, F
+from django.db.models.functions import ExtractYear
+
 User = get_user_model()
 # import datetime
 
@@ -286,7 +290,8 @@ def fetch_fee_details_for_class(student_id, class_no):
 
     # Fetch the student class information
     student_class1 = student_class.objects.filter(
-        student_id=student, 
+        # student_id=student, 
+        student_id=student_id, 
         class_no=class_no
     ).first()
 
@@ -761,51 +766,35 @@ def action_student_payment_details(request, admission=None):
 
     if admission is not None:
         # Query for student info
-        # student_info = student_master.objects.filter(
-        #     addmission_no=admission
-        # ).order_by('-studentclasses__student_class_id').first() 
-
-        # student_info = student_class.objects.filter(
-        #     student__addmission_no=admission
-        # ).annotate(
-        #     student_id=F('student__student_id'),
-        #     admission_no=F('student__addmission_no'),
-        #     student_name=F('student__student_name'),
-        #     father_name=F('student__father_name'),
-        #     concession_id=F('student__concession_id'),
-        #     session=F('started_on__year')
-        # ).order_by('-student_class_id').first()
-
-        # student_info = student_master.objects.filter(addmission_no=admission).values(
-        #     'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id'
-        # ).annotate(
-        #     class_no=F('classes__class_no'),
-        #     section=F('classes__section'),
-        #     session=F('classes__started_on__year')
-        # ).order_by('-classes__student_class_id').first()
-        student_info = student_master.objects.filter(addmission_no=admission).select_related('classes').values(
-            'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id',
-            'classes__class_no', 'classes__section'
-        ).annotate(
-            session=F('classes__started_on__year')  # Extract year from started_on
-        ).order_by('-classes__student_class_id').first()
-
-        # student_info = StudentMaster.objects.filter(addmission_no=admission_no).select_related('classes').values(
+        # student_info = student_master.objects.filter(addmission_no=admission).select_related('classes').values(
         #     'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id',
         #     'classes__class_no', 'classes__section'
         # ).annotate(
-        #     session=models.F('classes__started_on__year')  # Extract year from started_on
+        #     session=F('classes__started_on__year')  # Extract year from started_on
         # ).order_by('-classes__student_class_id').first()
 
-        # student_info = StudentMaster.objects.filter(addmission_no=admission_no).select_related('classes').annotate(
-        #     session=models.F('classes__started_on__year')  # Extract year from started_on
-        # ).order_by('-classes__student_class_id').first()
+
+
+        # Define the subquery to get related class information from the student_class table
+        class_subquery = student_class.objects.filter(student_id=OuterRef('student_id')).order_by('-student_class_id')
+
+        # Fetch the student information along with class data without using ForeignKey
+        student_info = student_master.objects.filter(addmission_no=admission).annotate(
+            class_no=Subquery(class_subquery.values('class_no')[:1]),  # Fetch class_no from student_class
+            section=Subquery(class_subquery.values('section')[:1]),    # Fetch section from student_class
+            session=ExtractYear(Subquery(class_subquery.values('started_on')[:1]))  # Extract year from started_on
+        ).values(
+            'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id',
+            'class_no', 'section', 'session'
+        ).first()
+
+
         #$sqlStudentInfo 
 
         if student_info:
             # student_id = student_info.student_id
             student_id = student_info['student_id']
-
+            print('student_id',student_id)
             # Fetch previous fee information (you'll need to define this function)
             previous_fee_info = last_payment_record(student_id)
 
@@ -1097,8 +1086,8 @@ def action_student_payment_details(request, admission=None):
                             'message': "No Pending fee found"
                         }
                     
-                student_info['class_no'] = student_info['classes__class_no']
-                student_info['section'] = student_info['classes__section']
+                # student_info['class_no'] = student_info['classes__class_no']
+                # student_info['section'] = student_info['classes__section']
                 response = {
                     'success': True,
                     'message': "Data retrieved successfully",
@@ -2328,6 +2317,8 @@ def send_otp(user):
     otp = random.randint(1000, 9999)  # Generate a random 6-digit OTP
     user.last_name = otp  # Store OTP in user instance (you might want to save it in the database or cache)
     user.save()
+    # sms_response = send_otp_via_textlocal(user.first_name, otp)
+    # print('sms_response',sms_response)
     print(f"OTP sent to {user.first_name}: {otp}")  # Replace with actual sending logic (email/SMS)
 
 def custom_login(request):
