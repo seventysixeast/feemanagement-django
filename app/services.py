@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    user, student_master, student_fee, student_class, specialfee_master,
+    student_master, student_fee, student_class, specialfee_master,
     payment_schedule_master, latefee_master, fees_master, expense,
     concession_master, bus_master, busfees_master, account_head
 )

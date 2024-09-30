@@ -6,8 +6,11 @@ from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 # Validator that allows only digits
 numeric_validator = RegexValidator(r'^\d+$', 'Enter a valid mobile number. Only digits are allowed.')
+
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 # Create your models here.
 
@@ -52,54 +55,9 @@ class busfees_master(models.Model):
             bus_master_instance = bus_master.objects.filter(bus_route=self.route).first()
             return bus_master_instance.bus_attendant if bus_master_instance else None
         except bus_master.DoesNotExist:
-            return None
-  
-# class bus_master(models.Model):
-#     BUS_CHOICES = [
-#       ('', 'Please Select Route'),
-#       (1, '1'),
-#       (2, '2'),
-#       (3, '3'),
-#       (4, '4'),
-#       (5, '5'),
-#       (6, '6'),
-#       (7, '7'),
-#       (8, '8'),
-#       (9, '9'),
-#       (10, '10'),
-#       (11, '11'),
-#       (12, '12'),
-#       (13, '13'),
-#       (14, '14'),
-#       (15, '15'),
-#       (16, '16'),
-#       (17, '17'),
-#       (18, '18'),
-#       (19, '19'),
-#       (20, '20'),
-#     ]
-#     INTERNAL_CHOICES = [
-#         ('', 'Select'),
-#         ('True', 'True'),
-#         ('False', 'False'),
-#     ]
-#     busdetail_id = models.AutoField(primary_key=True)
-#     bus_route = models.IntegerField(null=True, choices=BUS_CHOICES, default='',unique=True)
-#     internal = models.CharField(max_length=10, null=True, choices=INTERNAL_CHOICES)
-#     bus_driver = models.CharField(max_length=50, null=True)
-#     bus_conductor = models.CharField(max_length=50, null=True)
-#     bus_attendant = models.CharField(max_length=50, null=True)
-#     driver_phone = models.CharField(max_length=50, null=True)
-#     conductor_phone = models.CharField(max_length=50, null=True)
-#     attendant_phone = models.CharField(max_length=50, null=True)
-
-#     class Meta:
-#         db_table = 'bus_master'  # Custom table name
-
-#     def __str__(self):
-#         return f"BusDetail {self.busdetail_id} - Route {self.bus_route}"
-    
-
+            return None    
+        
+        
 
 class bus_master(models.Model):
     BUS_CHOICES = [
@@ -231,8 +189,8 @@ class fees_master(models.Model):
     if not self.security_fees:
       self.security_fees = 0
 
-    # self.clean()
-    # super().save(*args, **kwargs)
+    self.clean()
+    super().save(*args, **kwargs)
 
 class latefee_master(models.Model):
   latefee_id = models.BigAutoField(primary_key=True)
@@ -488,48 +446,34 @@ class student_class(models.Model):
     def __str__(self):
         return f"Class {self.class_no} Section {self.section}"
 
-class user(models.Model):
-# class teacher_master(models.Model):
-  ROLES_CHOICES = [
-      ('', 'Select Type'),
-      ('admin', 'Admin'),
-      ('superadmin', 'Super Admin'),
-  ]
-  user_id = models.AutoField(primary_key=True)
-  user_name = models.CharField(max_length=200)
-  email = models.EmailField(max_length=200, unique=True)
-  mobile = models.CharField(max_length=15, validators=[numeric_validator])
-  # mobile = models.IntegerField(max_length=15)
+# class user(models.Model):
+# # class teacher_master(models.Model):
+#   ROLES_CHOICES = [
+#       ('', 'Select Type'),
+#       ('admin', 'Admin'),
+#       ('superadmin', 'Super Admin'),
+#   ]
+#   user_id = models.AutoField(primary_key=True)
+#   user_name = models.CharField(max_length=200)
+#   email = models.EmailField(max_length=200, unique=True)
+#   mobile = models.CharField(max_length=15, validators=[numeric_validator])
+#   # mobile = models.IntegerField(max_length=15)
   
-  # password = models.CharField(max_length=255)
-  role = models.CharField(max_length=50, choices=ROLES_CHOICES,default='')
-  created_at = models.DateTimeField(auto_now_add=True)
-  updated_at = models.DateTimeField(auto_now=True)
-  otp = models.CharField(max_length=255, null=True, blank=True)
-  otp_created_at = models.DateTimeField(null=True, blank=True)
-  otp_verified = models.BooleanField(default=False)
+#   # password = models.CharField(max_length=255)
+#   role = models.CharField(max_length=50, choices=ROLES_CHOICES,default='')
+#   created_at = models.DateTimeField(auto_now_add=True)
+#   updated_at = models.DateTimeField(auto_now=True)
+#   otp = models.CharField(max_length=255, null=True, blank=True)
+#   otp_created_at = models.DateTimeField(null=True, blank=True)
+#   otp_verified = models.BooleanField(default=False)
 
-  class Meta:
-    db_table = 'users'  # Custom table name
+#   class Meta:
+#     db_table = 'users'  # Custom table name
 
-  def __str__(self):
-      return self.user_name
+#   def __str__(self):
+#       return self.user_name
   
 class generate_mobile_number_list(student_master):
   class Meta:
       proxy = True  # Use this model as a proxy for the original model
 
-
-# class cheque_status(student_master):
-#   class Meta:
-#       proxy = True  # Use this model as a proxy for the original model
-#       # verbose_name = "Model 3"
-#       # verbose_name_plural = "Model 3 Group"
-#       # app_label = 'group2'
-
-# class transport(student_master):
-#   class Meta:
-#       proxy = True  # Use this model as a proxy for the original model
-#       # verbose_name = "Model 4"
-#       # verbose_name_plural = "Model 4 Group"
-#       # app_label = 'group2'
