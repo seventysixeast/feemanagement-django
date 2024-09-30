@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
     
     routeField.addEventListener('change', function () {
         const route = this.value;
-        const url = '/admin/app/student_master/ajax/load-destinations/?route=' + route;
+        const url = '/school-admin/app/student_master/ajax/load-destinations/?route=' + route;
         fetch(url)
             .then(response => response.json())
             .then(data => {
