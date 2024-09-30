@@ -1085,6 +1085,9 @@ def action_student_payment_details(request, admission=None):
                         response = {
                             'message': "No Pending fee found"
                         }
+                
+                if prev_pending_amount > 0:
+                    totalFeesPayable += prev_pending_amount
                     
                 # student_info['class_no'] = student_info['classes__class_no']
                 # student_info['section'] = student_info['classes__section']
