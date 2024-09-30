@@ -212,7 +212,7 @@ def send_otp_verification(request):
                     otp = '2135'
 
                 # Use Textlocal to send the OTP
-                # sms_response = send_otp_via_textlocal(mobile_number, otp)
+                sms_response = send_otp_via_textlocal(mobile_number, otp)
                 # print('sms_response',sms_response)
 
                 # Check if the SMS was sent successfully
