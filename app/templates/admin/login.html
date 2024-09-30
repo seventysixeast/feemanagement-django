@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OTP Verification</title>
-    
+
     <!-- jQuery CDN -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
+
     <!-- Optional CSS to style the form -->
     <style>
         .verify-otp {
@@ -59,6 +60,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- OTP Verification Form -->
@@ -75,7 +77,8 @@
             <input type="hidden" name="otp" required>
         </div>
         <div style="margin-top: 5px;">
-            <p style="margin: 0px;">Didn't get a code? <a href="javascript:void(0);" class="resend-link" id="resendLink">Click to resend</a></p>
+            <p style="margin: 0px;">Didn't get a code? <a href="javascript:void(0);" class="resend-link"
+                    id="resendLink">Click to resend</a></p>
         </div>
         <div>
             <input type="submit" class="search-submit btn btn-primary" value="VERIFY">
@@ -112,7 +115,7 @@
 
                 // Get the combined OTP from input fields
                 var otp = $("#otp-1").val() + $("#otp-2").val() + $("#otp-3").val() + $("#otp-4").val();
-                
+
                 // Send OTP to the backend via AJAX request
                 $.ajax({
                     url: '/otp_verification/',  // The URL to hit your backend method for OTP verification
@@ -168,6 +171,7 @@
             });
         });
     </script>
-    
+
 </body>
+
 </html>

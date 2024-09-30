@@ -71,30 +71,6 @@ document.addEventListener("DOMContentLoaded", function () {
       } catch (error) {
         console.error("There was a problem with the fetch operation:", error);
       }
-
-      /* try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.json();
-        const students = data.data.split(",");
-
-        console.log("data", data);
-
-        students.forEach(async (student) => {
-          const [idName, classNo] = student.split(":");
-          const [id] = idName.split("$");
-
-          // Enhanced console logging
-          console.log(`Student ID Name: ${idName}`);
-          console.log(`Extracted ID: ${id}`);
-          console.log(`Class Number: ${classNo}`);
-          
-
-          await handleStudentId(id);
-        });
-      } catch (error) {
-        console.error("There was a problem with the fetch operation:", error);
-      }*/
     } else {
       console.warn(
         "Please enter either admission number or student name to search."
@@ -102,12 +78,21 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  studentDropdown.addEventListener("change", async function () {
-    const selectedId = this.value;
-    if (selectedId) {
-      await handleStudentId(selectedId);
-    }
-  });
+  if (studentDropdown) {
+    studentDropdown.addEventListener("change", async function () {
+      const selectedId = this.value;
+      if (selectedId) {
+        await handleStudentId(selectedId);
+      }
+    });
+  }
+
+  // studentDropdown.addEventListener("change", async function () {
+  //   const selectedId = this.value;
+  //   if (selectedId) {
+  //     await handleStudentId(selectedId);
+  //   }
+  // });
 
   async function handleStudentId(studentId) {
     stuId = studentId;
@@ -145,7 +130,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Trigger the request to load previous fees
-        await loadPreviousFees(studentId);
+        await loadPreviousFees(studentId, false);
 
         // Trigger the request to calculate fees
         //await calculateFees(studentId, details[1], month, selectedYear);
@@ -161,166 +146,80 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  async function calculateFees(studentId, studentClass, month, year) {
-    try {
-      // Get current value of fees_for_months field
-      const selectedMonths = feesForMonthsField.value; // Get current value of fees_for_months
-      const url = new URL(
-        `/school-admin/app/student_fee/ajax/calculate-fees/`,
-        window.location.origin
-      );
-      url.searchParams.append("sid", studentId);
-      url.searchParams.append("cls", studentClass);
-      url.searchParams.append("mf", selectedMonths);
-      url.searchParams.append("yr", year);
-
-      // Fetch data
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Network response was not ok");
-      const data = await response.json();
-
-      // Process the received data
-      if (data !== "-----------") {
-        console.log("Data received---", data.data);
-
-        const d = data.data.split("|");
-
-        console.log("d=========", d);
-
-        // Helper function to set input value
-        /* function setValue(selector, value, defaultValue = '0') {
-          console.log("value---",value);
-          
-          const element = document.querySelector(`input[name="${selector}"]`);
-          if (element && element.value != 'undefined') {
-            element.value = parseInt(value) > 0 ? parseInt(value) : defaultValue;
-          }
-        }
-        */
-
-        function setValue(selector, value, defaultValue = "0") {
-          console.log("value---", value);
-
-          const element = document.querySelector(`input[name="${selector}"]`);
-
-          if (element) {
-            // Convert the value to a number
-            let numValue = parseFloat(value);
-
-            // If numValue is NaN or less than 0, use defaultValue
-            if (isNaN(numValue) || numValue < 0) {
-              numValue = parseFloat(defaultValue);
-            }
-
-            // Set the element's value as a string
-            element.value = numValue.toString();
-          }
-        }
-
-        // Populate fee fields or set default value
-        setValue("annual_fees_paid", d[0]);
-        setValue("tuition_fees_paid", d[1]);
-        setValue("funds_fees_paid", d[2]);
-        setValue("sports_fees_paid", d[3]);
-        setValue("activity_fees", d[4]);
-        setValue("admission_fees_paid", d[5]);
-        setValue("security_fees", d[6]);
-        setValue("dayboarding_fees_paid", d[7]);
-        setValue("miscellaneous_fees_paid", d[8]);
-        setValue("bus_fees_paid", d[9]);
-        setValue("concession_applied", d[10]);
-        setValue("late_fees_paid", d[11]);
-        setValue("total_amount", d[12]);
-
-        const concession = (document.querySelector(
-          'input[name="concession_applied"]'
-        ).value = d[13] || "");
-        document.querySelector('input[name="concession_type"]').value =
-          d[16] || "";
-
-        // Calculate total amount
-        const annualfees =
-          parseInt(
-            document.querySelector('input[name="annual_fees_paid"]').value
-          ) || 0;
-        console.log("annualfees", annualfees);
-        const tutionfees =
-          parseInt(
-            document.querySelector('input[name="tuition_fees_paid"]').value
-          ) || 0;
-        console.log("tutionfees", tutionfees);
-        const fundfees =
-          parseInt(
-            document.querySelector('input[name="funds_fees_paid"]').value
-          ) || 0;
-        console.log("fundfees", fundfees);
-        const sportsfees =
-          parseInt(
-            document.querySelector('input[name="sports_fees_paid"]').value
-          ) || 0;
-        console.log("sportsfees", sportsfees);
-        const admfees =
-          parseInt(
-            document.querySelector('input[name="admission_fees_paid"]').value
-          ) || 0;
-        console.log("admfees", admfees);
-        const dayboardfees =
-          parseInt(
-            document.querySelector('input[name="dayboarding_fees_paid"]').value
-          ) || 0;
-        console.log("dayboardfees", dayboardfees);
-        const busfees =
-          parseInt(
-            document.querySelector('input[name="bus_fees_paid"]').value
-          ) || 0;
-        console.log("busfees", busfees);
-        const activityfees =
-          parseInt(
-            document.querySelector('input[name="activity_fees"]').value
-          ) || 0;
-        console.log("activityfees", activityfees);
-        //const concession = parseInt(document.querySelector("concession_applied").value) || 0;
-        console.log("concession", concession);
-        const miscfees =
-          parseInt(
-            document.querySelector('input[name="miscellaneous_fees_paid"]')
-              .value
-          ) || 0;
-        console.log("miscfees", miscfees);
-        const latefees =
-          parseInt(
-            document.querySelector('input[name="late_fees_paid"]').value
-          ) || 0;
-        console.log("latefees", latefees);
-
-        // Calculate total based on data[16] or manually
-        const total =
-          d[12] ||
-          annualfees +
-            tutionfees +
-            fundfees +
-            sportsfees +
-            activityfees +
-            admfees +
-            dayboardfees +
-            busfees +
-            latefees -
-            concession;
-
-        console.log("total=====", total);
-
-        document.querySelector('input[name="total_amount"]').value = total;
-        document.querySelector('input[name="amount_paid"]').value = total;
-      } else {
-        alert("Fees are not inserted for this class");
-      }
-    } catch (error) {
-      console.error("There was a problem calculating fees:", error);
-    }
-  }
-
   // Function to load previous fees
-  async function loadPreviousFees(studentId) {
+  // async function loadPreviousFees(studentId) {
+  //   try {
+  //     const response = await fetch(
+  //       `/school-admin/app/student_fee/ajax/prev-fees/?student_id=${studentId}`
+  //     );
+  //     if (!response.ok) throw new Error("Network response was not ok");
+
+  //     const data = await response.json();
+  //     const fees = data.data.split("&");
+
+  //     console.log("fees=============", fees);
+
+  //     const feesElement = document.querySelector("#previous-fees-section");
+
+  //     let feesSection = "";
+
+  //     if (feesElement) {
+  //       let tableHTML = `
+  //       <table class="table">
+  //         <thead>
+  //           <tr>
+  //             <th>Fees For Months</th>
+  //             <th>Date Payment</th>
+  //             <th>Amount Paid</th>
+  //             <th>Fees Period Month</th>
+  //             <th>Class</th>
+  //           </tr>
+  //         </thead>
+  //         <tbody>
+  //       `;
+
+  //       if (fees && fees.length > 0) {
+  //         fees.forEach((fee) => {
+  //           const [
+  //             feesForMonths,
+  //             datePayment,
+  //             amountPaid,
+  //             feesPeriodMonth,
+  //             studentClass,
+  //           ] = fee.split("$");
+
+  //           tableHTML += `
+  //           <tr>
+  //             <td>${feesForMonths}</td>
+  //             <td>${datePayment}</td>
+  //             <td>${amountPaid}</td>
+  //             <td>${feesPeriodMonth}</td>
+  //             <td>${studentClass}</td>
+  //           </tr>
+  //         `;
+  //         });
+  //       } else {
+  //         tableHTML += `
+  //         <tr>
+  //           <td colspan="5" style="text-align: center;">No previous fees found for this student.</td>
+  //         </tr>
+  //         `;
+  //       }
+
+  //       tableHTML += `</tbody></table>`;
+  //       feesElement.innerHTML = tableHTML;
+  //     } else {
+  //       console.error(
+  //         "Error: Element #previous-fees-section not found in the DOM."
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error("Error loading previous fees:", error);
+  //   }
+  // }
+
+  // Function to load previous fees and populate either table or form
+  async function loadPreviousFees(studentId, populateForm = false) {
     try {
       const response = await fetch(
         `/school-admin/app/student_fee/ajax/prev-fees/?student_id=${studentId}`
@@ -330,27 +229,31 @@ document.addEventListener("DOMContentLoaded", function () {
       const data = await response.json();
       const fees = data.data.split("&");
 
+      // if (populateForm) {
+      //   // Populate form fields with the fetched data
+      //   document.querySelector('input[name="tuition_fees_paid"]').value =
+      //     data.tuition_fees_paid;
+      //   document.querySelector('input[name="annual_fees_paid"]').value =
+      //     data.annual_fees_paid;
+      //   // Add other form fields accordingly
+      // } else {
+      // Populate the previous fees table
       const feesElement = document.querySelector("#previous-fees-section");
-
-      let feesSection = "";
-
-      if (feesElement) {
-        // Check if the element exists before trying to set innerHTML
-
-        let tableHTML = `
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Fees For Months</th>
-              <th>Date Payment</th>
-              <th>Amount Paid</th>
-              <th>Fees Period Month</th>
-              <th>Class</th>
-            </tr>
-          </thead>
-          <tbody>
+      let tableHTML = `
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Fees For Months</th>
+            <th>Date Payment</th>
+            <th>Amount Paid</th>
+            <th>Fees Period Month</th>
+            <th>Class</th>
+          </tr>
+        </thead>
+        <tbody>
       `;
 
+      if (fees && fees.length > 0) {
         fees.forEach((fee) => {
           const [
             feesForMonths,
@@ -370,19 +273,59 @@ document.addEventListener("DOMContentLoaded", function () {
           </tr>
         `;
         });
-
-        tableHTML += `</tbody></table>`;
-
-        feesElement.innerHTML = tableHTML;
       } else {
-        console.error(
-          "Error: Element #previous-fees-section not found in the DOM."
-        );
+        tableHTML += `
+        <tr>
+          <td colspan="5" style="text-align: center;">No previous fees found for this student.</td>
+        </tr>
+        `;
       }
+
+      tableHTML += `</tbody></table>`;
+      feesElement.innerHTML = tableHTML;
+      // }
     } catch (error) {
       console.error("Error loading previous fees:", error);
     }
   }
+
+  const button = document.getElementById("pre-button-id");
+  button.addEventListener("click", function () {
+    const studentId = document.getElementById("id_student_id").value;
+    loadPreviousFees(studentId);
+  });
+
+  // const seButton = document.querySelector("#pre-button-id");
+  // seButton.addEventListener("click", handleStudentSelection);
+
+  // // Event listener for fetching previous fees and populating form or table
+  // // Call this function when the student ID is selected
+  // async function handleStudentSelection(event) {
+  //   console.log("Full event object:", event);
+  //   console.log("Event type:", event.type);
+  //   console.log("Button clicked:", event.target);
+  //   console.log("Selected Student ID:", studentId); // Check the student ID
+
+  //   await loadPreviousFees(studentId);
+  // }
+  // document
+  //   .getElementById("fetchPreviousFees")
+  //   .addEventListener("click", async function () {
+  //     console.log("/****  click  ****/");
+
+  //     const studentId = document.querySelector(
+  //       'input[name="student_id"]'
+  //     ).value;
+
+  //     console.log("/****  studentId  ****/", studentId);
+
+  //     if (studentId) {
+  //       // Call the function and pass `true` if you want to populate the form, `false` for the table
+  //       await loadPreviousFees(studentId, true); // false means to load into table, true would populate the form
+  //     } else {
+  //       alert("Please select a student first.");
+  //     }
+  //   });
 
   // Attach event listener to search button
   if (searchButton) {
@@ -727,37 +670,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Assuming these are your input elements
   const feesForMonths = document.getElementById("id_fees_for_months");
-  //const feesPeriodMonth = document.getElementById("id_fees_period_month");
-
-  // Function to call feespay when the value changes
-  // function setupEventListenersOne() {
-  //   feesPeriodMonth.addEventListener("change", feespay);
-  // }
-
-  // function setupEventListenersTwo() {
-  //   feesForMonths.addEventListener("change", feespay);
-  // }
-
-  // // Call the function to set up event listeners
-  // //setupEventListenersOne();
-  // setupEventListenersTwo();
-
-  // document.querySelector('input[name="fees_period_month"]').addEventListener('change', function () {
-  //   // Capture the changed value of fees_period_month
-  //   let periodValue = this.value;
-
-  //   console.log("periodValue");
-
-  //   // Now, update fees_for_months accordingly or perform necessary calculations
-  //   updateFeesMonthsBasedOnPeriod(periodValue);
-  // });
-
-  // function updateFeesMonthsBasedOnPeriod(periodValue) {
-  //   // Add logic here to reflect the changes from fees_period_month to fees_for_months
-  //   // For example, splitting the periodValue and mapping it to the corresponding months:
-  //   const months = periodValue.split(','); // Assuming it's comma-separated
-  //   document.querySelector('input[name="fees_for_months"]').value = months.join(','); // Update months value
-  // }
 
   const feesPeriodMonthElement = document.querySelector(
     'select[name="fees_period_month"]'
@@ -858,6 +770,54 @@ document.addEventListener("DOMContentLoaded", function () {
       await feespay();
     } else {
       console.error("fees_period_month element not found!");
+    }
+  }
+
+  // ============  show parent portal  ==================
+
+  document
+    .getElementById("show_parent_portal")
+    .addEventListener("click", function () {
+      var admissionNumber = document.getElementById(
+        "id_display_admission_no"
+      ).value;
+
+      // Perform AJAX request to get OTP
+      $.ajax({
+        url: "/send-otp-verification/", // Django URL for sending OTP
+        method: "GET",
+        data: {
+          admissionNumber: admissionNumber,
+        },
+        success: function (response) {
+          if (response.success) {
+            // OTP sent successfully
+            var receivedOTP = response.otp;
+
+            // Construct the URL with the received OTP
+            var url =
+              "https://shishuniketanmohali.org.in/pay-fees.php?admission_number=" +
+              encodeURIComponent(admissionNumber) +
+              "&otp=" +
+              encodeURIComponent(receivedOTP);
+
+            // Open the URL in a new tab
+            window.open(url, "_blank");
+          } else {
+            alert(response.message);
+          }
+        },
+        error: function () {
+          alert("Error sending OTP request.");
+        },
+      });
+    });
+
+  // If it's an update case, prefill the admission number and enable the button
+  function prefillAdmissionNumber(isUpdate, admissionNumber) {
+    if (isUpdate) {
+      document.getElementById("admission_number").value = admissionNumber;
+      document.getElementById("show_parent_portal").disabled = false;
     }
   }
 });
