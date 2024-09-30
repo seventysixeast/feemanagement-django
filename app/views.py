@@ -1920,7 +1920,8 @@ def payment_response(request):
 
             # API URL to process the payment on the backend
             # api_url = 'https://shishuniketanmohali.org.in/fees/index.php?r=studentFees/ProcessPayment'
-            api_url = 'http://127.0.0.1:8000/process-payment/'
+            # api_url = 'http://127.0.0.1:8000/process-payment/'
+            api_url = 'http://66.235.194.119:8080/process-payment/'
 
             print('api_url try', api_url)
 
