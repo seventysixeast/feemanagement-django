@@ -10,11 +10,19 @@
     <!-- Assuming your form or search inputs are here for searching students -->
     {{ form.student_search }}
 </div>
+<!-- Student Search Section -->
+<div id="student-search-section">
+    <button id="pre-button-id">Fetch Previous Fees</button>
+    <button id="show_parent_portal" disabled>Show Parent Portal</button>
 
+</div>
 <!-- Insert the table of previous fees here -->
-<div id="previous-fees-section">
+<div id="fees-data">
     <h2>Previous Fees Data</h2>
-    <div id="fees-data">
+    <!-- <button onclick="handleStudentSelection(document.getElementById('id_student_id').value)">Fetch Previous
+        Fees</button> -->
+
+    <div id="previous-fees-section">
         <!-- The fetched table data will be inserted here -->
     </div>
 </div>
@@ -25,6 +33,10 @@
     {{ form.selected_student_details }}
 </div>
 
+<!-- Input field for admission number -->
+<!-- <label for="admission_number">Admission Number</label>
+<input type="text" id="admission_number" name="admission_number" placeholder="Enter Admission Number"> -->
 
+<!-- Button to show parent portal -->
 
 {% endblock %}

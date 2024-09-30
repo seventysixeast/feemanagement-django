@@ -113,15 +113,14 @@ WSGI_APPLICATION = 'feemanagement.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'shishuniketanmoh_schoolmanagement',
-        # 'USER':'shishuniketan',
-        # 'PASSWORD':'Rahul@1234',
         'HOST':'127.0.0.1',
-        # 'NAME': 'schoolmanagement',
-        'USER':'root',
-        # 'PASSWORD':'Honda@76east',
-        'PASSWORD':'',
+        # 'NAME': 'shishuniketanmoh_schoolmanagement',
+        # 'PASSWORD':'Rahul@1234',
+        # 'USER':'shishuniketan',
         # 'HOST':'66.235.194.119',
+        'NAME': 'shishuniketanmoh_schoolmanagement',
+        'PASSWORD':'',
+        'USER':'root',
         'PORT':'3306'
     }
 }

@@ -1,3 +1,26 @@
+/* fieldset.box {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+fieldset.box h2 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.field-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.field-box > div {
+    flex: 1;
+    margin-right: 10px;
+} */
+
 fieldset.box {
     border: 1px solid #ddd;
     padding: 10px;
@@ -21,3 +44,15 @@ fieldset.box h2 {
     flex: 1;
     margin-right: 10px;
 }
+
+/* student fees section */
+.half-width-container {
+    /* display: flex; */
+    justify-content: space-between;
+    margin-bottom: 20px; /* Adjust the spacing as needed */
+}
+
+.half-width {
+    width: 48%; /* Ensure that each half takes up 48% of the width */
+}
+

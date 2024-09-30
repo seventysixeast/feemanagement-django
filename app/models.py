@@ -189,8 +189,8 @@ class fees_master(models.Model):
     if not self.security_fees:
       self.security_fees = 0
 
-    # self.clean()
-    # super().save(*args, **kwargs)
+    self.clean()
+    super().save(*args, **kwargs)
 
 class latefee_master(models.Model):
   latefee_id = models.BigAutoField(primary_key=True)
