@@ -213,7 +213,7 @@ def send_otp_verification(request):
 
                 # Use Textlocal to send the OTP
                 sms_response = send_otp_via_textlocal(mobile_number, otp)
-                # print('sms_response',sms_response)
+                print('sms_response',sms_response)
 
                 # Check if the SMS was sent successfully
                 # if sms_response['status'] == 'success':
@@ -1828,7 +1828,8 @@ def generate_payment_url(request):
                 print('stu_mobile',stu_mobile)
                 stu_email = email
                 # return_url = "https://shishuniketanmohali.org.in/fees/paymentResponse.php"
-                return_url = "http://127.0.0.1:8000/payment-response/"
+                # return_url = "http://127.0.0.1:8000/payment-response/"
+                return_url = "http://66.235.194.119:8080/payment-response/"
                 # return_url = "https://shishuniketanmohali.org.in/"
                 paymode = "9"
                 # paymode = "10"
