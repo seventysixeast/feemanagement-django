@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("=========== testing DOMContentLoaded =====");
+  console.log("=========== ssssssss testing DOMContentLoaded =====");
 
   // Get the form elements
   const admissionNoField = document.querySelector('input[name="admission_no"]');
