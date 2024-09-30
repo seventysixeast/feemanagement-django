@@ -3574,6 +3574,9 @@ class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
         requested_section = request.GET.get('section')
         year_filter_selected = request.GET.get('year')
 
+        if not requested_class_no and not requested_section and not year_filter_selected:
+            return queryset.none(), use_distinct
+
         # Apply class and section filters if provided
         if requested_class_no or requested_section:
             # Get student IDs that match the class and section filters
