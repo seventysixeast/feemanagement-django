@@ -3527,11 +3527,11 @@ class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
         # student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
         # return student_class_instance.section if student_class_instance else None
 
-        search_class_no = self._request.GET.get('class_no', None)
+        search_section = self._request.GET.get('section', None)
 
         # Filter by class_no and/or section if available
-        if search_class_no:
-            student_class_instance = student_class.objects.filter(student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+        if search_section:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id, section=search_section).order_by('-started_on').first()
         else:
             student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
 
