@@ -172,7 +172,7 @@ def send_otp_via_textlocal(phone_number, otp):
     
     # Message text
     # message = f'Your OTP is {otp}'
-    message = f'{otp} is your OTP to login your Edvantum account. - 76EAST'
+    message = f'{otp} is your OTP to login your Shishu Niketan account. - 76EAST'
     
     # Textlocal API endpoint
     url = 'https://api.textlocal.in/send/'
