@@ -313,7 +313,7 @@ class StudentMasterForm(forms.ModelForm):
         fields = [
             'addmission_no', 'student_name', 'class_no', 'section', 'father_name', 'mother_name', 'birth_date',
             'phone_no', 'mobile_no', 'aadhaar_no', 'email', 'address', 'city', 'route', 'destination',
-            'gender', 'admission_date', 'concession_id', 'status', 'category', 'passedout_date',
+            'gender', 'admission_date', 'status', 'category', 'passedout_date',
             'remarks'
         ]
 
@@ -400,7 +400,7 @@ class SectionFilter(admin.SimpleListFilter):
 
 class StudentMasterAdmin(admin.ModelAdmin):
     form = StudentMasterForm
-    list_display = ('student_id', 'student_name', 'get_class_no', 'get_section', 'addmission_no', 'father_name', 'mother_name', 'gender', 'birth_date', 'category', 'status', 'admission_date', 'passedout_date')
+    list_display = ('addmission_no', 'get_class_no', 'get_section', 'student_name', 'category', 'get_route', 'get_destination', 'father_name', 'mother_name', 'mobile_no', 'phone_no', 'address', 'city', 'admission_date', 'status', 'passedout_date')
     # search_fields = ('student_name', 'addmission_no', 'aadhaar_no', 'email', 'city', 'birth_date')
 
     # Add custom filters to the list filter
@@ -489,7 +489,23 @@ class StudentMasterAdmin(admin.ModelAdmin):
 
         return student_class_instance.section if student_class_instance else None
     get_section.short_description = 'Section'
-    
+
+    # def get_conc_type(self, obj):
+    #     concession_master_instance = concession_master.objects.filter(concession_id=obj.concession_id).first()
+    #     return concession_master_instance.concession_type if concession_master_instance else None
+    # get_conc_type.short_description = 'Concession Type'
+
+    def get_route(self, obj):
+        busfees_master_instance = busfees_master.objects.filter(bus_id=obj.bus_id).first()
+        return busfees_master_instance.route if busfees_master_instance else None
+    get_route.short_description = 'Route'
+
+    def get_destination(self, obj):
+        busfees_master_instance = busfees_master.objects.filter(bus_id=obj.bus_id).first()
+        return busfees_master_instance.destination if busfees_master_instance else None
+    get_destination.short_description = 'Destination'
+
+
     def save_model(self, request, obj, form, change):
         # Retrieve bus_id based on selected route and destination
         route = form.cleaned_data.get('route')
@@ -501,6 +517,7 @@ class StudentMasterAdmin(admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
+        current_year = date.today().year
         if change:
             student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
             if student_class_instance:
@@ -511,14 +528,16 @@ class StudentMasterAdmin(admin.ModelAdmin):
                 student_class.objects.create(
                     student_id=obj.student_id,
                     class_no=form.cleaned_data['class_no'],
-                    section=form.cleaned_data['section']
+                    section=form.cleaned_data['section'],
+                    started_on=date(current_year, 4, 1)
                 )
         else:
             if form.cleaned_data['class_no'] and form.cleaned_data['section']:
                 student_class.objects.create(
                     student_id=obj.student_id,
                     class_no=form.cleaned_data['class_no'],
-                    section=form.cleaned_data['section']
+                    section=form.cleaned_data['section'],
+                    started_on=date(current_year, 4, 1)
                 )
         
     def get_urls(self):
