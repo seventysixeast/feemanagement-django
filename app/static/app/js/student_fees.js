@@ -775,49 +775,100 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // ============  show parent portal  ==================
 
-  document
-    .getElementById("show_parent_portal")
-    .addEventListener("click", function () {
-      var admissionNumber = document.getElementById(
-        "id_display_admission_no"
-      ).value;
+  // document
+  //   .getElementById("show_parent_portal")
+  //   .addEventListener("click", function () {
+  //     var admissionNumber = document.getElementById(
+  //       "id_display_admission_no"
+  //     ).value;
 
-      // Perform AJAX request to get OTP
+  //     // Perform AJAX request to get OTP
+  //     $.ajax({
+  //       url: "/send-otp-verification/", // Django URL for sending OTP
+  //       method: "GET",
+  //       data: {
+  //         admissionNumber: admissionNumber,
+  //       },
+  //       success: function (response) {
+  //         if (response.success) {
+  //           // OTP sent successfully
+  //           var receivedOTP = response.otp;
+
+  //           // Construct the URL with the received OTP
+  //           var url =
+  //             "https://shishuniketanmohali.org.in/pay-fees.php?admission_number=" +
+  //             encodeURIComponent(admissionNumber) +
+  //             "&otp=" +
+  //             encodeURIComponent(receivedOTP);
+
+  //           // Open the URL in a new tab
+  //           window.open(url, "_blank");
+  //         } else {
+  //           alert(response.message);
+  //         }
+  //       },
+  //       error: function () {
+  //         alert("Error sending OTP request.");
+  //       },
+  //     });
+  //   });
+
+  // // If it's an update case, prefill the admission number and enable the button
+  // function prefillAdmissionNumber(isUpdate, admissionNumber) {
+  //   if (isUpdate) {
+  //     document.getElementById("admission_number").value = admissionNumber;
+  //     document.getElementById("show_parent_portal").disabled = false;
+  //   }
+  // }
+});
+
+// $(document).ready(function () {
+//   $("#show-parent-portal").on("click", function () {
+//     console.log("============  im clicked  ==================");
+
+//     //var admissionNo = "{{ original.student_id.addmission_no }}"; // Get the admission number
+//     var admissionNo = $("#id_display_admission_no").val();
+//     console.log("============  admissionNo  ==================", admissionNo);
+//     var url = `/send-otp-v2/${admissionNo}/`; // Build the URL
+//     window.open(url, "_blank"); // Open in a new window
+//   });
+// });
+
+$(document).ready(function () {
+  $("#show-parent-portal").on("click", function () {
+    console.log("============  im clicked  ==================");
+
+    // Get the admission number from the input field
+    var admissionNo = $("#id_display_admission_no").val();
+    console.log("============  admissionNo  ==================", admissionNo);
+
+    if (admissionNo) {
+      // Make the AJAX request to send OTP
       $.ajax({
-        url: "/send-otp-verification/", // Django URL for sending OTP
+        url: `/send-otp-verification-from-admin/`, // Ensure this URL matches your Django URL routing
         method: "GET",
         data: {
-          admissionNumber: admissionNumber,
+          admissionNumber: admissionNo,
         },
         success: function (response) {
           if (response.success) {
-            // OTP sent successfully
-            var receivedOTP = response.otp;
-
-            // Construct the URL with the received OTP
-            var url =
-              "https://shishuniketanmohali.org.in/pay-fees.php?admission_number=" +
-              encodeURIComponent(admissionNumber) +
-              "&otp=" +
-              encodeURIComponent(receivedOTP);
-
-            // Open the URL in a new tab
-            window.open(url, "_blank");
+            alert(`OTP sent successfully: ${response.data.otp}`);
+            // You can handle further actions like opening a new window here
+            // Redirect to the OTP verification page with admission number and OTP in query params
+            var url = `/send-otp/?admissionNumber=${admissionNo}&otp=${response.data.otp}`;
+            window.open(url, "_blank"); // Open in a new window
+            //window.location.href = url;  // Redirect to the OTP verification page
           } else {
             alert(response.message);
           }
         },
-        error: function () {
-          alert("Error sending OTP request.");
+        error: function (xhr, status, error) {
+          console.error("Error:", error);
+          alert("An error occurred while sending the OTP.");
         },
       });
-    });
-
-  // If it's an update case, prefill the admission number and enable the button
-  function prefillAdmissionNumber(isUpdate, admissionNumber) {
-    if (isUpdate) {
-      document.getElementById("admission_number").value = admissionNumber;
-      document.getElementById("show_parent_portal").disabled = false;
+    } else {
+      alert("Admission number is required.");
     }
-  }
+  });
 });
