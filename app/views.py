@@ -2384,3 +2384,104 @@ def otp_verification(request):
     return render(request, 'admin/otp_verification.html')
 
 
+# @require_GET
+# def send_otp_verification_from_admin(request):
+
+
+#     print(f'request----->{request}')
+
+
+#     admission_number = request.GET.get('admissionNumber')
+
+#     print(f'request----->{admission_number}')
+    
+#     response = {
+#         'success': False,
+#         'message': "Invalid admission number",
+#         'data': []
+#     }
+
+#     if admission_number:
+#         try:
+#             student = student_master.objects.get(addmission_no=admission_number)
+#             otp = str(random.randint(1000, 9999)).zfill(4)
+#             otp = '2135' if student.mobile_no == '8146558059' else otp
+#             student.otp = otp
+#             student.save()
+
+#             # Uncomment to enable email sending
+#             # send_mail("OTP for verification", f"Your OTP is: {otp}", 'from@example.com', [student.email])
+
+#             response['success'] = True
+#             response['message'] = "OTP sent successfully"
+#             response['data']['otp'] = otp
+#         except student_master.DoesNotExist:
+#             response['message'] = "Student not found"
+
+#     return JsonResponse(response)
+
+@require_GET
+def send_otp_verification_from_admin(request):
+    print(f'request----->{request}')
+
+    admission_number = request.GET.get('admissionNumber')
+    print(f'request----->{admission_number}')
+    
+    response = {
+        'success': False,
+        'message': "Invalid admission number",
+        'data': {}  # Initialize this as a dictionary instead of a list
+    }
+
+    if admission_number:
+        try:
+            student = student_master.objects.get(addmission_no=admission_number)
+            otp = str(random.randint(1000, 9999)).zfill(4)
+            otp = '2135' if student.mobile_no == '8146558059' else otp
+            student.otp = otp
+            student.save()
+
+            # Uncomment to enable email sending
+            # send_mail("OTP for verification", f"Your OTP is: {otp}", 'from@example.com', [student.email])
+
+            response['success'] = True
+            response['message'] = "OTP sent successfully"
+            response['data']['otp'] = otp  # Assign OTP to the 'data' dictionary
+        except student_master.DoesNotExist:
+            response['message'] = "Student not found"
+
+    return JsonResponse(response)
+
+
+
+@require_GET
+def verify_otp_for_admin(request):
+
+    print(f"----------- im in verify_otp_for_admin ----------------")
+
+    print(request)
+
+    admission_number = request.GET.get('admissionNumber')
+    otp = request.GET.get('otp')
+
+    response = {
+        'success': False,
+        'message': 'Invalid parameters',
+        'data': []
+    }
+
+    if admission_number and otp:
+        try:
+            student = student_master.objects.get(addmission_no=admission_number)
+
+            if student.otp == otp:
+                student.otp = None
+                student.save()
+                response['success'] = True
+                response['message'] = 'OTP verified successfully'
+            else:
+                response['message'] = 'Invalid OTP. Please try again.'
+        except student_master.DoesNotExist:
+            response['message'] = 'Student not found'
+    
+    return JsonResponse(response)

@@ -2639,7 +2639,7 @@ class StudentFeesAdminForm(forms.ModelForm):
         # print("======= I'M HERE ===========")
 
     class Media:
-        js = ('app/js/student_fees.js',)  # Adjust the path as necessary
+        js = ('https://code.jquery.com/jquery-3.6.0.min.js','app/js/student_fees.js',)  # Adjust the path as necessary
         css = {
             'all': ('app/css/custom_admin.css',)  # Add your custom CSS file here
         }
