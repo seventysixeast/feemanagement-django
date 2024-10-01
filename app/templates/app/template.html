@@ -1385,257 +1385,8 @@
 
   <script>
 
-    function getStudentFeeDetails(admissionNumber=null) {
-      //e.preventDefault();
-      // Clear existing tables and reset values
-      $("#student_details tbody").empty();
-      $("#last_payment_details tbody").empty();
-      $("#outstanding_payment_details tbody").empty();
-      $("#current_payment_details tbody").empty();
-      $('#loader').addClass('hidden');
-      $('#make_payment_btn').addClass('hidden');
-      payment_amount = 0;
-      prevOutstandingAmount = 0;
-      admission_no = "";
-      mobile_no = "";
-      student_id = "";
-      current_session = "";
-
-      var searchValue = $(".search-field").val();
-      // var searchValue = 3;
-      //var searchValue = 403623;
-      $.ajax({
-        // url: "/feemanagement/index.php?r=studentFees/StudentPaymentDetails",
-        url: "/student-payment-details/",
-        method: "GET",
-        data: {
-          //admission: admissionNumber
-          admission: admissionNumber ?? searchValue
-        },
-        success: function (response) {
-          $("#student_fee_wrapper").show(); // show main div
-          if (response.success) {
-            // Prevent fee from portal for concession cases
-            if (response.data.studentDetails.length > 0 && response.data.studentDetails[0].concession_id && response.data.studentDetails[0].concession_id !== null) {
-              alert('Please visit the school fee counter for fee payment.  Thank you');
-              return false;
-            }
-            if (response.data.contactAdmin) {
-              alert('Please visit the school fee counter for fee payment. Thank you');
-              return false;
-            }
-            // Update student details
-            if (response.data.studentDetails.length > 0) {
-              $("#toggleReceipts").show();
-
-              // Update student details
-              var studentDetails = response.data.studentDetails[0];
-              //$(".student-admission-no").text(studentDetails.addmission_no);
-              //$(".student-name").text(studentDetails.student_name);
-              //$(".father-name").text(studentDetails.father_name);
-              //$(".student-class-section").text(`Class ${studentDetails.class_no} - ${studentDetails.section}`);
-              //$(".student-year").text(studentDetails.year);
-              student_id = studentDetails.student_id;
-              admission_no = studentDetails.addmission_no;
-              current_session = studentDetails.session;
-              var studentDetailsHTML = `
-            <tr>
-              <td style="padding-left: 40px; font-weight: bold;">Admission No:</td>
-              <td>${studentDetails.addmission_no}</td>
-              <td style="padding-left: 40px; font-weight: bold;">Student Name:</td>
-              <td>${studentDetails.student_name}</td>
-            </tr>
-            <tr>
-              <td style="padding-left: 40px; font-weight: bold;">Father Name:</td>
-              <td>${studentDetails.father_name}</td>
-              <td style="padding-left: 40px; font-weight: bold;">Class</td>
-              <td>${studentDetails.class_no} - ${studentDetails.section}</td>
-            </tr>
-          `;
-
-              // Append the student details HTML to the table body
-              $("#student_details tbody").html(studentDetailsHTML);
-
-              // Populate previous fee details
-              if (response.data.lastPaymentDetails && response.data.lastPaymentDetails.amount_paid) {
-                $("#last_payment_details tbody").html(`
-        <tr>
-          <td style="padding-left: 40px; font-weight: bold; text-align: center; color: #c80708;" colspan="4">Last Fees Paid</td>
-        </tr>
-        <tr>
-          <td style="padding-left: 40px; font-weight: bold;">Fees for Months:</td>
-          <td>${response.data.lastPaymentDetails.fees_for_months}</td>
-          <td style="padding-left: 40px; font-weight: bold;">Date Payment:</td>
-          <td>${response.data.lastPaymentDetails.date_payment}</td>
-        </tr>
-        <tr>
-          <td style="padding-left: 40px; font-weight: bold;">Amount Paid:</td>
-          <td>Rs. ${response.data.lastPaymentDetails.amount_paid}</td>
-          <td style="padding-left: 40px; font-weight: bold;">Fees Period Month:</td>
-          <td>${response.data.lastPaymentDetails.fees_period_month}</td>
-        </tr>
-        <tr>
-          <td style="padding-left: 40px; font-weight: bold;">Student Class:</td>
-          <td>${response.data.lastPaymentDetails.student_class} - ${response.data.lastPaymentDetails.student_section}</td>
-          <td style="padding-left: 40px; font-weight: bold;">Class Year:</td>
-          <td>${response.data.lastPaymentDetails.year}</td>
-        </tr>
-        <tr>
-          <td style="padding-left: 40px; font-weight: bold;">Late Fee:</td>
-          <td>Rs. ${response.data.lastPaymentDetails.late_fee}</td>
-          <td style="padding-left: 40px; font-weight: bold;">Remarks:</td>
-          <td>${response.data.lastPaymentDetails.remarks}</td>
-        </tr>
-        <tr>
-          <td style="padding-left: 40px; font-weight: bold;">Outstanding Amount</td>
-          <td>Rs. ${response.data.lastPaymentDetails.prev_pending_amount}</td>
-          <td style="padding-left: 40px; font-weight: bold;"></td>
-          <td></td>
-        </tr>
-        `);
-              } else {
-                // Display message if no previous fee details are available
-                $("#last_payment_details tbody").html('<tr><td colspan="4" class="text-center">No previous fee details available.</td></tr>');
-              }
-
-
-              // Populate previous fee details
-              if (response.data.lastOustandingPaymentDetails && response.data.lastOustandingPaymentDetails.total_fee) {
-                $("#outstanding_payment_details tbody").html(`
-        <tr>
-          <td style="padding-left: 40px; font-weight: bold; text-align: center; color: #c80708;" colspan="4" clas="text-danger">Outstanding Fee Due</td>
-        </tr>
-        <tr>
-          <td style="padding-left: 40px; font-weight: bold;">Fees for Months:</td>
-          <td>${response.data.lastOustandingPaymentDetails.fees_for_months}</td>
-          <td style="padding-left: 40px; font-weight: bold;"></td>
-          <td></td>
-        </tr>
-        <tr>
-          <td style="padding-left: 40px; font-weight: bold;">Outstanding Amount</td>
-          <td>Rs. ${response.data.lastOustandingPaymentDetails.total_fee - response.data.lastOustandingPaymentDetails.late_fee}</td>
-          <td style="padding-left: 40px; font-weight: bold;">Late Fee Applied:</td>
-          <td>Rs. ${response.data.lastOustandingPaymentDetails.late_fee}</td>
-        </tr>
-        <tr>
-        <td style="padding-left: 40px; font-weight: bold; color:red;">Total:</td>
-        <td style="color:red;">Rs. ${response.data.lastOustandingPaymentDetails.total_fee}</td>
-        </tr>
-        `);
-                prevOutstandingAmount += response.data.lastOustandingPaymentDetails.total_fee;
-                outstandingPaymentDetails = response.data.lastOustandingPaymentDetails;
-              } else {
-                // Display message if no previous fee details are available
-                //$("#outstanding_payment_details tbody").html('<tr><td colspan="4" class="text-center">No previous fee details available.</td></tr>');
-              }
-
-
-              // Update current payment details
-              var currentPaymentDetails = response.data.currentPaymentDetails;
-              currentPaymentDetailsData = currentPaymentDetails;
-              selectedQuatersData = currentPaymentDetails;
-              var paymentDetailsHTML = '';
-              paymentDetailsHTML += currentPaymentDetails.length > 0 ? `<tr>
-        <td style="padding-left: 40px; font-weight: bold; text-align: center; color: #c80708;" colspan="4">Current Fees Due</td>
-        </tr>` : ``;
-              currentPaymentDetails.forEach(function (payment, index) {
-                paymentDetailsHTML += `
-        <tr>
-            <td style="padding-left: 40px; font-weight: bold;">
-            <input type="checkbox" class="quarter-checkbox" data-index="${index}" checked> Fees for Months:
-            </td>
-            <td>${payment.fees_for_months}</td>
-            <td style="padding-left: 40px; font-weight: bold;"></td>
-        </tr>
-        <tr>
-            <td style="padding-left: 40px; font-weight: bold;"> Class:</td>
-            <td>${payment.class_no} - ${payment.section}</td>
-        <td style="padding-left: 40px; font-weight: bold;">Year:</td>
-            <td>${payment.year}</td>
-          </tr>
-          <tr>
-            <td style="padding-left: 40px; font-weight: bold;">Annual Fees:</td>
-            <td>Rs. ${payment.annual_fees}</td>
-            <td style="padding-left: 40px; font-weight: bold;">Tuition Fees:</td>
-            <td>Rs. ${payment.tuition_fees}</td>
-          </tr>
-          <tr>
-            <td style="padding-left: 40px; font-weight: bold;">Funds Fees:</td>
-            <td>Rs. ${payment.funds_fees}</td>
-            <td style="padding-left: 40px; font-weight: bold;">Sports Fees:</td>
-            <td>Rs. ${payment.sports_fees}</td>
-          </tr>
-          <tr>
-            <td style="padding-left: 40px; font-weight: bold;">Activity Fees:</td>
-            <td>Rs. ${payment.activity_fees}</td>
-            <td style="padding-left: 40px; font-weight: bold;">Admission Fees:</td>
-            <td>Rs. ${payment.admission_fees}</td>
-          </tr>
-          <tr>
-            <td style="padding-left: 40px; font-weight: bold;">Dayboarding Fees:</td>
-            <td>Rs. ${payment.dayboarding_fees}</td>
-            <td style="padding-left: 40px; font-weight: bold;">Bus Fees:</td>
-            <td>${payment.bus_fees ? 'Rs. ' + payment.bus_fees : 'N/A'}</td>
-          </tr>
-          <tr>
-            <td style="padding-left: 40px; font-weight: bold;">Concession Type:</td>
-            <td>${payment.concession_type ? payment.concession_type : 'N/A'}</td>
-            <td style="padding-left: 40px; font-weight: bold;">Concession Applied:</td>
-            <td>
-            ${payment?.concession_applied > 0
-                    ? 'Rs. ' + payment.concession_applied
-                    : 'N/A'}
-            </td>
-          </tr>
-          <tr>
-            <td style="padding-left: 40px; font-weight: bold;">Late Fees:</td>
-            <td>Rs. ${payment.late_fee}</td>
-             <td style="padding-left: 40px; font-weight: bold;">Miscellaneous Fees:</td>
-             <td>Rs. ${payment.miscellaneous_fees}</td>
-          </tr>
-        <tr>
-        <td style="padding-left: 40px; font-weight: bold; color:red;">Total:</td>
-        <td style="color:red;">Rs. ${payment.total_fee}</td>
-        </tr>
-        <tr>
-        <td colspan="4">
-          <hr style="border-top: 2px dashed #ccc;">
-        </td>
-        </tr>
-      `;
-
-              });
-              paymentDetailsHTML += response.data.netFeeAmountPayable ?
-                `<tr style="background: #E7F7FA">
-        <td style="padding-left: 40px;font-weight: bold;color: #c80708;font-size: 16px;">Total Fees ${prevOutstandingAmount && prevOutstandingAmount > 0 ? "+ Outstanding" : ""} Amount:</td>
-        <td style="font-weight: bold;color: #c80708;font-size: 16px; text-align: center;" colspan=3>Rs. <span class="total_fee_amount">${response.data.netFeeAmountPayable}</span></td>
-       </tr>` :
-                '';
-              $("#current_payment_details tbody").html(paymentDetailsHTML);
-              payment_amount = response.data.netFeeAmountPayable ? response.data.netFeeAmountPayable : 0;
-              yearlyAggregatedDetails = response.data.yearlyAggregatedDetails ? response.data.yearlyAggregatedDetails : [];
-              if (response.data.netFeeAmountPayable && response.data.netFeeAmountPayable != "" && response.data.netFeeAmountPayable != 0) {
-                $('#make_payment_btn').removeClass('hidden');
-              } else {
-                $('#make_payment_btn').addClass('hidden');
-              }
-            } else {
-              // Display a message when no student details are found
-              $("#student_details tbody").html('<tr><td colspan="4" class="text-center">No student details found.</td></tr>');
-              $("#toggleReceipts").hide();
-            }
-          } else {
-            $("#student_details tbody").html(`<tr><td colspan="4" class="text-center">${response.message}</td></tr>`);
-          }
-        },
-        error: function (jqXHR, textStatus, errorThrown) {
-          console.error("Error:", errorThrown);
-        }
-      });
-    };
-
     $(document).ready(function () {
-      // Function to get query parameter values from the URL
+
       function getQueryParam(param) {
         var urlParams = new URLSearchParams(window.location.search);
         return urlParams.get(param);
@@ -1673,9 +1424,6 @@
       } else {
         //alert("Invalid or missing admission number or OTP.");
       }
-    });
-
-    $(document).ready(function () {
       // getStudentFeeDetails()
       console.log('jqueriywoke')
       var selectedIndexes = [];
@@ -1774,6 +1522,254 @@
         });
       });
 
+      function getStudentFeeDetails(admissionNumber=null) {
+        //e.preventDefault();
+        // Clear existing tables and reset values
+        $("#student_details tbody").empty();
+        $("#last_payment_details tbody").empty();
+        $("#outstanding_payment_details tbody").empty();
+        $("#current_payment_details tbody").empty();
+        $('#loader').addClass('hidden');
+        $('#make_payment_btn').addClass('hidden');
+        payment_amount = 0;
+        prevOutstandingAmount = 0;
+        admission_no = "";
+        mobile_no = "";
+        student_id = "";
+        current_session = "";
+
+        var searchValue = $(".search-field").val();
+        // var searchValue = 3;
+        //var searchValue = 403623;
+        $.ajax({
+          // url: "/feemanagement/index.php?r=studentFees/StudentPaymentDetails",
+          url: "/student-payment-details/",
+          method: "GET",
+          data: {
+            admission:admissionNumber ?? searchValue
+          },
+          success: function (response) {
+            $("#student_fee_wrapper").show(); // show main div
+            if (response.success) {
+              // Prevent fee from portal for concession cases
+              if (response.data.studentDetails.length > 0 && response.data.studentDetails[0].concession_id && response.data.studentDetails[0].concession_id !== null) {
+                alert('Please visit the school fee counter for fee payment.  Thank you');
+                return false;
+              }
+              if (response.data.contactAdmin) {
+                alert('Please visit the school fee counter for fee payment. Thank you');
+                return false;
+              }
+              // Update student details
+              if (response.data.studentDetails.length > 0) {
+                $("#toggleReceipts").show();
+
+                // Update student details
+                var studentDetails = response.data.studentDetails[0];
+                //$(".student-admission-no").text(studentDetails.addmission_no);
+                //$(".student-name").text(studentDetails.student_name);
+                //$(".father-name").text(studentDetails.father_name);
+                //$(".student-class-section").text(`Class ${studentDetails.class_no} - ${studentDetails.section}`);
+                //$(".student-year").text(studentDetails.year);
+                student_id = studentDetails.student_id;
+                admission_no = studentDetails.addmission_no;
+                current_session = studentDetails.session;
+                var studentDetailsHTML = `
+							<tr>
+								<td style="padding-left: 40px; font-weight: bold;">Admission No:</td>
+								<td>${studentDetails.addmission_no}</td>
+								<td style="padding-left: 40px; font-weight: bold;">Student Name:</td>
+								<td>${studentDetails.student_name}</td>
+							</tr>
+							<tr>
+								<td style="padding-left: 40px; font-weight: bold;">Father Name:</td>
+								<td>${studentDetails.father_name}</td>
+								<td style="padding-left: 40px; font-weight: bold;">Class</td>
+								<td>${studentDetails.class_no} - ${studentDetails.section}</td>
+							</tr>
+						`;
+
+                // Append the student details HTML to the table body
+                $("#student_details tbody").html(studentDetailsHTML);
+
+                // Populate previous fee details
+                if (response.data.lastPaymentDetails && response.data.lastPaymentDetails.amount_paid) {
+                  $("#last_payment_details tbody").html(`
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold; text-align: center; color: #c80708;" colspan="4">Last Fees Paid</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Fees for Months:</td>
+					  <td>${response.data.lastPaymentDetails.fees_for_months}</td>
+					  <td style="padding-left: 40px; font-weight: bold;">Date Payment:</td>
+					  <td>${response.data.lastPaymentDetails.date_payment}</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Amount Paid:</td>
+					  <td>Rs. ${response.data.lastPaymentDetails.amount_paid}</td>
+					  <td style="padding-left: 40px; font-weight: bold;">Fees Period Month:</td>
+					  <td>${response.data.lastPaymentDetails.fees_period_month}</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Student Class:</td>
+					  <td>${response.data.lastPaymentDetails.student_class} - ${response.data.lastPaymentDetails.student_section}</td>
+					  <td style="padding-left: 40px; font-weight: bold;">Class Year:</td>
+					  <td>${response.data.lastPaymentDetails.year}</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Late Fee:</td>
+					  <td>Rs. ${response.data.lastPaymentDetails.late_fee}</td>
+					  <td style="padding-left: 40px; font-weight: bold;">Remarks:</td>
+					  <td>${response.data.lastPaymentDetails.remarks}</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Outstanding Amount</td>
+					  <td>Rs. ${response.data.lastPaymentDetails.prev_pending_amount}</td>
+					  <td style="padding-left: 40px; font-weight: bold;"></td>
+					  <td></td>
+					</tr>
+				  `);
+                } else {
+                  // Display message if no previous fee details are available
+                  $("#last_payment_details tbody").html('<tr><td colspan="4" class="text-center">No previous fee details available.</td></tr>');
+                }
+
+
+                // Populate previous fee details
+                if (response.data.lastOustandingPaymentDetails && response.data.lastOustandingPaymentDetails.total_fee) {
+                  $("#outstanding_payment_details tbody").html(`
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold; text-align: center; color: #c80708;" colspan="4" clas="text-danger">Outstanding Fee Due</td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Fees for Months:</td>
+					  <td>${response.data.lastOustandingPaymentDetails.fees_for_months}</td>
+					  <td style="padding-left: 40px; font-weight: bold;"></td>
+					  <td></td>
+					</tr>
+					<tr>
+					  <td style="padding-left: 40px; font-weight: bold;">Outstanding Amount</td>
+					  <td>Rs. ${response.data.lastOustandingPaymentDetails.total_fee - response.data.lastOustandingPaymentDetails.late_fee}</td>
+					  <td style="padding-left: 40px; font-weight: bold;">Late Fee Applied:</td>
+					  <td>Rs. ${response.data.lastOustandingPaymentDetails.late_fee}</td>
+					</tr>
+					<tr>
+					<td style="padding-left: 40px; font-weight: bold; color:red;">Total:</td>
+					<td style="color:red;">Rs. ${response.data.lastOustandingPaymentDetails.total_fee}</td>
+				  </tr>
+				  `);
+                  prevOutstandingAmount += response.data.lastOustandingPaymentDetails.total_fee;
+                  outstandingPaymentDetails = response.data.lastOustandingPaymentDetails;
+                } else {
+                  // Display message if no previous fee details are available
+                  //$("#outstanding_payment_details tbody").html('<tr><td colspan="4" class="text-center">No previous fee details available.</td></tr>');
+                }
+
+
+                // Update current payment details
+                var currentPaymentDetails = response.data.currentPaymentDetails;
+                currentPaymentDetailsData = currentPaymentDetails;
+                selectedQuatersData = currentPaymentDetails;
+                var paymentDetailsHTML = '';
+                paymentDetailsHTML += currentPaymentDetails.length > 0 ? `<tr>
+					<td style="padding-left: 40px; font-weight: bold; text-align: center; color: #c80708;" colspan="4">Current Fees Due</td>
+				  </tr>` : ``;
+                currentPaymentDetails.forEach(function (payment, index) {
+                  paymentDetailsHTML += `
+				  <tr>
+						  <td style="padding-left: 40px; font-weight: bold;">
+							<input type="checkbox" class="quarter-checkbox" data-index="${index}" checked> Fees for Months:
+						  </td>
+						  <td>${payment.fees_for_months}</td>
+						  <td style="padding-left: 40px; font-weight: bold;"></td>
+				  </tr>
+				  <tr>
+						  <td style="padding-left: 40px; font-weight: bold;"> Class:</td>
+						  <td>${payment.class_no} - ${payment.section}</td>
+				  <td style="padding-left: 40px; font-weight: bold;">Year:</td>
+						  <td>${payment.year}</td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Annual Fees:</td>
+						  <td>Rs. ${payment.annual_fees}</td>
+						  <td style="padding-left: 40px; font-weight: bold;">Tuition Fees:</td>
+						  <td>Rs. ${payment.tuition_fees}</td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Funds Fees:</td>
+						  <td>Rs. ${payment.funds_fees}</td>
+						  <td style="padding-left: 40px; font-weight: bold;">Sports Fees:</td>
+						  <td>Rs. ${payment.sports_fees}</td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Activity Fees:</td>
+						  <td>Rs. ${payment.activity_fees}</td>
+						  <td style="padding-left: 40px; font-weight: bold;">Admission Fees:</td>
+						  <td>Rs. ${payment.admission_fees}</td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Dayboarding Fees:</td>
+						  <td>Rs. ${payment.dayboarding_fees}</td>
+						  <td style="padding-left: 40px; font-weight: bold;">Bus Fees:</td>
+						  <td>${payment.bus_fees ? 'Rs. ' + payment.bus_fees : 'N/A'}</td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Concession Type:</td>
+						  <td>${payment.concession_type ? payment.concession_type : 'N/A'}</td>
+						  <td style="padding-left: 40px; font-weight: bold;">Concession Applied:</td>
+						  <td>
+							${payment?.concession_applied > 0
+                      ? 'Rs. ' + payment.concession_applied
+                      : 'N/A'}
+						  </td>
+						</tr>
+						<tr>
+						  <td style="padding-left: 40px; font-weight: bold;">Late Fees:</td>
+						  <td>Rs. ${payment.late_fee}</td>
+						   <td style="padding-left: 40px; font-weight: bold;">Miscellaneous Fees:</td>
+						   <td>Rs. ${payment.miscellaneous_fees}</td>
+						</tr>
+				  <tr>
+					<td style="padding-left: 40px; font-weight: bold; color:red;">Total:</td>
+					<td style="color:red;">Rs. ${payment.total_fee}</td>
+				  </tr>
+				  <tr>
+					<td colspan="4">
+					  <hr style="border-top: 2px dashed #ccc;">
+					</td>
+				  </tr>
+				`;
+
+                });
+                paymentDetailsHTML += response.data.netFeeAmountPayable ?
+                  `<tr style="background: #E7F7FA">
+				  <td style="padding-left: 40px;font-weight: bold;color: #c80708;font-size: 16px;">Total Fees ${prevOutstandingAmount && prevOutstandingAmount > 0 ? "+ Outstanding" : ""} Amount:</td>
+				  <td style="font-weight: bold;color: #c80708;font-size: 16px; text-align: center;" colspan=3>Rs. <span class="total_fee_amount">${response.data.netFeeAmountPayable}</span></td>
+				 </tr>` :
+                  '';
+                $("#current_payment_details tbody").html(paymentDetailsHTML);
+                payment_amount = response.data.netFeeAmountPayable ? response.data.netFeeAmountPayable : 0;
+                yearlyAggregatedDetails = response.data.yearlyAggregatedDetails ? response.data.yearlyAggregatedDetails : [];
+                if (response.data.netFeeAmountPayable && response.data.netFeeAmountPayable != "" && response.data.netFeeAmountPayable != 0) {
+                  $('#make_payment_btn').removeClass('hidden');
+                } else {
+                  $('#make_payment_btn').addClass('hidden');
+                }
+              } else {
+                // Display a message when no student details are found
+                $("#student_details tbody").html('<tr><td colspan="4" class="text-center">No student details found.</td></tr>');
+                $("#toggleReceipts").hide();
+              }
+            } else {
+              $("#student_details tbody").html(`<tr><td colspan="4" class="text-center">${response.message}</td></tr>`);
+            }
+          },
+          error: function (jqXHR, textStatus, errorThrown) {
+            console.error("Error:", errorThrown);
+          }
+        });
+      };
+
       // $(document).on("change", ".quarter-checkbox", function () {
 
       //   var checkboxes = $(".quarter-checkbox");
@@ -1829,29 +1825,30 @@
         setUpdatedPaymentAmount(selectedIndexesArray);
     });
 
-    function setUpdatedPaymentAmount(selectedIndexes) {
-      var currentPaymentAmount = prevOutstandingAmount;
-      var selectedQuatersArray = [];
-      // Loop through the selectedIndexes and calculate the sum
-      for (var i = 0; i < selectedIndexes.length; i++) {
-        var index = selectedIndexes[i];
-        // Check if the index is within the bounds of the currentPaymentDetailsData
-        if (index >= 0 && index < currentPaymentDetailsData.length) {
-          currentPaymentAmount += currentPaymentDetailsData[index].total_fee;
-          selectedQuatersArray.push(currentPaymentDetailsData[index]);
+
+      function setUpdatedPaymentAmount(selectedIndexes) {
+        var currentPaymentAmount = prevOutstandingAmount;
+        var selectedQuatersArray = [];
+        // Loop through the selectedIndexes and calculate the sum
+        for (var i = 0; i < selectedIndexes.length; i++) {
+          var index = selectedIndexes[i];
+          // Check if the index is within the bounds of the currentPaymentDetailsData
+          if (index >= 0 && index < currentPaymentDetailsData.length) {
+            currentPaymentAmount += currentPaymentDetailsData[index].total_fee;
+            selectedQuatersArray.push(currentPaymentDetailsData[index]);
+          }
         }
-      }
-      payment_amount = currentPaymentAmount; //update global payment amount value
-      $('#current_payment_details .total_fee_amount').html(currentPaymentAmount);
-      selectedQuatersData = selectedQuatersArray;
+        payment_amount = currentPaymentAmount; //update global payment amount value
+        $('#current_payment_details .total_fee_amount').html(currentPaymentAmount);
+        selectedQuatersData = selectedQuatersArray;
 
-      if (currentPaymentAmount == 0) {
-        $('#make_payment_btn').addClass('hidden');
-      } else {
-        $('#make_payment_btn').removeClass('hidden');
-      }
+        if (currentPaymentAmount == 0) {
+          $('#make_payment_btn').addClass('hidden');
+        } else {
+          $('#make_payment_btn').removeClass('hidden');
+        }
 
-    }
+      }
 
       // document.getElementById('make_payment_btn').onclick = function (event) {
       //   event.preventDefault();
@@ -2051,7 +2048,7 @@
         tbody.empty(); // Clear existing rows
       }
 
-
+      
 
 
 
