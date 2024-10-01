@@ -22,6 +22,11 @@ urlpatterns = [
     path('register/',views.register_view,name='register'),
     # path('login/',views.login_view,name='login'),
     path('logout/',views.logout_view,name='logout'),
-    path('dashboard/',views.dashboard_view,name='dashboard')
+    path('dashboard/',views.dashboard_view,name='dashboard'),
+
+
+    path('send-otp-verification-from-admin/', views.send_otp_verification_from_admin, name='send_otp_verification_from_admin'),
+    path('verify-otp/', views.verify_otp_for_admin, name='verify_otp_for_admin'),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
