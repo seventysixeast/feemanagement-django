@@ -167,15 +167,16 @@ def logout_view(request):
 
 def send_otp_via_textlocal(phone_number, otp):
     # Textlocal API Endpoint and Key
-    api_key = 'aXD7yWIVjJI-KkrnjblxoYAItGfuy6XPW9kO8tUMU6'  # Get your API key from Textlocal dashboard
-    sender = 'SVEDVT'  # Sender ID (approved in your Textlocal account)
-    
+    # api_key = 'aXD7yWIVjJI-KkrnjblxoYAItGfuy6XPW9kO8tUMU6'  # Get your API key from Textlocal dashboard
+    api_key = 'NmE3MDQyNzc2MzMwMzIzNjQxNmY2ZDc1NzE2ZTM0NzE=' 
+    # sender = 'SVEDVT'  # Sender ID (approved in your Textlocal account)
+    sender = 'SHNKTN'
     # Message text
     # message = f'Your OTP is {otp}'
 
-    message = f'{otp} is your OTP to login your Edvantum account. - 76EAST'
+    # message = f'{otp} is your OTP to login your Edvantum account. - 76EAST'
     # message = f'{otp} is your OTP to login your Shishu Niketan account. - 76EAST'
-    
+    message = f'Your OTP Code is : {otp} -Shishu Suchintan Educational Society'
     # Textlocal API endpoint
     url = 'https://api.textlocal.in/send/'
     numbers = '91' + phone_number
