@@ -74,6 +74,11 @@ from django.conf import settings
 from django.db.models import OuterRef, Subquery, F
 from django.db.models.functions import ExtractYear
 
+from dotenv import load_dotenv
+
+# Load the .env file
+load_dotenv()
+
 User = get_user_model()
 # import datetime
 
@@ -1832,7 +1837,8 @@ def generate_payment_url(request):
                 stu_email = email
                 # return_url = "https://shishuniketanmohali.org.in/fees/paymentResponse.php"
                 # return_url = "http://127.0.0.1:8000/payment-response/"
-                return_url = "http://66.235.194.119:8080/payment-response/"
+                # return_url = "http://66.235.194.119:8080/payment-response/"
+                return_url = os.getenv("DB_RETURN_URL", "http://66.235.194.119:8080/payment-response/")
                 # return_url = "https://shishuniketanmohali.org.in/"
                 paymode = "9"
                 # paymode = "10"
@@ -1924,7 +1930,8 @@ def payment_response(request):
             # API URL to process the payment on the backend
             # api_url = 'https://shishuniketanmohali.org.in/fees/index.php?r=studentFees/ProcessPayment'
             # api_url = 'http://127.0.0.1:8000/process-payment/'
-            api_url = 'http://66.235.194.119:8080/process-payment/'
+            # api_url = 'http://66.235.194.119:8080/process-payment/'
+            api_url = os.getenv("DB_API_URL", 'http://66.235.194.119:8080/process-payment/')
 
             print('api_url try', api_url)
 
