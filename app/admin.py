@@ -2632,6 +2632,8 @@ class StudentFeesAdmin(admin.ModelAdmin):
     # Fields to search in the search bar
     list_filter = (StudentFeeClassNoFilter, StudentFeeSectionFilter, StudentFeeStudentNameFilter,StudentFeeAdmissionNoFilter)
 
+    search_fields = ('student_id__student_name', 'student_id__addmission_no')
+
     def get_fieldsets(self, request, obj=None):
         if obj:  # Editing an existing student_class
             return [
@@ -2804,6 +2806,16 @@ class StudentFeesAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context=extra_context)
 
     change_list_template = 'admin/student_fee/student_fees_changelist.html'
+
+    def get_addmission_no(self, obj):
+        return obj.student_id.addmission_no
+    get_addmission_no.short_description = 'Admission No'
+    get_addmission_no.admin_order_field = 'student_id__addmission_no'  # Enable sorting by admission no
+
+    def get_student_name(self, obj):
+        return obj.student_id.student_name
+    get_student_name.short_description = 'Student Name'
+    get_student_name.admin_order_field = 'student_id__student_name'  # Enable sorting by student name
 
 
     def get_urls(self):
