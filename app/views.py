@@ -70,6 +70,10 @@ from django.contrib.auth import login
 from django.http import JsonResponse
 from django.conf import settings
 
+
+from django.db.models import OuterRef, Subquery, F
+from django.db.models.functions import ExtractYear
+
 User = get_user_model()
 # import datetime
 
@@ -168,7 +172,9 @@ def send_otp_via_textlocal(phone_number, otp):
     
     # Message text
     # message = f'Your OTP is {otp}'
+
     message = f'{otp} is your OTP to login your Edvantum account. - 76EAST'
+    # message = f'{otp} is your OTP to login your Shishu Niketan account. - 76EAST'
     
     # Textlocal API endpoint
     url = 'https://api.textlocal.in/send/'
@@ -208,8 +214,8 @@ def send_otp_verification(request):
                     otp = '2135'
 
                 # Use Textlocal to send the OTP
-                # sms_response = send_otp_via_textlocal(mobile_number, otp)
-                # print('sms_response',sms_response)
+                sms_response = send_otp_via_textlocal(mobile_number, otp)
+                print('sms_response',sms_response)
 
                 # Check if the SMS was sent successfully
                 # if sms_response['status'] == 'success':
@@ -286,7 +292,8 @@ def fetch_fee_details_for_class(student_id, class_no):
 
     # Fetch the student class information
     student_class1 = student_class.objects.filter(
-        student_id=student, 
+        # student_id=student, 
+        student_id=student_id, 
         class_no=class_no
     ).first()
 
@@ -761,51 +768,35 @@ def action_student_payment_details(request, admission=None):
 
     if admission is not None:
         # Query for student info
-        # student_info = student_master.objects.filter(
-        #     addmission_no=admission
-        # ).order_by('-studentclasses__student_class_id').first() 
-
-        # student_info = student_class.objects.filter(
-        #     student__addmission_no=admission
-        # ).annotate(
-        #     student_id=F('student__student_id'),
-        #     admission_no=F('student__addmission_no'),
-        #     student_name=F('student__student_name'),
-        #     father_name=F('student__father_name'),
-        #     concession_id=F('student__concession_id'),
-        #     session=F('started_on__year')
-        # ).order_by('-student_class_id').first()
-
-        # student_info = student_master.objects.filter(addmission_no=admission).values(
-        #     'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id'
-        # ).annotate(
-        #     class_no=F('classes__class_no'),
-        #     section=F('classes__section'),
-        #     session=F('classes__started_on__year')
-        # ).order_by('-classes__student_class_id').first()
-        student_info = student_master.objects.filter(addmission_no=admission).select_related('classes').values(
-            'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id',
-            'classes__class_no', 'classes__section'
-        ).annotate(
-            session=F('classes__started_on__year')  # Extract year from started_on
-        ).order_by('-classes__student_class_id').first()
-
-        # student_info = StudentMaster.objects.filter(addmission_no=admission_no).select_related('classes').values(
+        # student_info = student_master.objects.filter(addmission_no=admission).select_related('classes').values(
         #     'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id',
         #     'classes__class_no', 'classes__section'
         # ).annotate(
-        #     session=models.F('classes__started_on__year')  # Extract year from started_on
+        #     session=F('classes__started_on__year')  # Extract year from started_on
         # ).order_by('-classes__student_class_id').first()
 
-        # student_info = StudentMaster.objects.filter(addmission_no=admission_no).select_related('classes').annotate(
-        #     session=models.F('classes__started_on__year')  # Extract year from started_on
-        # ).order_by('-classes__student_class_id').first()
+
+
+        # Define the subquery to get related class information from the student_class table
+        class_subquery = student_class.objects.filter(student_id=OuterRef('student_id')).order_by('-student_class_id')
+
+        # Fetch the student information along with class data without using ForeignKey
+        student_info = student_master.objects.filter(addmission_no=admission).annotate(
+            class_no=Subquery(class_subquery.values('class_no')[:1]),  # Fetch class_no from student_class
+            section=Subquery(class_subquery.values('section')[:1]),    # Fetch section from student_class
+            session=ExtractYear(Subquery(class_subquery.values('started_on')[:1]))  # Extract year from started_on
+        ).values(
+            'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id',
+            'class_no', 'section', 'session'
+        ).first()
+
+
         #$sqlStudentInfo 
 
         if student_info:
             # student_id = student_info.student_id
             student_id = student_info['student_id']
-
+            print('student_id',student_id)
             # Fetch previous fee information (you'll need to define this function)
             previous_fee_info = last_payment_record(student_id)
 
@@ -1096,9 +1087,12 @@ def action_student_payment_details(request, admission=None):
                         response = {
                             'message': "No Pending fee found"
                         }
+                
+                if prev_pending_amount > 0:
+                    totalFeesPayable += prev_pending_amount
                     
-                student_info['class_no'] = student_info['classes__class_no']
-                student_info['section'] = student_info['classes__section']
+                # student_info['class_no'] = student_info['classes__class_no']
+                # student_info['section'] = student_info['classes__section']
                 response = {
                     'success': True,
                     'message': "Data retrieved successfully",
@@ -1836,7 +1830,8 @@ def generate_payment_url(request):
                 print('stu_mobile',stu_mobile)
                 stu_email = email
                 # return_url = "https://shishuniketanmohali.org.in/fees/paymentResponse.php"
-                return_url = "http://127.0.0.1:8000/payment-response/"
+                # return_url = "http://127.0.0.1:8000/payment-response/"
+                return_url = "http://66.235.194.119:8080/payment-response/"
                 # return_url = "https://shishuniketanmohali.org.in/"
                 paymode = "9"
                 # paymode = "10"
@@ -1927,7 +1922,8 @@ def payment_response(request):
 
             # API URL to process the payment on the backend
             # api_url = 'https://shishuniketanmohali.org.in/fees/index.php?r=studentFees/ProcessPayment'
-            api_url = 'http://127.0.0.1:8000/process-payment/'
+            # api_url = 'http://127.0.0.1:8000/process-payment/'
+            api_url = 'http://66.235.194.119:8080/process-payment/'
 
             print('api_url try', api_url)
 
