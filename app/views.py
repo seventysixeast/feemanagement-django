@@ -74,6 +74,11 @@ from django.conf import settings
 from django.db.models import OuterRef, Subquery, F
 from django.db.models.functions import ExtractYear
 
+from dotenv import load_dotenv
+
+# Load the .env file
+load_dotenv()
+
 User = get_user_model()
 # import datetime
 
@@ -167,15 +172,16 @@ def logout_view(request):
 
 def send_otp_via_textlocal(phone_number, otp):
     # Textlocal API Endpoint and Key
-    api_key = 'aXD7yWIVjJI-KkrnjblxoYAItGfuy6XPW9kO8tUMU6'  # Get your API key from Textlocal dashboard
-    sender = 'SVEDVT'  # Sender ID (approved in your Textlocal account)
-    
+    # api_key = 'aXD7yWIVjJI-KkrnjblxoYAItGfuy6XPW9kO8tUMU6'  # Get your API key from Textlocal dashboard
+    api_key = 'NmE3MDQyNzc2MzMwMzIzNjQxNmY2ZDc1NzE2ZTM0NzE=' 
+    # sender = 'SVEDVT'  # Sender ID (approved in your Textlocal account)
+    sender = 'SHNKTN'
     # Message text
     # message = f'Your OTP is {otp}'
 
-    message = f'{otp} is your OTP to login your Edvantum account. - 76EAST'
+    # message = f'{otp} is your OTP to login your Edvantum account. - 76EAST'
     # message = f'{otp} is your OTP to login your Shishu Niketan account. - 76EAST'
-    
+    message = f'Your OTP Code is : {otp} -Shishu Suchintan Educational Society'
     # Textlocal API endpoint
     url = 'https://api.textlocal.in/send/'
     numbers = '91' + phone_number
@@ -1831,7 +1837,8 @@ def generate_payment_url(request):
                 stu_email = email
                 # return_url = "https://shishuniketanmohali.org.in/fees/paymentResponse.php"
                 # return_url = "http://127.0.0.1:8000/payment-response/"
-                return_url = "http://66.235.194.119:8080/payment-response/"
+                # return_url = "http://66.235.194.119:8080/payment-response/"
+                return_url = os.getenv("DB_RETURN_URL", "http://66.235.194.119:8080/payment-response/")
                 # return_url = "https://shishuniketanmohali.org.in/"
                 paymode = "9"
                 # paymode = "10"
@@ -1923,7 +1930,8 @@ def payment_response(request):
             # API URL to process the payment on the backend
             # api_url = 'https://shishuniketanmohali.org.in/fees/index.php?r=studentFees/ProcessPayment'
             # api_url = 'http://127.0.0.1:8000/process-payment/'
-            api_url = 'http://66.235.194.119:8080/process-payment/'
+            # api_url = 'http://66.235.194.119:8080/process-payment/'
+            api_url = os.getenv("DB_API_URL", 'http://66.235.194.119:8080/process-payment/')
 
             print('api_url try', api_url)
 

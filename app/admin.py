@@ -1842,38 +1842,68 @@ admin.site.register(latefee_master, LateFeeMasterDisplay)
 #         # Convert the list of selected months into a comma-separated string for storage
 #         return ','.join(selected_months)
     
+
 class PaymentScheduleMasterForm(forms.ModelForm):
     schedule_list = forms.CharField(widget=ReadOnlyCKEditorWidget(), required=False, label='')
 
-    fees_for_months = forms.MultipleChoiceField(
-        choices=payment_schedule_master.Fees_For_Month_CHOICES,
-    )
-    # fees_for_months = forms.CharField(
-    #     widget=forms.CheckboxSelectMultiple(choices=payment_schedule_master.Fees_For_Month_CHOICES),
-    #     required=False,
-    # )
-    # fees_for_months = forms.MultipleChoiceField(
-    #     choices=payment_schedule_master.Fees_For_Month_CHOICES,
-    #     widget=forms.CheckboxSelectMultiple,  # Use CheckboxSelectMultiple widget
-    #     required=False,
-    # )
-
+    fees_for_months = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     Pay_In_Month_CHOICES = [
         ('', 'Choose The Month'),
         ('1', '1'),
+        ('2', '2'),
+        ('3', '3'),
+        ('4', '4'),
+        ('5', '5'),
+        ('6', '6'),
+        ('7', '7'),
+        ('8', '8'),
+        ('9', '9'),
+        ('10', '10'),
+        ('11', '11'),
+        ('12', '12')
     ]
-   
+
     pay_in_month = forms.ChoiceField(
         choices=Pay_In_Month_CHOICES,
         label="Pay In Month *",
     )
-
+    
     Payment_Date_CHOICES = [
         ('', 'Choose The Date'),
         ('01', '01'),
+        ('02', '02'),
+        ('03', '03'),
+        ('04', '04'),
+        ('05', '05'),
+        ('06', '06'),
+        ('07', '07'),
+        ('08', '08'),
+        ('09', '09'),
+        ('10', '10'),
+        ('11', '11'),
+        ('12', '12'),
+        ('13', '13'),
+        ('14', '14'),
+        ('15', '15'),
+        ('16', '16'),
+        ('17', '17'),
+        ('18', '18'),
+        ('19', '19'),
+        ('20', '20'),
+        ('21', '21'),
+        ('22', '22'),
+        ('23', '23'),
+        ('24', '24'),
+        ('25', '25'),
+        ('26', '26'),
+        ('27', '27'),
+        ('28', '28'),
+        ('29', '29'),
+        ('30', '30'),
+        ('31', '31'),
     ]
-   
+
     payment_date = forms.ChoiceField(
         choices=Payment_Date_CHOICES,
         label="Payment Date *",
@@ -1888,9 +1918,40 @@ class PaymentScheduleMasterForm(forms.ModelForm):
         instance = kwargs.get('instance')
 
         # Display a custom HTML block for the schedule list
+        # schedule_list_html = """
+        #     <h3>Existing Payment Schedules</h3>
+        # """
+        schedules = payment_schedule_master.objects.all()
         schedule_list_html = """
-            <h3>Existing Payment Schedules</h3>
+             <h3>Existing Payment Schedules</h3>
+             <table style='border: 1px solid #ddd; width: 100%; border-collapse: collapse;'>
+                 <thead>
+                    <tr>
+                         <th style='border: 1px solid #ddd; padding: 8px;'>Schedule ID</th>
+                         <th style='border: 1px solid #ddd; padding: 8px;'>Fees for Months</th>
+                         <th style='border: 1px solid #ddd; padding: 8px;'>Pay in Month</th>
+                         <th style='border: 1px solid #ddd; padding: 8px;'>Payment Date</th>
+                     </tr>
+                 </thead>
+                 <tbody>
+
+         """
+        
+        for schedule in schedules:
+            schedule_list_html += f"""
+                <tr>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.schedule_id}</td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.fees_for_months}</td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.pay_in_month}</td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.payment_date}</td>
+                </tr>
+            """
+
+        schedule_list_html += """
+                </tbody>
+            </table>
         """
+        
         self.fields['schedule_list'].initial = mark_safe(schedule_list_html)
 
         # Gather all months used by other records (excluding the current instance's months)
@@ -1899,47 +1960,47 @@ class PaymentScheduleMasterForm(forms.ModelForm):
 
         # Collect months used by other records
         all_schedules = payment_schedule_master.objects.all()
-        # print('instance.fees_for_months',type(instance.fees_for_months))
         if instance:
             # Exclude the current instance if in edit mode
             all_schedules = all_schedules.exclude(pk=instance.pk)
             # Include the current record's months to keep them selectable
             current_months = set(instance.fees_for_months.split(','))
-            # current_months = ','.join(current_months)
-             # Sort the current months in ascending order
             current_months = sorted(current_months, key=lambda x: int(x))
-
-        print('current_months',(current_months))
 
         # Collect months from all other records
         for schedule in all_schedules:
             used_months.update(schedule.fees_for_months.split(','))
 
+        
+
         # Ensure the current record's months remain in the selectable list and filter out used months
         available_choices = [
-            (value, label) for value, label in self.fields['fees_for_months'].choices
+            (value, label) for value, label in payment_schedule_master.Fees_For_Month_CHOICES
             if value in current_months or value not in used_months
         ]
 
-        # Set the available choices for the 'fees_for_months' field
-        self.fields['fees_for_months'].choices = available_choices
-
-        # Set the initial values for 'fees_for_months' to the current record's months
-        self.fields['fees_for_months'].initial = (current_months)
+        # Pass available choices to the template
+        self.available_choices = available_choices
 
     def clean_fees_for_months(self):
         selected_months = self.cleaned_data['fees_for_months']
         # Convert the list of selected months into a comma-separated string for storage
-        return ','.join(selected_months)
+        return ','.join(selected_months.split(','))
 
 
 class PaymentScheduleMasterAdmin(admin.ModelAdmin):
     form = PaymentScheduleMasterForm
     list_display = ("fees_for_months", "pay_in_month", "payment_date")
     search_fields = ("fees_for_months", "pay_in_month", "payment_date")
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        return form
+    # def get_form(self, request, obj=None, **kwargs):
+    #     form = super().get_form(request, obj, **kwargs)
+    #     return form
+    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['form_template'] = 'admin/payment_schedule_master_form.html'  # Ensure this path is correct
+        return super().changeform_view(request, object_id, form_url, extra_context)
+    
+    change_form_template = 'admin/payment_schedule_master_form.html'
 
 
 admin.site.register(payment_schedule_master, PaymentScheduleMasterAdmin)
