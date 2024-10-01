@@ -854,8 +854,10 @@ $(document).ready(function () {
           if (response.success) {
             alert(`OTP sent successfully: ${response.data.otp}`);
             // You can handle further actions like opening a new window here
-            var url = `/admin/parent-portal/${admissionNo}/`; // Build the URL
-            window.open(url, "_blank"); // Open the parent portal in a new window
+            // Redirect to the OTP verification page with admission number and OTP in query params
+            var url = `/send-otp/?admissionNumber=${admissionNo}&otp=${response.data.otp}`;
+            window.open(url, "_blank"); // Open in a new window
+            //window.location.href = url;  // Redirect to the OTP verification page
           } else {
             alert(response.message);
           }

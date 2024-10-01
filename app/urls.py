@@ -26,7 +26,7 @@ urlpatterns = [
 
 
     path('send-otp-verification-from-admin/', views.send_otp_verification_from_admin, name='send_otp_verification_from_admin'),
-    path('verify-otp/', views.verify_otp_for_admin, name='verify_otp_for_admin'),
+    path('verify-otp-for-admin/', views.verify_otp_for_admin, name='verify_otp_for_admin'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

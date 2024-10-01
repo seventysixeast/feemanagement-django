@@ -2459,6 +2459,11 @@ def send_otp_verification_from_admin(request):
 
 @require_GET
 def verify_otp_for_admin(request):
+
+    print(f"----------- im in verify_otp_for_admin ----------------")
+
+    print(request)
+
     admission_number = request.GET.get('admissionNumber')
     otp = request.GET.get('otp')
 
@@ -2470,7 +2475,7 @@ def verify_otp_for_admin(request):
 
     if admission_number and otp:
         try:
-            student = student_master.objects.get(admission_no=admission_number)
+            student = student_master.objects.get(addmission_no=admission_number)
 
             if student.otp == otp:
                 student.otp = None
