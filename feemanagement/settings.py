@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load the .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,10 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7a=vigulfe7j_y#zh57a2td5nc=#$e8%p6#mvu#-4^k^8nih^='
+SECRET_KEY = os.getenv("SECRET_KEY", "your-default-secret-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = ['*']
 # ALLOWED_HOSTS = ['127.0.0.1','66.235.194.119','76east.com', 'www.76east.com']
@@ -113,15 +117,15 @@ WSGI_APPLICATION = 'feemanagement.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST':'127.0.0.1',
-        'NAME': 'shishuniketanmoh_schoolmanagement',
-        'PASSWORD':'Rahul@1234',
-        'USER':'shishuniketan',
+        'HOST':os.getenv("DB_HOST", "localhost"),
+        'NAME': os.getenv("DB_NAME"),
+        'PASSWORD':os.getenv("DB_PASSWORD"),
+        'USER':os.getenv("DB_USER"),
+        'PORT':os.getenv("DB_PORT", "5432")
         # 'HOST':'66.235.194.119',
         # 'NAME': 'shishuniketanmoh_schoolmanagement',
         # 'PASSWORD':'Honda@76east',
         # 'USER':'root',
-        'PORT':'3306'
     }
 }
 
