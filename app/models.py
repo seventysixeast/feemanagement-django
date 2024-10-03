@@ -306,6 +306,7 @@ class student_master(models.Model):
     category = models.CharField(max_length=7, choices=CATEGORY_CHOICES, default='general')
     passedout_date = models.DateField(null=True, blank=True)
     remarks = models.CharField(max_length=50, null=True, blank=True)
+    otp = models.CharField(max_length=6, null=True, blank=True)  # Added field for OTP
 
     class Meta:
         db_table = 'student_master'

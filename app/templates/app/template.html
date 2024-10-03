@@ -1386,6 +1386,44 @@
   <script>
 
     $(document).ready(function () {
+
+      function getQueryParam(param) {
+        var urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+      }
+    
+      // Extract admissionNumber and otp from URL
+      var admissionNumber = getQueryParam('admissionNumber');
+      var otp = getQueryParam('otp');
+    
+      if (admissionNumber && otp) {
+        // Verify OTP first
+        $.ajax({
+          url: `/verify-otp-for-admin/`, // URL for OTP verification
+          method: "GET",
+          data: {
+            admissionNumber: admissionNumber,
+            otp: otp,
+          },
+          success: function (verifyResponse) {
+            if (verifyResponse.success) {
+              alert("OTP verified successfully!");
+              $("#get-otp-form").hide();
+              $("#verify-otp-form").hide();
+              // Now call to fetch student fee details
+              getStudentFeeDetails(admissionNumber);
+            } else {
+              alert(verifyResponse.message);  // Handle OTP verification failure
+            }
+          },
+          error: function (xhr, status, error) {
+            console.error("Error during OTP verification:", error);
+            alert("An error occurred during OTP verification.");
+          }
+        });
+      } else {
+        //alert("Invalid or missing admission number or OTP.");
+      }
       // getStudentFeeDetails()
       console.log('jqueriywoke')
       var selectedIndexes = [];
@@ -1484,7 +1522,7 @@
         });
       });
 
-      function getStudentFeeDetails() {
+      function getStudentFeeDetails(admissionNumber=null) {
         //e.preventDefault();
         // Clear existing tables and reset values
         $("#student_details tbody").empty();
@@ -1508,7 +1546,7 @@
           url: "/student-payment-details/",
           method: "GET",
           data: {
-            admission: searchValue
+            admission:admissionNumber ?? searchValue
           },
           success: function (response) {
             $("#student_fee_wrapper").show(); // show main div
@@ -2010,7 +2048,7 @@
         tbody.empty(); // Clear existing rows
       }
 
-
+      
 
 
 

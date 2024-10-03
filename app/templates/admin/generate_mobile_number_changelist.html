@@ -1,0 +1,74 @@
+{% extends "admin/change_list.html" %}
+{% block content %}
+<head>
+    <style>
+        h1 {
+            margin: 0 0 20px;
+            font-weight: 300;
+            font-size: 1.25rem !important;
+            color: var(--body-quiet-color);
+        }
+    </style>
+</head>
+
+<div class="custom-filter">
+    <form method="GET" action="">
+        <div class="filters">
+            <h2>Filters</h2>
+            <div class="filter">
+                <label for="id_class_no">Class No:</label>
+                <select name="class_no" id="id_class_no">
+                    <!-- <option value="">All</option> -->
+                    <!-- {% for class_no in class_numbers %}
+                        <option value="{{ class_no }}" {% if request.GET.class_no == class_no %}selected{% endif %}>
+                            {{ class_no }}
+                        </option>
+                    {% endfor %} -->
+                    {% for class_value, class_label in class_numbers %}
+                        <option value="{{ class_value }}" {% if request.GET.class_no == class_value %}selected{% endif %}>
+                            {{ class_label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter">
+                <label for="id_section">Section:</label>
+                <select name="section" id="id_section">
+                    <option value="">Select the Section</option>
+                    <!-- {% for section in sections %}
+                        <option value="{{ section }}" {% if request.GET.section == section %}selected{% endif %}>
+                            {{ section }}
+                        </option>
+                    {% endfor %} -->
+                    {% for section_val, section_lab in sections %}
+                        <option value="{{ section_val }}" {% if request.GET.section == section_val %}selected{% endif %}>
+                            {{ section_lab }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter">
+                <label for="id_year">Year:</label>
+                <select name="year" id="id_year">
+                    <option value="">All</option>
+                    <!-- {% for year in years %}
+                        <option value="{{ year }}" {% if request.GET.year == year %}selected{% endif %}>
+                            {{ year }}
+                        </option>
+                    {% endfor %} -->
+                    {% for year in year_choices %}
+                        <option value="{{ year }}" {% if request.GET.year == year|stringformat:"s" %}selected{% endif %}>
+                            {{ year }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="button">Apply Filters</button>
+        </div>
+    </form>
+</div>
+
+{{ block.super }}
+
+{% endblock %}

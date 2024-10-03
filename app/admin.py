@@ -55,6 +55,8 @@ from django.utils.translation import gettext_lazy as _
 
 import time
 import logging
+from django.utils.html import format_html
+
 
 from django.utils.dateparse import parse_date
 from datetime import datetime
@@ -63,7 +65,11 @@ from django.urls import reverse
 from django.shortcuts import get_object_or_404
 # from multiselectfield import MultiSelectField
 
-from .services import last_payment_record,fetch_fee_details_for_class,get_special_fee,calculate_late_fee
+from django.contrib import messages
+from django.db import IntegrityError, transaction
+from django.utils.translation import gettext_lazy as _
+
+from .services import last_payment_record,fetch_fee_details_for_class,get_special_fee,calculate_late_fee,generate_pdf2,get_months_array
 
 CLASS_CHOICES = [
         ('', 'Select the Class'),
@@ -948,9 +954,6 @@ class BusMasterResource(resources.ModelResource):
         # Custom logic for displaying "Internal" or "External"
         return "Internal" if str(obj.internal).upper() == "TRUE" else "External"
 
-from django.contrib import messages
-from django.db import IntegrityError, transaction
-from django.utils.translation import gettext_lazy as _
 
 class BusMaster(ExportMixin, admin.ModelAdmin):
     resource_class = BusMasterResource
@@ -1858,38 +1861,68 @@ admin.site.register(latefee_master, LateFeeMasterDisplay)
 #         # Convert the list of selected months into a comma-separated string for storage
 #         return ','.join(selected_months)
     
+
 class PaymentScheduleMasterForm(forms.ModelForm):
     schedule_list = forms.CharField(widget=ReadOnlyCKEditorWidget(), required=False, label='')
 
-    fees_for_months = forms.MultipleChoiceField(
-        choices=payment_schedule_master.Fees_For_Month_CHOICES,
-    )
-    # fees_for_months = forms.CharField(
-    #     widget=forms.CheckboxSelectMultiple(choices=payment_schedule_master.Fees_For_Month_CHOICES),
-    #     required=False,
-    # )
-    # fees_for_months = forms.MultipleChoiceField(
-    #     choices=payment_schedule_master.Fees_For_Month_CHOICES,
-    #     widget=forms.CheckboxSelectMultiple,  # Use CheckboxSelectMultiple widget
-    #     required=False,
-    # )
-
+    fees_for_months = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     Pay_In_Month_CHOICES = [
         ('', 'Choose The Month'),
         ('1', '1'),
+        ('2', '2'),
+        ('3', '3'),
+        ('4', '4'),
+        ('5', '5'),
+        ('6', '6'),
+        ('7', '7'),
+        ('8', '8'),
+        ('9', '9'),
+        ('10', '10'),
+        ('11', '11'),
+        ('12', '12')
     ]
-   
+
     pay_in_month = forms.ChoiceField(
         choices=Pay_In_Month_CHOICES,
         label="Pay In Month *",
     )
-
+    
     Payment_Date_CHOICES = [
         ('', 'Choose The Date'),
         ('01', '01'),
+        ('02', '02'),
+        ('03', '03'),
+        ('04', '04'),
+        ('05', '05'),
+        ('06', '06'),
+        ('07', '07'),
+        ('08', '08'),
+        ('09', '09'),
+        ('10', '10'),
+        ('11', '11'),
+        ('12', '12'),
+        ('13', '13'),
+        ('14', '14'),
+        ('15', '15'),
+        ('16', '16'),
+        ('17', '17'),
+        ('18', '18'),
+        ('19', '19'),
+        ('20', '20'),
+        ('21', '21'),
+        ('22', '22'),
+        ('23', '23'),
+        ('24', '24'),
+        ('25', '25'),
+        ('26', '26'),
+        ('27', '27'),
+        ('28', '28'),
+        ('29', '29'),
+        ('30', '30'),
+        ('31', '31'),
     ]
-   
+
     payment_date = forms.ChoiceField(
         choices=Payment_Date_CHOICES,
         label="Payment Date *",
@@ -1904,9 +1937,40 @@ class PaymentScheduleMasterForm(forms.ModelForm):
         instance = kwargs.get('instance')
 
         # Display a custom HTML block for the schedule list
+        # schedule_list_html = """
+        #     <h3>Existing Payment Schedules</h3>
+        # """
+        schedules = payment_schedule_master.objects.all()
         schedule_list_html = """
-            <h3>Existing Payment Schedules</h3>
+             <h3>Existing Payment Schedules</h3>
+             <table style='border: 1px solid #ddd; width: 100%; border-collapse: collapse;'>
+                 <thead>
+                    <tr>
+                         <th style='border: 1px solid #ddd; padding: 8px;'>Schedule ID</th>
+                         <th style='border: 1px solid #ddd; padding: 8px;'>Fees for Months</th>
+                         <th style='border: 1px solid #ddd; padding: 8px;'>Pay in Month</th>
+                         <th style='border: 1px solid #ddd; padding: 8px;'>Payment Date</th>
+                     </tr>
+                 </thead>
+                 <tbody>
+
+         """
+        
+        for schedule in schedules:
+            schedule_list_html += f"""
+                <tr>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.schedule_id}</td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.fees_for_months}</td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.pay_in_month}</td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{schedule.payment_date}</td>
+                </tr>
+            """
+
+        schedule_list_html += """
+                </tbody>
+            </table>
         """
+        
         self.fields['schedule_list'].initial = mark_safe(schedule_list_html)
 
         # Gather all months used by other records (excluding the current instance's months)
@@ -1915,47 +1979,47 @@ class PaymentScheduleMasterForm(forms.ModelForm):
 
         # Collect months used by other records
         all_schedules = payment_schedule_master.objects.all()
-        # print('instance.fees_for_months',type(instance.fees_for_months))
         if instance:
             # Exclude the current instance if in edit mode
             all_schedules = all_schedules.exclude(pk=instance.pk)
             # Include the current record's months to keep them selectable
             current_months = set(instance.fees_for_months.split(','))
-            # current_months = ','.join(current_months)
-             # Sort the current months in ascending order
             current_months = sorted(current_months, key=lambda x: int(x))
-
-        print('current_months',(current_months))
 
         # Collect months from all other records
         for schedule in all_schedules:
             used_months.update(schedule.fees_for_months.split(','))
 
+        
+
         # Ensure the current record's months remain in the selectable list and filter out used months
         available_choices = [
-            (value, label) for value, label in self.fields['fees_for_months'].choices
+            (value, label) for value, label in payment_schedule_master.Fees_For_Month_CHOICES
             if value in current_months or value not in used_months
         ]
 
-        # Set the available choices for the 'fees_for_months' field
-        self.fields['fees_for_months'].choices = available_choices
-
-        # Set the initial values for 'fees_for_months' to the current record's months
-        self.fields['fees_for_months'].initial = (current_months)
+        # Pass available choices to the template
+        self.available_choices = available_choices
 
     def clean_fees_for_months(self):
         selected_months = self.cleaned_data['fees_for_months']
         # Convert the list of selected months into a comma-separated string for storage
-        return ','.join(selected_months)
+        return ','.join(selected_months.split(','))
 
 
 class PaymentScheduleMasterAdmin(admin.ModelAdmin):
     form = PaymentScheduleMasterForm
     list_display = ("fees_for_months", "pay_in_month", "payment_date")
     search_fields = ("fees_for_months", "pay_in_month", "payment_date")
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        return form
+    # def get_form(self, request, obj=None, **kwargs):
+    #     form = super().get_form(request, obj, **kwargs)
+    #     return form
+    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['form_template'] = 'admin/payment_schedule_master_form.html'  # Ensure this path is correct
+        return super().changeform_view(request, object_id, form_url, extra_context)
+    
+    change_form_template = 'admin/payment_schedule_master_form.html'
 
 
 admin.site.register(payment_schedule_master, PaymentScheduleMasterAdmin)
@@ -2550,27 +2614,6 @@ class StudentFeesAdminForm(forms.ModelForm):
 
         print("======= I'M HERE ===========")
 
-        # Fetch the initial data for update case
-        # if self.instance and self.instance.fees_period_month:
-        #     selected_months = self.instance.fees_period_month.split(', ')
-        #     self.fields['fees_period_month'].initial = selected_months
-        # print("======= I'M HERE ===========")
-
-        # Calculate the current quarter based on the current month
-        # current_month = datetime.now().month
-        # if 4 <= current_month <= 6:
-        #     default_quarter = '4,5,6'  # April - June
-        # elif 7 <= current_month <= 9:
-        #     default_quarter = '7,8,9'  # July - September
-        # elif 10 <= current_month <= 12:
-        #     default_quarter = '10,11,12'  # October - December
-        # else:
-        #     default_quarter = '1,2,3'  # January - March
-
-        # # Set the default value for fees_for_months
-        # self.fields['fees_for_months'].initial = default_quarter
-        # print("======= I'M HERE ===========")
-
         # Call this in __init__
         self.fields['fees_for_months'].initial = get_default_quarter()
 
@@ -2612,120 +2655,20 @@ class StudentFeesAdminForm(forms.ModelForm):
                 except student_master.DoesNotExist:
                     print(f"Student with ID {student.student_id} does not exist.")
             
-        print("======= I'M HERE ===========")
-    
-        # # Populate pre-selected values when the form is submitted
-        # if self.is_bound:
-        #     submitted_fees_period_month = self.data.getlist('fees_period_month')
-        #     print("submitted_fees_period_month", submitted_fees_period_month)
-        #     self.fields['fees_period_month'].initial = submitted_fees_period_month  # Ensure submitted values are used
-
-        # if self.is_bound and self.data.get('search_results'):
-        #     print(self.data.get('search_results'))
-        #     student_id = self.data.get('search_results')
-        #     if student_id:
-        #         self.fields['search_results'].queryset = student_master.objects.filter(student_id=student_id)
+        # print("======= I'M HERE ===========")
 
     class Media:
-        js = ('app/js/student_fees.js',)  # Adjust the path as necessary
+        js = ('https://code.jquery.com/jquery-3.6.0.min.js','app/js/student_fees.js',)  # Adjust the path as necessary
         css = {
             'all': ('app/css/custom_admin.css',)  # Add your custom CSS file here
         }
 
-
-
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-
-    #     print("======= I'M HERE ===========")
-
-    #     # Set the field to not required if needed
-    #     # self.fields['fees_period_month'].required = False  # Ensure the field is optional
-    #     # Populate fees_period_month with dynamic choices if needed
-    #     # self.fields['fees_period_month'].choices = MONTH_CHOICES
-
-    #     # Fetch the initial data for update case
-    #     selected_months = self.instance.fees_period_month.split(', ')
-    #     self.fields['fees_period_month'].initial = selected_months
-    
-
-    #     # Calculate the current quarter based on the current month
-    #     current_month = datetime.now().month
-    #     if 4 <= current_month <= 6:
-    #         default_quarter = '4,5,6'  # April - June
-    #     elif 7 <= current_month <= 9:
-    #         default_quarter = '7,8,9'  # July - September
-    #     elif 10 <= current_month <= 12:
-    #         default_quarter = '10,11,12'  # October - December
-    #     else:
-    #         default_quarter = '1,2,3'  # January - March
-
-    #      # Set the default value for fees_for_months
-    #     self.fields['fees_for_months'].initial = default_quarter
-    #     print(default_quarter)
-
-    #     initial_values = self.instance.fees_period_month.split(', ') if self.instance.fees_period_month else []
-    #     self.fields['fees_period_month'].initial = [10]
-    #     print(initial_values)
-
-
-    #     if self.instance and self.instance.pk:
-
-    #         # Assuming 'student_id' is being passed in the form data
-    #         student_id = self.instance.student_id
-
-    #         # Print the value and type of student_id
-    #         # logger.debug(f"Student ID: {student_id}, Type: {type(student_id)}")
-
-    #         self.fields['student_name'].widget = forms.HiddenInput()
-    #         self.fields['admission_no'].widget = forms.HiddenInput()
-    #         self.fields['class_no'].widget = forms.HiddenInput()
-    #         self.fields['section'].widget = forms.HiddenInput()
-    #         self.fields['search_results'].widget = forms.HiddenInput()
-
-    #         # Pre-select the values in fees_period_month
-    #         if self.instance.fees_period_month:
-    #             initial_values = self.instance.fees_period_month.split(', ')  # Split by comma
-    #             print("initial_values", initial_values)
-    #             self.fields['fees_period_month'].initial = initial_values  # Set the initial values
-            
-    #         if student_id:
-                
-    #             student = student_master.objects.get(student_id=student_id)
-    #             student_classes = student_class.objects.filter(student_id=student_id).order_by('-started_on').first()
-    #             self.fields['display_admission_no'].initial = student.addmission_no
-    #             self.fields['display_student_name'].initial = student.student_name
-    #             self.fields['display_father_name'].initial = student.father_name
-    #             self.fields['display_student_class'].initial = student_classes.class_no
-    #             self.fields['display_student_section'].initial = student_classes.section
-    #             self.fields['started_on'].initial = student_classes.started_on.strftime('%Y')
-
-    #             # Set hidden student_id value
-    #             self.fields['student_id'].initial = student_id
-
-    #     # Populate pre-selected values when the form is submitted
-    #     if self.is_bound:
-    #         submitted_fees_period_month = self.data.getlist('fees_period_month')
-    #         print("submitted_fees_period_month", submitted_fees_period_month)
-    #         self.fields['fees_period_month'].initial = submitted_fees_period_month  # Ensure submitted values are used      
-
-    #     if self.is_bound and self.data.get('search_results'):
-    #         student_id = self.data.get('search_results')
-    #         if student_id:
-    #             self.fields['search_results'].queryset = student_master.objects.filter(student_id=student_id)
-
-    # class Media:
-    #     js = ('app/js/student_fees.js',)  # Adjust the path as necessary
-    #     css = {
-    #         'all': ('app/css/custom_admin.css',)  # Add your custom CSS file here
-    #     }
 
 class StudentFeesAdmin(admin.ModelAdmin):
 
     form = StudentFeesAdminForm
 
     change_form_template = 'admin/student_fee/change_form.html'
-    # change_form_template = 'admin/student_fee/change_form.html'
 
     # Fields to display in the list view
     list_display = (
@@ -2753,7 +2696,7 @@ class StudentFeesAdmin(admin.ModelAdmin):
         'bank_name',
         'cheque_status',
         'realized_date',
-        'receipt_url',
+        'download_link',  # Add the custom download link method
         'added_by',
         'txn_ref_number',
         'branch_name',
@@ -2764,29 +2707,10 @@ class StudentFeesAdmin(admin.ModelAdmin):
         'edited_at',
         'remarks',
         'entry_date',
-       
     )
     
     # Fields to search in the search bar
     list_filter = (StudentFeeClassNoFilter, StudentFeeSectionFilter, StudentFeeStudentNameFilter,StudentFeeAdmissionNoFilter)
-
-    # list_filter = (
-    #     'student_class',           # Direct field on StudentFee model
-    #     'student_section',         # Direct field on StudentFee model
-    #     'student_id__student_name', # ForeignKey to student_master, filtering by student name
-    #     'student_id__addmission_no' # ForeignKey to student_master, filtering by admission number
-    # )
-    # search_fields = (
-    #     'student_class',
-    #     'fees_for_months',
-    #     'fees_period_month',
-    #     'year',
-    #     'date_payment',
-    #     'total_amount',
-    #     'amount_paid',
-    #     'receipt_url',
-    #     'added_by'
-    # )
 
     def get_fieldsets(self, request, obj=None):
         if obj:  # Editing an existing student_class
@@ -2908,7 +2832,25 @@ class StudentFeesAdmin(admin.ModelAdmin):
     
             ]
 
-
+    def download_link(self, obj):
+        """Generate a clickable link for the receipt URL."""
+        if obj.receipt_url:
+            return format_html(
+                '<a href="{}" download>{}</a>',
+                obj.receipt_url,
+                'Download Receipt'  # The link text
+            )
+        return "-"
+        # """Generate a download link for the receipt URL."""
+        # if obj.receipt_url:
+        #     return format_html(
+        #         '<a href="{}" download><img src="{}" alt="Download" style="width: 20px; height: 20px;"/></a>',
+        #         obj.receipt_url,
+        #         'path/to/download_icon.png'  # Replace with your actual icon path
+        #     )
+        # return "-"
+    
+    download_link.short_description = 'Download Receipt'  # Column name in admin
 
     def get_search_results(self, request, queryset, search_term):
         search_class = request.GET.get('search_class', None)
@@ -2943,17 +2885,6 @@ class StudentFeesAdmin(admin.ModelAdmin):
 
     change_list_template = 'admin/student_fee/student_fees_changelist.html'
 
-    # def get_student_name(self, obj):
-    #     student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
-    #     return student_master_instance.student_name if student_master_instance else None
-    # get_student_name.short_description = 'Student Name'
-
-    # def get_admission_no(self, obj):
-    #     student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-addmission_no').first()
-    #     return student_master_instance.addmission_no if student_master_instance else None
-    # get_admission_no.short_description = 'Admission Number'
-
-
 
     def get_urls(self):
         urls = super().get_urls()
@@ -2965,63 +2896,6 @@ class StudentFeesAdmin(admin.ModelAdmin):
             path('ajax/pay-fees/', self.admin_site.admin_view(self.action_payfees), name='ajax_action_payfees'),
         ]
         return custom_urls + urls
-    
-    # def load_students(self, request):
-    #     if request.method == 'GET':
-    #         admission_no = request.GET.get('admission_no')
-    #         class_no = request.GET.get('class_no')
-    #         section = request.GET.get('section')
-    #         student_name = request.GET.get('student_name')
-            
-    #         # Base query with distinct students
-    #         students = student_master.objects.distinct()
-
-    #         print(f'students==={students}')
-            
-
-    #         # Apply filters based on the provided parameters
-    #         if admission_no:
-    #             students = students.filter(addmission_no=admission_no)
-    #         if student_name:
-    #             students = students.filter(student_name__istartswith=student_name)
-
-    #         # Prefetch related student classes to avoid querying in a loop
-    #         students = students.prefetch_related('classes') 
-
-    #         print(f'studentsssss==={students}')
-
-    #         # Create the final response
-    #         student_data = []
-    #         for student in students:
-    #             # Filter related student classes and get the latest with class_no and section filtering
-    #             # latest_class = student_class.objects.filter(
-    #             #     student_id=student.student_id,
-    #             #     class_no=class_no if class_no else None,  # Filter by class_no if provided
-    #             #     section=section if section else None  # Filter by section if provided
-    #             # ).order_by('-student_class_id').first()
-
-    #             latest_class = student_class.objects.filter(
-    #                 student_id=student.student_id,
-                    
-    #             ).order_by('-student_class_id').first()
-
-    #             print(f'latest_class----{latest_class}')
-
-    #             # If latest_class exists, add it to the student_data
-    #             if latest_class:
-    #                 student_data.append({
-    #                     'student_id': student.student_id,
-    #                     'student_name': student.student_name,
-    #                     'class_no': latest_class.class_no,
-    #                     'section': latest_class.section
-    #                 })
-
-    #         # Convert the student_data list into the desired format
-    #         formatted_data = ','.join([f"{d['student_id']}${d['student_name']}:{d['class_no']}-{d['section']}" for d in student_data])
-
-    #         return JsonResponse({'data': formatted_data})
-        
-    #     return JsonResponse({'error': 'Bad Request'}, status=400)
 
     def load_students(self, request):
         if request.method == 'GET':
@@ -3076,45 +2950,6 @@ class StudentFeesAdmin(admin.ModelAdmin):
         
         # If the request method is not GET, return a 400 Bad Request error
         return JsonResponse({'error': 'Bad Request'}, status=400)
-
-
-    # def load_students(self, request):
-    #     if request.method == 'GET':
-    #         admission_no = request.GET.get('admission_no')
-    #         class_no = request.GET.get('class_no')
-    #         section = request.GET.get('section')
-    #         student_name = request.GET.get('student_name')
-            
-    #         # Base query
-    #         students = student_master.objects.distinct()
-
-    #         # Apply filters based on the provided parameters
-    #         if admission_no:
-    #             students = students.filter(addmission_no=admission_no)
-    #         if student_name:
-    #             students = students.filter(student_name__istartswith=student_name)
-
-    #         # Create the final response
-    #         student_data = []
-    #         for student in students:
-    #             # Filter related student classes
-    #             latest_class = student_class.objects.filter(
-    #                 student_id=student.student_id
-    #             ).order_by('-student_class_id').first()
-
-    #             if latest_class and (not class_no or latest_class.class_no == class_no):
-    #                 student_data.append({
-    #                     'student_id': student.student_id,
-    #                     'student_name': student.student_name,
-    #                     'class_no': latest_class.class_no
-    #                 })
-
-    #         # Convert the student_data list into the desired format
-    #         formatted_data = ','.join([f"{d['student_id']}${d['student_name']}:{d['class_no']}" for d in student_data])
-
-    #         return JsonResponse({'data': formatted_data})
-        
-    #     return JsonResponse({'error': 'Bad Request'}, status=400)
 
     # Get student
     def get_student(self, request):
@@ -3196,7 +3031,6 @@ class StudentFeesAdmin(admin.ModelAdmin):
         else:
             return JsonResponse({'success': False, 'message': 'Invalid request method'})
     
-    # Calculate fees
     def calculate_fees(self, request):
         if request.method == "GET":
             sid = request.GET.get("sid")
@@ -3213,247 +3047,191 @@ class StudentFeesAdmin(admin.ModelAdmin):
             return JsonResponse({"error": "Month not provided"}, status=400)
         if not yr:
             return JsonResponse({"error": "Year not provided"}, status=400)
-
-        # Fetch previous payment record
+        
         previous_fee_info = last_payment_record(sid)
-        include_admission_fee = (
-            previous_fee_info is None
-        )  # Include admission fee if no previous record exists
+
+        print(f" +++++++ previous_fee_info +++++++ {previous_fee_info}")
+
+        include_admission_fee = not previous_fee_info  # Include admission fee if no previous fee record
         pay_months = mf
-        months_in_quarters = ["4,5,6", "7,8,9", "10,11,12", "1,2,3"]
+        months_in_quarters = [
+            '4,5,6',
+            '7,8,9',
+            '10,11,12',
+            '1,2,3'
+        ]
 
         target_months = pay_months
-        target_months_array = target_months.split(",")
+        target_months_array = target_months.split(',')
         quarters = []
 
         for quarter in months_in_quarters:
-            quarter_months = quarter.split(",")
+            quarter_months = quarter.split(',')
             intersection = list(set(quarter_months) & set(target_months_array))
-
             if intersection:
-                quarters.append(
-                    {
-                        "quarter": quarter,
-                        "months_paid": ",".join(intersection),
-                    }
-                )
+                quarters.append({
+                    'quarter': quarter,
+                    'months_paid': ','.join(intersection),
+                })
 
         student_id = sid
         class_no = cls
         year = yr
+        class_year = yr
         total_fees_payable = 0
-
         fee_details = fetch_fee_details_for_class(student_id, class_no)
-        current_payment_details_array = []
+
+        print(f" +++++++ fee_details +++++++ {fee_details}")
 
         if fee_details:
             current_payment_details = {
-                "class_no": class_no,
-                "annual_fees": fee_details['annual_fees'],
-                "tuition_fees": fee_details['tuition_fees'],
-                "funds_fees": fee_details['funds_fees'],
-                "sports_fees": fee_details['sports_fees'],
-                "admission_fees": fee_details['admission_fees'],
-                "security_fees": fee_details['security_fees'],
-                "dayboarding_fees": fee_details['dayboarding_fees'],
-                "miscellaneous_fees": fee_details['miscellaneous_fees'],
-                "bus_fees": fee_details['bus_fees'],
-                "busfee_not_applicable_in_months": fee_details['busfee_not_applicable_in_months'],
-                "bus_id": fee_details['bus_id'],
-                "concession_percent": fee_details['concession_percent'],
-                "concession_type": fee_details['concession_type'],
-                "activity_fees": fee_details['activity_fees'],
-                "activity_fees_mandatory": fee_details['activity_fees_mandatory'],
-                "concession_amount": fee_details['concession_amount'],
-                "concession_id": fee_details['concession_id'],
-                "is_april_checked": fee_details['is_april_checked'],
-                "concession_applied": 0,
+                'class_no': class_no,
+                'annual_fees': fee_details.get('annual_fees', 0),
+                'tuition_fees': fee_details.get('tuition_fees', 0),
+                'funds_fees': fee_details.get('funds_fees', 0),
+                'sports_fees': fee_details.get('sports_fees', 0),
+                'admission_fees': fee_details.get('admission_fees', 0),
+                'security_fees': fee_details.get('security_fees', 0),
+                'dayboarding_fees': fee_details.get('dayboarding_fees', 0),
+                'miscellaneous_fees': fee_details.get('miscellaneous_fees', 0),
+                'bus_fees': fee_details.get('bus_fees', 0),
+                'busfee_not_applicable_in_months': fee_details.get('busfee_not_applicable_in_months', ''),
+                'bus_id': fee_details.get('bus_id', 0),
+                'concession_percent': fee_details.get('concession_percent', ''),
+                'concession_type': fee_details.get('concession_type', ''),
+                'activity_fees': fee_details.get('activity_fees', 0),
+                'activity_fees_mandatory': fee_details.get('activity_fees_mandatory', 0),
+                'concession_amount': fee_details.get('concession_amount', 0),
+                'concession_id': fee_details.get('concession_id', 0),
+                'is_april_checked': fee_details.get('is_april_checked', 0),
+                'concession_applied': 0
             }
+
+            current_payment_details_array = []
 
             for quarter in quarters:
                 current_date = datetime.now().strftime("%Y-%m-%d")  # Example current date
-                fees_for_months = quarter["quarter"]
-                months_paid_for = quarter["months_paid"]
+                fees_for_months = quarter['quarter']
+                months_paid_for = quarter['months_paid']
+
+                # Clone current payment details to modify and calculate total
                 payment_details = current_payment_details.copy()
-                payment_details["fees_for_months"] = fees_for_months
-                payment_details["fees_period_month"] = months_paid_for
+                payment_details['fees_for_months'] = fees_for_months
+                payment_details['fees_period_month'] = months_paid_for
 
                 total = 0
                 if include_admission_fee:
-                    # total = payment_details['admission_fees']
                     include_admission_fee = False
                 else:
-                    payment_details["admission_fees"] = 0
+                    payment_details['admission_fees'] = 0
 
                 fields_to_calculate = [
-                    "tuition_fees",
-                    "funds_fees",
-                    "sports_fees",
-                    "bus_fees",
-                    "activity_fees",
-                    "dayboarding_fees",
-                    "miscellaneous_fees",
-                    "annual_fees",
-                    "admission_fees",
+                    'tuition_fees', 'funds_fees', 'sports_fees', 'bus_fees', 'activity_fees', 
+                    'dayboarding_fees', 'miscellaneous_fees', 'annual_fees', 'admission_fees'
                 ]
 
-                activity_fees_mandatory = payment_details["activity_fees_mandatory"]
-                fees_for_months_array = payment_details["fees_period_month"].split(",")
+                activity_fees_mandatory = payment_details['activity_fees_mandatory']
+                fees_for_months_array = payment_details['fees_period_month'].split(',')
 
                 for field in fields_to_calculate:
-                    numeric_value = (
-                        float(payment_details[field])
-                        if isinstance(payment_details[field], (int, float))
-                        else 0
-                    )
+                    numeric_value = float(payment_details.get(field, 0) or 0)
 
-                    if field == "activity_fees":
-                        activity_fee_applicable = get_special_fee(
-                            student_id, year, payment_details["fees_period_month"], field
-                        )
+                    if field == 'activity_fees':
+                        activity_fee_applicable = get_special_fee(student_id, year, payment_details['fees_period_month'], field)
                         if activity_fee_applicable is not None:
                             numeric_value = activity_fee_applicable
                         elif activity_fees_mandatory != 1:
                             numeric_value = 0
-                    elif field == "bus_fees":
-                        not_applicable_months_array = (
-                            payment_details["busfee_not_applicable_in_months"].split(",")
-                            if payment_details["busfee_not_applicable_in_months"]
-                            else []
-                        )
-                        overlap_months = list(
-                            set(not_applicable_months_array) & set(fees_for_months_array)
-                        )
-                        applicable_months = list(
-                            set(fees_for_months_array) - set(overlap_months)
-                        )
+
+                    elif field == 'bus_fees':
+                        not_applicable_months_array = (payment_details.get('busfee_not_applicable_in_months') or '').split(',')
+
+                        overlap_months = set(not_applicable_months_array) & set(fees_for_months_array)
+                        applicable_months = set(fees_for_months_array) - overlap_months
                         bus_fee_applied = 0
+
                         if applicable_months:
-                            bus_fee_for_applicable_months = get_special_fee(
-                                student_id, year, ",".join(applicable_months), "bus_fees"
-                            )
+                            bus_fee_for_applicable_months = get_special_fee(student_id, year, ','.join(applicable_months), 'bus_fees')
                             for month in applicable_months:
-                                bus_fees_value = payment_details.get("bus_fees", 0)  # Default to 0 if not present
-                                if bus_fees_value is None:  # Explicitly check for None
-                                    bus_fees_value = 0
-                                bus_fee_applied += bus_fee_for_applicable_months.get(month, int(bus_fees_value))
+                                bus_fee_applied += bus_fee_for_applicable_months.get(month, numeric_value)
+
                             numeric_value = bus_fee_applied
 
-                    elif numeric_value > 0 and field in ["tuition_fees", "funds_fees"]:
-                        fee_applicable = get_special_fee(
-                            student_id, year, payment_details["fees_for_months"], field
-                        )
-                        if fee_applicable:
+                    elif numeric_value > 0 and field in ['tuition_fees', 'funds_fees']:
+                        fee_applicable = get_special_fee(student_id, year, payment_details['fees_for_months'], field)
+                        if fee_applicable is not None:
                             numeric_value = float(fee_applicable)
                         numeric_value *= len(fees_for_months_array)
-                    elif field in [
-                        "annual_fees",
-                        "miscellaneous_fees",
-                        "sports_fees",
-                        "admission_fees",
-                    ]:
-                        if fees_for_months == "4,5,6":
-                            fee_applicable = get_special_fee(
-                                student_id, year, payment_details["fees_for_months"], field
-                            )
-                            if fee_applicable:
+
+                    elif field in ['annual_fees', 'miscellaneous_fees', 'sports_fees', 'admission_fees']:
+                        if fees_for_months == '4,5,6':
+                            fee_applicable = get_special_fee(student_id, year, payment_details['fees_for_months'], field)
+                            if fee_applicable is not None:
                                 numeric_value = float(fee_applicable)
                         else:
                             numeric_value = 0
 
-                    payment_details[field] = numeric_value
                     total += numeric_value
+                    payment_details[field] = numeric_value
 
+                # Apply concession
                 concession_amount = 0
-                if payment_details["concession_percent"] == "percentage":
-                    concession_percent = float(payment_details["concession_amount"])
-                    tuition_fees = float(payment_details["tuition_fees"])
-                    concession_amount = (tuition_fees * concession_percent) / 100
-                elif payment_details["concession_percent"] == "amount":
-                    concession_amount = float(payment_details["concession_amount"])
+                if payment_details['concession_percent'] == 'percentage':
+                    concession_amount = (float(payment_details['tuition_fees']) * float(payment_details['concession_amount'])) / 100
+                elif payment_details['concession_percent'] == 'amount':
+                    concession_amount = float(payment_details['concession_amount'])
 
-                if (
-                    "4" in fees_for_months_array
-                    and concession_amount > 0
-                    and payment_details["is_april_checked"] == 0
-                ):
-                    concession_amount = (concession_amount / len(fees_for_months_array)) * (
-                        len(fees_for_months_array) - 1
-                    )
-                    concession_amount = round(concession_amount)
+                if '4' in fees_for_months_array and payment_details['is_april_checked'] == 0:
+                    concession_amount = round(concession_amount / len(fees_for_months_array) * (len(fees_for_months_array) - 1), 0)
 
                 total -= concession_amount
-                payment_details["concession_applied"] = concession_amount
+                payment_details['concession_applied'] = concession_amount
 
-                late_fee = calculate_late_fee(total, fees_for_months, year, current_date)
-                payment_details["late_fee"] = late_fee
+                # Calculate late fee
+                late_fee = calculate_late_fee(total, fees_for_months, class_year, current_date, None)
+                payment_details['late_fee'] = late_fee
                 total += late_fee
-                payment_details["total_fee"] = total
-                payment_details["year"] = year
+
+                payment_details['total_fee'] = total
                 total_fees_payable += total
 
                 current_payment_details_array.append(payment_details)
 
-        sum_dict = {
-            "annual_fees": 0,
-            "tuition_fees": 0,
-            "funds_fees": 0,
-            "sports_fees": 0,
-            "activity_fees": 0,
-            "admission_fees": 0,
-            "security_fees": 0,
-            "dayboarding_fees": 0,
-            "miscellaneous_fees": 0,
-            "bus_fees": 0,
-            "concession_amount": 0,
-            "concession_applied": 0,
-            "concession_percent": "",
-            "concession_type_id": "",
-            "concession_type": "",
-            "late_fee": 0,
-            "total_fee": 0,
+                fee_details
+
+            sum_dict = {
+            'annual_fees': 0,
+            'tuition_fees': 0,
+            'funds_fees': 0,
+            'sports_fees': 0,
+            'activity_fees': 0,
+            'admission_fees': 0,
+            'security_fees': 0,
+            'dayboarding_fees': 0,
+            'miscellaneous_fees': 0,
+            'bus_fees': 0,
+            'concession_applied': 0,
+            'late_fee': 0,
+            'total_fee': 0,
         }
 
-        sum_keys = [
-            "annual_fees",
-            "tuition_fees",
-            "funds_fees",
-            "sports_fees",
-            "activity_fees",
-            "admission_fees",
-            "security_fees",
-            "dayboarding_fees",
-            "miscellaneous_fees",
-            "bus_fees",
-            "concession_applied",
-            "late_fee",
-            "total_fee",
-        ]
-
-        excluded_keys = [
-            "concession_amount",
-            "concession_percent",
-            "concession_id",
-            "concession_type",
-        ]
+        excluded_keys = ['concession_amount', 'concession_percent', 'concession_id', 'concession_type']
 
         for details in current_payment_details_array:
-            for key in sum_keys:
-                sum_dict[key] += details[key]
-                print(f"Updated {key}: {sum_dict[key]}")
-
+            for key in sum_dict:
+                sum_dict[key] += details.get(key, 0)
             for key in excluded_keys:
-                sum_dict[key] = details[key]
-                print(f"Set {key}: {sum_dict[key]}")
+                sum_dict[key] = details.get(key)
 
-        response_data = "|".join([str(sum_dict[key]) for key in sum_keys])
+            # return JsonResponse(sum_dict)
+            response_data = "|".join([str(sum_dict[key]) for key in sum_dict])
 
-        # return JsonResponse(response_data, safe=False)
-        return JsonResponse({
-                'success': True,
-                'data': response_data,
-            })
-
+            # return JsonResponse(sum_fees)
+            return JsonResponse({
+                        'success': True,
+                        'data': response_data,
+                    })
+    
     def action_payfees(self, request):
         fm = request.GET.get('fm')
         sid = request.GET.get('sid')
@@ -3502,26 +3280,24 @@ class StudentFeesAdmin(admin.ModelAdmin):
             else:
                 return JsonResponse({"error": "Student not found"}, status=404)
 
-    # def save_model(self, request, obj, form, change):
-    #     if request.method == 'POST':
-    #         print("testing")
-    #         print(request.POST)
-    #     # Fetch the student ID from the POST data
-    #         student_id = request.POST.get('student_id')
-    #         print(f"request.POST.get('student_id') :{student_id}")
+        # def save_model(self, request, obj, form, change):
+        #     if request.method == 'POST':
+        #         print("testing")
+        #         print(request.POST)
+        #     # Fetch the student ID from the POST data
+        #         student_id = request.POST.get('student_id')
+        #         print(f"request.POST.get('student_id') :{student_id}")
 
-    #         if student_id:
-    #             # Get the student_master instance using the student_id
-    #             try:
-    #                 student_instance = student_master.objects.get(pk=student_id)
-    #                 obj.student_id = student_instance  # Assign the student_master instance to the student_fee object
-    #             except student_master.DoesNotExist:
-    #                 raise ValueError(f"Student with ID {student_id} does not exist")
+        #         if student_id:
+        #             # Get the student_master instance using the student_id
+        #             try:
+        #                 student_instance = student_master.objects.get(pk=student_id)
+        #                 obj.student_id = student_instance  # Assign the student_master instance to the student_fee object
+        #             except student_master.DoesNotExist:
+        #                 raise ValueError(f"Student with ID {student_id} does not exist")
 
-    #         # Proceed with the rest of the save operation
-    #         super().save_model(request, obj, form, change)
-
-
+        #         # Proceed with the rest of the save operation
+        #         super().save_model(request, obj, form, change)
 
     def add_view(self, request, form_url='', extra_context=None):
         if request.method == 'POST':
@@ -3550,7 +3326,7 @@ class StudentFeesAdmin(admin.ModelAdmin):
                 year -= 1
 
             student_class = request.POST.get('display_student_class', '')
-            montharray = self.get_months_array(year)
+            montharray = get_months_array(year)
             months = ','.join(map(str, montharray))
 
             if student_class:
@@ -3624,14 +3400,13 @@ class StudentFeesAdmin(admin.ModelAdmin):
             obj.save()
 
             # Generate the PDF for the fee record
-            self.generate_pdf(obj.student_fee_id)
+            generate_pdf2(request,obj.student_fee_id)
 
             # Redirect to the change page or list page
             self.message_user(request, "Student fee record saved successfully.")
             return HttpResponseRedirect(reverse('admin:app_student_fee_changelist'))
 
         return super().add_view(request, form_url, extra_context)
-
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         # Fetch the student_fee instance
@@ -3657,7 +3432,7 @@ class StudentFeesAdmin(admin.ModelAdmin):
                 year -= 1
 
             student_class = request.POST.get('display_student_class', '')
-            montharray = self.get_months_array(year)
+            montharray = get_months_array(year)
             months = ','.join(map(str, montharray))
 
             if student_class:
@@ -3727,168 +3502,12 @@ class StudentFeesAdmin(admin.ModelAdmin):
             obj.save()
             
             # Generate the PDF for the fee record
-            self.generate_pdf(obj.student_fee_id)
+            generate_pdf2(request,obj.student_fee_id)
 
             self.message_user(request, "Student fee record updated successfully.")
             return HttpResponseRedirect(reverse('admin:app_student_fee_changelist'))
 
         return super().change_view(request, object_id, form_url, extra_context)
-
-
-    # def save_model(self, request, obj, form, change):
-
-
-    #     # Fetch the student ID from the POST data
-    #     stuid = request.POST.get('student_id')
-    #     # print(f"request.POST.get('student_id') :{request.POST.get('student_id')}")
-
-    #     # Fetch the student_master instance using the primary key (stuid)
-    #     try:
-    #         #student_instance = student_master.objects.get(pk=stuid)
-    #         student_instance = student_master.objects.get(student_id=stuid)
-    #     except student_master.DoesNotExist:
-    #         # Handle the case where the student does not exist
-    #         raise ValueError(f"Student with ID {stuid} does not exist")
-
-    #     # Now assign the student_master instance to obj.student_id
-    #     obj.student_id = student_instance
-
-    #     # Custom logic before saving the object
-    #     today = datetime.now()  # Do not convert to string here
-    #     year = int(request.POST.get('started_on'))
-
-    #     # Now, you can access 'today.month' without issues
-    #     if today.month < 4:
-    #         year -= 1
-
-    #     print(f"student_instance {student_instance}")
-
-    #     print(f"Student ID: {student_instance.student_id}, Name: {student_instance.student_name}")
-
-    #     # Assign the instance to the ForeignKey field
-    #     # obj.student_id = student_instance
-
-    #     student_class = request.POST.get('display_student_class', '')
-    #     montharray = self.get_months_array(year)
-    #     months = ','.join(map(str, montharray))
-
-    #     if student_class:
-    #         months_paid = student_fee.objects.filter(
-    #             student_id=stuid,
-    #             student_class=student_class,
-    #             year=year
-    #         ).values_list('fees_for_months', flat=True).distinct()
-    #     else:
-    #         months_paid = student_fee.objects.filter(
-    #             student_id=stuid,
-    #             student_class='',
-    #             year=year
-    #         ).values_list('fees_for_months', flat=True).distinct()
-
-    #     months_paid = set(map(str.strip, ','.join(months_paid).split(',')))
-    #     tmp = set(montharray) - months_paid
-    #     tmpval = ','.join(map(str, tmp))
-
-    #     if tmpval:
-    #         alert_message = f'Fee pending for {tmpval} month '
-    #         # Optionally use this alert message
-
-    #     # Setting model attributes
-    #     obj.payment_mode = request.POST.get('payment_mode')
-    #     if obj.payment_mode == 'Cheque' and not obj.cheque_status:
-    #         obj.cheque_status = 'Open'
-
-    #     obj.date_payment = parse_date(request.POST.get('date_payment'))
-    #     if obj.payment_mode != 'Cheque':
-    #         obj.realized_date = obj.date_payment
-
-    #     obj.entry_date = parse_date(request.POST.get('date_payment'))
-    #     obj.student_class = request.POST.get('display_student_class')
-    #     obj.student_section = request.POST.get('display_student_section')
-    #     obj.fees_for_months = request.POST.get('fees_for_months')
-
-    #     fees_period_month_list = request.POST.getlist('fees_period_month')  # Get the list of selected months
-    #     obj.fees_period_month = ', '.join(fees_period_month_list)  # Join them as a string (e.g., '1, 2, 3')
-    #     # request.POST.getlist('fees_period_month')
-
-    #     obj.year = request.POST.get('started_on')
-    #     obj.total_amount = float(request.POST.get('total_amount', 0))
-    #     obj.amount_paid = float(request.POST.get('amount_paid', 0))
-
-    #     # Handle concessions
-    #     if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
-    #         obj.concession_applied = float(request.POST.get('concession_applied'))
-    #         obj.concession_type_id = request.POST.get('concession_type')
-    #     else:
-    #         obj.concession_type_id = None
-    #         obj.concession_applied = None
-
-    #     # Setting other attributes
-    #     # obj.bank_name = request.POST.get('bankname')
-    #     # obj.branch_name = request.POST.get('branchname')
-    #     # obj.cheq_no = request.POST.get('cheqno')
-    #     obj.bus_fees_paid = float(request.POST.get('bus_fees_paid', 0))
-    #     obj.dayboarding_fees_paid = float(request.POST.get('dayboarding_fees_paid', 0))
-    #     obj.miscellaneous_fees_paid = float(request.POST.get('miscellaneous_fees_paid', 0))
-    #     obj.late_fees_paid = float(request.POST.get('late_fees_paid', 0))
-    #     obj.security_paid = float(request.POST.get('security_paid', 0))
-    #     obj.admission_fees_paid = float(request.POST.get('admission_fees_paid', 0))
-    #     obj.activity_fees = float(request.POST.get('activity_fees', 0))
-    #     obj.sports_fees_paid = float(request.POST.get('sports_fees_paid', 0))
-    #     obj.funds_fees_paid = float(request.POST.get('funds_fees_paid', 0))
-    #     obj.tuition_fees_paid = float(request.POST.get('tuition_fees_paid', 0))
-    #     obj.annual_fees_paid = float(request.POST.get('annual_fees_paid', 0))
-    #     obj.isdefault = request.POST.get('isdefault')
-    #     obj.remarks = request.POST.get('remarks')
-    #     obj.added_by = request.user.username
-
-    #     obj.save()
-    #     self.generate_pdf(obj.student_fee_id)
-        # self.message_user(request, "Student fee record saved successfully.")
-
-    def get_months_array(self, year):
-        # Format the start and end date for the financial year
-        date_from = datetime(year, 4, 1)  # April 1st of the given year
-        date_to = datetime(year + 1, 3, 31)  # March 31st of the next year
-
-        # Convert the dates into string format if necessary
-        current_date = datetime.now()
-
-        # If the financial year is not over, adjust the end date to today
-        if current_date < date_to:
-            date_to = current_date
-
-        # Create an array for storing the months
-        month_array = []
-
-        # Initialize a timestamp for the start date
-        time = date_from
-
-        # Loop through the months of the financial year
-        while time <= date_to:
-            # Get the current month number and strip leading zeroes
-            cur_month = time.month
-
-            # Append the current month to the array
-            month_array.append(cur_month)
-
-            # Move to the next month
-            time += timedelta(days=32)
-            time = time.replace(day=1)  # Set the day to 1 to handle month transitions
-
-        # Sort the month array in ascending order
-        month_array.sort()
-
-        # If the financial year is over, return an array of all 12 months
-        if current_date >= datetime(year + 1, 3, 31):
-            month_array = list(range(1, 13))
-
-        return month_array
-
-    def generate_pdf(self, student_fee_id):
-        # Your implementation for generating PDF
-        pass
-
 
     class Media:
         
@@ -3898,390 +3517,15 @@ admin.site.register(student_fee,StudentFeesAdmin)
 # admin.site.register(student_fee)
 
 
-# class ClassFilter(admin.SimpleListFilter):
-#     title = 'Class'
-#     parameter_name = 'class_no'
 
-#     def lookups(self, request, model_admin):
-#         classes = student_class.objects.values_list('class_no', flat=True).distinct()
-#         return [(class_no, class_no) for class_no in classes]
 
-#     def queryset(self, request, queryset):
-#         if self.value():
-#             return queryset.filter(student_id__in=student_class.objects.filter(class_no=self.value()).values('student_id'))
-#         return queryset
-
-
-# class SectionFilter(admin.SimpleListFilter):
-#     title = 'Section'
-#     parameter_name = 'section'
-
-#     def lookups(self, request, model_admin):
-#         sections = student_class.objects.values_list('section', flat=True).distinct()
-#         return [(section, section) for section in sections]
-
-#     def queryset(self, request, queryset):
-#         if self.value():
-#             return queryset.filter(student_id__in=student_class.objects.filter(section=self.value()).values('student_id'))
-#         return queryset
-
-
-# class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
-#     list_display = ('addmission_no', 'student_name', 'get_class_no', 'get_section', 'mobile_no')
-#     list_filter = (ClassFilter, SectionFilter)  # Custom filters for class and section
-
-#     def get_class_no(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.class_no if student_class_instance else None
-#     get_class_no.short_description = 'Class'
-
-#     def get_section(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.section if student_class_instance else None
-#     get_section.short_description = 'Section'
-
-# class ClassFilter(admin.SimpleListFilter):
-#     title = 'Class'
-#     parameter_name = 'class_no'
-
-#     def lookups(self, request, model_admin):
-#         classes = student_class.objects.values_list('class_no', flat=True).distinct()
-#         return [(class_no, class_no) for class_no in classes]
-
-#     def queryset(self, request, queryset):
-#         if self.value():
-#             return queryset.filter(student_id__in=student_class.objects.filter(class_no=self.value()).values('student_id'))
-#         return queryset  # Return original queryset, but it will be handled by SectionFilter
-
-
-# class SectionFilter(admin.SimpleListFilter):
-#     title = 'Section'
-#     parameter_name = 'section'
-
-#     def lookups(self, request, model_admin):
-#         sections = student_class.objects.values_list('section', flat=True).distinct()
-#         return [(section, section) for section in sections]
-
-#     def queryset(self, request, queryset):
-#         if self.value():
-#             return queryset.filter(student_id__in=student_class.objects.filter(section=self.value()).values('student_id'))
-#         return queryset  # Return original queryset, but it will be handled by ClassFilter
-
-
-# class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
-#     list_display = ('addmission_no', 'student_name', 'get_class_no', 'get_section', 'mobile_no')
-#     list_filter = (ClassFilter, SectionFilter)  # Custom filters for class and section
-
-#     def get_class_no(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.class_no if student_class_instance else None
-#     get_class_no.short_description = 'Class'
-
-#     def get_section(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.section if student_class_instance else None
-#     get_section.short_description = 'Section'
-
-#     def get_queryset(self, request):
-#         queryset = super().get_queryset(request)
-#         # Get filter values
-#         class_no = request.GET.get('class_no')
-#         section = request.GET.get('section')
-        
-#         if not class_no and not section:
-#             # Return empty queryset if no filters are selected
-#             return queryset.none()
-
-#         # Apply filters if any are selected
-#         if class_no:
-#             queryset = queryset.filter(student_id__in=student_class.objects.filter(class_no=class_no).values('student_id'))
-#         if section:
-#             queryset = queryset.filter(student_id__in=student_class.objects.filter(section=section).values('student_id'))
-        
-#         return queryset
-
-# from django.contrib import admin
-
-# class ClassFilter(admin.SimpleListFilter):
-#     title = 'Class'
-#     parameter_name = 'class_no'
-
-#     def lookups(self, request, model_admin):
-#         classes = student_class.objects.values_list('class_no', flat=True).distinct()
-#         return [(class_no, class_no) for class_no in classes]
-
-#     def queryset(self, request, queryset):
-#         if self.value():
-#             return queryset.filter(student_id__in=student_class.objects.filter(class_no=self.value()).values('student_id'))
-#         return queryset  # Pass through the queryset if no filter is selected
-
-
-# class SectionFilter(admin.SimpleListFilter):
-#     title = 'Section'
-#     parameter_name = 'section'
-
-#     def lookups(self, request, model_admin):
-#         sections = student_class.objects.values_list('section', flat=True).distinct()
-#         return [(section, section) for section in sections]
-
-#     def queryset(self, request, queryset):
-#         if self.value():
-#             return queryset.filter(student_id__in=student_class.objects.filter(section=self.value()).values('student_id'))
-#         return queryset  # Pass through the queryset if no filter is selected
-
-
-# class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
-#     list_display = ('addmission_no', 'student_name', 'get_class_no', 'get_section', 'mobile_no')
-#     list_filter = (ClassFilter, SectionFilter)  # Custom filters for class and section
-
-#     def get_class_no(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.class_no if student_class_instance else None
-#     get_class_no.short_description = 'Class'
-
-#     def get_section(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.section if student_class_instance else None
-#     get_section.short_description = 'Section'
-
-#     def get_queryset(self, request):
-#         queryset = super().get_queryset(request)
-#         # Get filter values
-#         class_no = request.GET.get('class_no')
-#         section = request.GET.get('section')
-        
-#         # If no filters are selected, return an empty queryset
-#         if not class_no and not section:
-#             return queryset.none()
-
-#         # Apply filters based on selected criteria
-#         if class_no:
-#             queryset = queryset.filter(student_id__in=student_class.objects.filter(class_no=class_no).values('student_id'))
-#         if section:
-#             queryset = queryset.filter(student_id__in=student_class.objects.filter(section=section).values('student_id'))
-        
-#         return queryset
-
-# from django.contrib import admin
-
-#required
-# class ClassFilter(admin.SimpleListFilter):
-#     title = 'Class'
-#     parameter_name = 'class_no'
-
-#     def lookups(self, request, model_admin):
-#         classes = student_class.objects.values_list('class_no', flat=True).distinct()
-#         return [(class_no, class_no) for class_no in classes]
-
-#     def queryset(self, request, queryset):
-#         if self.value():
-#             return queryset.filter(student_id__in=student_class.objects.filter(class_no=self.value()).values('student_id'))
-#         return queryset
-
-
-# class SectionFilter(admin.SimpleListFilter):
-#     title = 'Section'
-#     parameter_name = 'section'
-
-#     def lookups(self, request, model_admin):
-#         sections = student_class.objects.values_list('section', flat=True).distinct()
-#         return [(section, section) for section in sections]
-
-#     def queryset(self, request, queryset):
-#         if self.value():
-#             print("seld",type(self.value()))
-#             # print("student_id",student_class.objects.filter(section=self.value()).values('student_id'))
-#             return queryset.filter(student_id__in=student_class.objects.filter(section=self.value()).values('student_id'))
-#         return queryset
-
-
-# class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
-#     list_display = ('addmission_no', 'student_name', 'get_class_no', 'get_section', 'mobile_no')
-#     search_fields = ("addmission_no",)
-#     list_filter = (ClassFilter, SectionFilter)  # Custom filters for class and section
-
-#     def get_class_no(self, obj):
-#         # student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('started_on').first()
-#         return student_class_instance.class_no if student_class_instance else None
-#     get_class_no.short_description = 'Class'
-
-#     def get_section(self, obj):
-#         # student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('started_on').first()
-#         return student_class_instance.section if student_class_instance else None
-#     get_section.short_description = 'Section'
-
-#     def get_queryset(self, request):
-#         queryset = super().get_queryset(request)
-        
-#         # Get filter values
-#         class_no = request.GET.get('class_no')
-#         section = request.GET.get('section')
-
-#         # If no filters are selected, return an empty queryset
-#         if not class_no and not section:
-#             return queryset.none()
-
-#         # Apply filters based on selected criteria
-#         if class_no and section:
-#             # Both filters applied, must match both class and section
-#             print("class_no and section",type(section))
-#             queryset = queryset.filter(
-#                 student_id__in=student_class.objects.filter(class_no=class_no, section=section).values('student_id')
-#             )
-#         elif class_no:
-#             # Only class filter applied
-#             print("class_no",type(class_no))
-#             queryset = queryset.filter(
-#                 student_id__in=student_class.objects.filter(class_no=class_no).values('student_id')
-#             )
-#         elif section:
-#             print(" section",type(section))
-#             print(" student_class.objects.filter(section=section)",student_class.objects.filter(section=section))
-#             student_class.objects.filter(section=section)
-#             # Only section filter applied
-#             queryset = queryset.filter(
-#                 student_id__in=student_class.objects.filter(section=section).values('student_id')
-#             )
-        
-#         return queryset
-
-
-
-# to much improved
-# class ClassFilter(admin.SimpleListFilter):
-#     title = 'Class'
-#     parameter_name = 'class_no'
-
-#     def lookups(self, request, model_admin):
-#         classes = student_class.objects.values_list('class_no', flat=True).distinct()
-#         return [(class_no, class_no) for class_no in classes]
-
-#     def queryset(self, request, queryset):
-#         if self.value():
-#             return queryset.filter(student_id__in=student_class.objects.filter(class_no=self.value()).values('student_id'))
-#         return queryset
-
-
-# class SectionFilter(admin.SimpleListFilter):
-#     title = 'Section'
-#     parameter_name = 'section'
-
-#     def lookups(self, request, model_admin):
-#         sections = student_class.objects.values_list('section', flat=True).distinct()
-#         return [(section, section) for section in sections]
-
-#     def queryset(self, request, queryset):
-#         if self.value():
-#             return queryset.filter(student_id__in=student_class.objects.filter(section=self.value()).values('student_id'))
-#         return queryset
-
-
-# class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
-#     list_display = ('addmission_no', 'student_name', 'get_class_no', 'get_section', 'mobile_no')
-#     list_filter = (ClassFilter, SectionFilter)  # Custom filters for class and section
-
-#     def get_class_no(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.class_no if student_class_instance else None
-#     get_class_no.short_description = 'Class'
-
-#     def get_section(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.section if student_class_instance else None
-#     get_section.short_description = 'Section'
-
-#     def get_queryset(self, request):
-#         queryset = super().get_queryset(request)
-
-#         # Get filter values
-#         class_no = request.GET.get('class_no')
-#         section = request.GET.get('section')
-
-#         # If no filters are selected, return an empty queryset
-#         if not class_no and not section:
-#             return queryset.none()
-
-#         # Subquery to get the latest valid entry for each student based on filter criteria
-#         subquery = student_class.objects.filter(
-#             student_id=OuterRef('student_id'),
-#             started_on=Subquery(
-#                 student_class.objects.filter(
-#                     student_id=OuterRef('student_id')
-#                 ).values('student_id').annotate(
-#                     max_started_on=Max('started_on')
-#                 ).values('max_started_on')
-#             )
-#         ).values('student_id')
-
-#         if class_no:
-#             subquery = subquery.filter(class_no=class_no)
-#         if section:
-#             subquery = subquery.filter(section=section)
-
-#         # Filter queryset based on the subquery
-#         queryset = queryset.filter(student_id__in=Subquery(subquery))
-
-#         return queryset
-
-
-
-# class ClassFilter(admin.SimpleListFilter):
-#     title = 'Class'
-#     parameter_name = 'class_no'
-
-#     def lookups(self, request, model_admin):
-#         predefined_classes = ['Play-way', 'pre-nursery', 'nursery', 'LKG', 'UKG']
-        
-#         # Get all distinct class_no values from student_class, excluding predefined classes and 0
-#         class_numbers = student_class.objects.exclude(class_no__in=predefined_classes).exclude(class_no='0')
-
-#         # Convert numeric values to integers for sorting, and then sort them
-#         class_numbers = sorted(
-#             class_numbers.annotate(
-#                 numeric_class=Cast('class_no', IntegerField())
-#             ).values_list('numeric_class', flat=True)
-#         )
-
-#         # Combine predefined classes with sorted numeric classes
-#         class_list = predefined_classes + [str(num) for num in class_numbers]
-
-#         # Return as tuples for lookups
-#         return [(class_no, class_no) for class_no in class_list]
-
-#     def queryset(self, request, queryset):
-#         return queryset  # We handle filtering in get_queryset()
-
-
-# this is required
 
 class ClassFilter(admin.SimpleListFilter):
     title = 'Class'
     parameter_name = 'class_no'
 
     def lookups(self, request, model_admin):
-        predefined_classes = ['Play-way', 'pre-nursery', 'nursery', 'LKG', 'UKG']
-        # Get all distinct class_no values from student_class
-        class_numbers = student_class.objects.exclude(class_no__in=predefined_classes).values_list('class_no', flat=True).distinct()
-        
-        # Convert numeric values to integers for sorting
-        class_numbers = sorted(
-            class_numbers.annotate(
-                numeric_class=Cast('class_no', IntegerField())
-            ).values_list('numeric_class', flat=True)
-        )
-
-        # Combine predefined classes with sorted numeric classes
-        # class_list = predefined_classes + [str(num) for num in class_numbers]
-        class_list = predefined_classes + [str(i) for i in range(1, 13)]
-        
-        # Return as tuples for lookups
-        return [(class_no, class_no) for class_no in class_list]
-
-    def queryset(self, request, queryset):
-        return queryset  # We handle filtering in get_queryset()
-
+        return []
 
 # class ClassFilter(admin.SimpleListFilter):
 #     title = 'Class'
@@ -4300,14 +3544,17 @@ class SectionFilter(admin.SimpleListFilter):
     parameter_name = 'section'
 
     def lookups(self, request, model_admin):
-        # Get all distinct section values from student_class and order them alphabetically
-        sections = student_class.objects.values_list('section', flat=True).distinct().order_by('section')
+        return []
 
-        # Return as tuples for lookups
-        return [(section, section) for section in sections]
+    # def lookups(self, request, model_admin):
+    #     # Get all distinct section values from student_class and order them alphabetically
+    #     sections = student_class.objects.values_list('section', flat=True).distinct().order_by('section')
 
-    def queryset(self, request, queryset):
-        return queryset  # We handle filtering in get_queryset()
+    #     # Return as tuples for lookups
+    #     return [(section, section) for section in sections]
+
+    # def queryset(self, request, queryset):
+    #     return queryset  # We handle filtering in get_queryset()
 
 
 class YearFilter(admin.SimpleListFilter):
@@ -4315,18 +3562,22 @@ class YearFilter(admin.SimpleListFilter):
     parameter_name = 'year'
 
     def lookups(self, request, model_admin):
-        # Create a list of years from 2024 to 2018
-        years = [(str(year), str(year)) for year in range(2024, 2017, -1)]
-        return years
+        return []
 
-    def queryset(self, request, queryset):
-        # Return the queryset unchanged since this filter is not used for filtering
-        return queryset
+    # def lookups(self, request, model_admin):
+    #     # Create a list of years from 2024 to 2018
+    #     years = [(str(year), str(year)) for year in range(2024, 2017, -1)]
+    #     return years
+
+    # def queryset(self, request, queryset):
+    #     # Return the queryset unchanged since this filter is not used for filtering
+    #     return queryset
 
 
 class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
     list_display = ('addmission_no', 'student_name', 'get_class_no', 'get_section', 'mobile_no')
     list_filter = (ClassFilter, SectionFilter, YearFilter)
+    # change_list_template = 'admin/generate_mobile_number_changelist.html'  # Specify your custom template here
 
     def has_add_permission(self, request):
         return False
@@ -4338,52 +3589,105 @@ class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
         return False
 
     def get_class_no(self, obj):
-        return self.class_section_map.get(obj.student_id, {}).get('class_no')
+        # student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+        # return student_class_instance.class_no if student_class_instance else None
+        search_class_no = self._request.GET.get('class_no', None)
+
+        # Filter by class_no and/or section if available
+        if search_class_no:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
+        else:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+
+        return student_class_instance.class_no if student_class_instance else None
+
     get_class_no.short_description = 'Class'
 
     def get_section(self, obj):
-        return self.class_section_map.get(obj.student_id, {}).get('section')
+        # student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+        # return student_class_instance.section if student_class_instance else None
+
+        search_section = self._request.GET.get('section', None)
+
+        # Filter by class_no and/or section if available
+        if search_section:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id, section=search_section).order_by('-started_on').first()
+        else:
+            student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
+
+        return student_class_instance.section if student_class_instance else None
+    
     get_section.short_description = 'Section'
 
-    def get_queryset(self, request):
-        self.requested_class_no = request.GET.get('class_no')
-        self.requested_section = request.GET.get('section')
-        self.requested_year = request.GET.get('year')
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        
+        # Add filter values to the context
+        # extra_context['class_numbers'] = student_class.objects.values_list('class_no', flat=True).distinct()
+        extra_context['class_numbers'] = CLASS_CHOICES
+        # extra_context['sections'] = student_class.objects.values_list('section', flat=True).distinct()
 
-        queryset = super().get_queryset(request)
-
-        # If no filters are selected, return an empty queryset
-        if not self.requested_class_no and not self.requested_section and not self.requested_year:
-            return queryset.none()
-
-        # Filter `student_class` records based on selected class_no and section
-        student_class_queryset = student_class.objects.all()
+        # sections = student_class.objects.values_list('section', flat=True).distinct().order_by('section')
+        sections = student_class.objects.values_list('section', flat=True).exclude(section='').distinct().order_by('section')
 
 
+        # Return as tuples for lookups
+        extra_context['sections'] = [(section, section) for section in sections]
+        # extra_context['years'] = student_class.objects.values_list('started_on__year', flat=True).distinct()
+        # extra_context['years'] = [str(year) for year in range(2024, 2017, -1)]
+        year_choices = [str(year) for year in range(2024, 2017, -1)]
+        extra_context['year_choices'] = year_choices
+        self._request = request
+        return super().changelist_view(request, extra_context=extra_context)
 
-        if self.requested_class_no:
-            student_class_queryset = student_class_queryset.filter(class_no=self.requested_class_no)
+    change_list_template = 'admin/generate_mobile_number_changelist.html'
 
-        if self.requested_section:
-            student_class_queryset = student_class_queryset.filter(section=self.requested_section)
+    def get_search_results(self, request, queryset, search_term):
+        """
+        Overrides get_search_results to handle search and filtering with class_no, section, and year.
+        """
+        # Get the default queryset (with search fields applied)
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
-        # Create a map of student_id to their class and section
-        self.class_section_map = {}
-        for sc in student_class_queryset:
-            self.class_section_map[sc.student_id.student_id] = {
-                'class_no': sc.class_no,
-                'section': sc.section
-            }
+        # Retrieve filters from the request
+        requested_class_no = request.GET.get('class_no')
+        requested_section = request.GET.get('section')
+        year_filter_selected = request.GET.get('year')
 
-        # Filter the queryset based on student IDs that match the class_section_map
-        queryset = queryset.filter(student_id__in=self.class_section_map.keys())
+        if not requested_class_no and not requested_section and not year_filter_selected:
+            return queryset.none(), use_distinct
 
-        return queryset
-    
-    
+        # Apply class and section filters if provided
+        if requested_class_no or requested_section:
+            # Get student IDs that match the class and section filters
+            student_ids = set()
+
+            if requested_class_no:
+                student_ids.update(
+                    student_class.objects.filter(class_no=requested_class_no).values_list('student_id', flat=True)
+                )
+
+            if requested_section:
+                student_ids.update(
+                    student_class.objects.filter(section=requested_section).values_list('student_id', flat=True)
+                )
+
+            # Filter the queryset based on student IDs
+            queryset = queryset.filter(student_id__in=student_ids)
+
+        # Apply year filter if selected
+        if year_filter_selected:
+            # queryset = queryset.filter(some_year_field=year_filter_selected)  # Customize this to your year field
+            # Optionally handle year filter logic here
+            pass
+
+        return queryset, use_distinct
+
+
     def export_as_csv(self, request, queryset):
         meta = self.model._meta
-        field_names = ['addmission_no', 'student_name', 'Class', 'Section', 'mobile_no']
+        # field_names = ['addmission_no', 'student_name', 'Class', 'Section', 'mobile_no']
+        field_names = ['Addmission no', 'Student Name', 'Class', 'Section', 'Mobile No']
 
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename={meta}.csv'
@@ -4406,1314 +3710,7 @@ class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
     actions = [export_as_csv]
 
 
-
-# class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
-#     list_display = ('addmission_no', 'student_name', 'get_class_no', 'get_section', 'mobile_no')
-#     list_filter = (ClassFilter, SectionFilter, YearFilter)
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     def get_class_no(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.class_no if student_class_instance else None
-#     get_class_no.short_description = 'Class'
-
-#     def get_section(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.section if student_class_instance else None
-#     get_section.short_description = 'Section'
-
-#     def get_queryset(self, request):
-#         queryset = super().get_queryset(request)
-
-#         # Retrieve filters from the request
-#         requested_class_no = request.GET.get('class_no')
-#         requested_section = request.GET.get('section')
-#         year_filter_selected = request.GET.get('year')
-
-#         # If a year filter is selected, show all records
-#         # if year_filter_selected:
-#         #     return queryset
-
-#         # Apply class and section filters if provided
-#         if requested_class_no or requested_section:
-#             # Get student IDs that match the class and section filters
-#             student_ids = set()
-
-#             if requested_class_no:
-#                 student_ids.update(
-#                     student_class.objects.filter(class_no=requested_class_no).values_list('student_id', flat=True)
-#                 )
-
-#             if requested_section:
-#                 student_ids.update(
-#                     student_class.objects.filter(section=requested_section).values_list('student_id', flat=True)
-#                 )
-
-#             # Filter the queryset based on student IDs
-#             queryset = queryset.filter(student_id__in=student_ids)
-
-#         elif year_filter_selected:
-#             return queryset
-#         else:
-#             # If no filters are selected, return an empty queryset
-#             return queryset.none()
-
-#         return queryset
-
-#     def export_as_csv(self, request, queryset):
-#         meta = self.model._meta
-#         field_names = ['addmission_no', 'student_name', 'Class', 'Section', 'mobile_no']
-
-#         response = HttpResponse(content_type='text/csv')
-#         response['Content-Disposition'] = f'attachment; filename={meta}.csv'
-#         writer = csv.writer(response)
-
-#         writer.writerow(field_names)
-#         for obj in queryset:
-#             row = [
-#                 getattr(obj, 'addmission_no'),
-#                 getattr(obj, 'student_name'),
-#                 self.get_class_no(obj),
-#                 self.get_section(obj),
-#                 getattr(obj, 'mobile_no')
-#             ]
-#             writer.writerow(row)
-
-#         return response
-
-#     export_as_csv.short_description = "Export Selected to CSV"
-#     actions = [export_as_csv]
-
-
-
-    
-
-
-
-# class GenerateMobileNumbersListAdmin(admin.ModelAdmin):
-#     list_display = ('addmission_no', 'student_name', 'Class', 'Section', 'mobile_no')
-#     list_filter = ('get_class_no', 'get_section')
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     def Class(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.class_no if student_class_instance else None
-#     Class.short_description = 'Class'
-
-#     def Section(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.section if student_class_instance else None
-#     Section.short_description = 'Section'
-
-#     def export_as_csv(self, request, queryset):
-#         meta = self.model._meta
-#         field_names = ['addmission_no', 'student_name', 'Class', 'Section', 'mobile_no']
-
-#         response = HttpResponse(content_type='text/csv')
-#         response['Content-Disposition'] = f'attachment; filename={meta}.csv'
-#         writer = csv.writer(response)
-
-#         writer.writerow(field_names)
-#         for obj in queryset:
-#             row = [
-#                 getattr(obj, 'addmission_no'),
-#                 getattr(obj, 'student_name'),
-#                 self.Class(obj),
-#                 self.Section(obj),
-#                 getattr(obj, 'mobile_no')
-#             ]
-#             writer.writerow(row)
-
-#         return response
-
-#     export_as_csv.short_description = "Export Selected to CSV"
-#     actions = [export_as_csv]
-
-
-
-
-
-# admin.site.register(generate_mobile_number_list,GenerateMobileNumbersListAdmin)
-
-
-# class ChequeStatusListAdmin(admin.ModelAdmin):
-#     list_display = ('addmission_no', 'Class', 'Section','student_name', 'FeesPeriod')
-#     search_fields = ['addmission_no', 'student_class', 'student_section','student_name', 'FeesPeriod']
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     def Class(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_class  if student_class_instance else None
-#     Class.short_description = 'Class'
-
-#     def Section(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_section if student_class_instance else None
-#     Section.short_description = 'Section'
-
-#     def FeesPeriod(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.fees_period_month if student_class_instance else None
-#     FeesPeriod.short_description = 'Fees Period Month'
-
-# class ChequeStatusListAdmin(admin.ModelAdmin):
-#     list_display = ('addmission_no', 'Class', 'Section', 'Student Name', 'FeesPeriod')
-#     search_fields = ['addmission_no', 'student_name']  # Only fields in student_master
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     def Class(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_class if student_class_instance else None
-#     Class.short_description = 'Student Class'
-
-#     def Section(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_section if student_class_instance else None
-#     Section.short_description = 'Student Section'
-
-#     def FeesPeriod(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.fees_period_month if student_class_instance else None
-#     FeesPeriod.short_description = 'Fees Period Month'
-
-#     # Custom search method
-#     def get_search_results(self, request, queryset, search_term):
-#         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
-#         if search_term:
-#             queryset = queryset.filter(
-#                 student_id__in=student_fee.objects.filter(
-#                     student_class__icontains=search_term
-#                 ).values('student_id')
-#             ) | queryset.filter(
-#                 student_id__in=student_fee.objects.filter(
-#                     student_section__icontains=search_term
-#                 ).values('student_id')
-#             )
-#         return queryset, use_distinct
-    
-# class ChequeStatusListAdmin(admin.ModelAdmin):
-#     list_display = (
-#         'addmission_no', 'Class', 'Section', 'student_name', 'FeesPeriod', 'Year', 'DatePayment',
-#         'ChequeStatus', 'CheqNo', 'BankName', 'BranchName', 'TotalAmount', 'AmountPaid',
-#         'DateEntry'
-#     )
-#     search_fields = [
-#         'addmission_no', 'student_name', 'student_fee__year', 'student_fee__date_payment',
-#         'student_fee__cheque_status', 'student_fee__cheq_no', 'student_fee__bank_name',
-#         'student_fee__branch_name', 'student_fee__total_amount', 'student_fee__amount_paid',
-#         'student_fee__entry_date'
-#     ]
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     def Class(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_class if student_class_instance else None
-#     Class.short_description = 'Class'
-
-#     def Section(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_section if student_class_instance else None
-#     Section.short_description = 'Section'
-
-#     def FeesPeriod(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.fees_period_month if student_class_instance else None
-#     FeesPeriod.short_description = 'Fees Period Month'
-
-#     def Year(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.year if student_class_instance else None
-#     Year.short_description = 'Year'
-
-#     def DatePayment(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.date_payment if student_class_instance else None
-#     DatePayment.short_description = 'Date Payment'
-
-#     def ChequeStatus(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.cheque_status if student_class_instance else None
-#     ChequeStatus.short_description = 'Cheque Status'
-
-#     def CheqNo(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.cheq_no if student_class_instance else None
-#     CheqNo.short_description = 'Cheque No'
-
-#     def BankName(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.bank_name if student_class_instance else None
-#     BankName.short_description = 'Bank Name'
-
-#     def BranchName(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.branch_name if student_class_instance else None
-#     BranchName.short_description = 'Branch Name'
-
-#     def TotalAmount(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.total_amount if student_class_instance else None
-#     TotalAmount.short_description = 'Total Amount'
-
-#     def AmountPaid(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.amount_paid if student_class_instance else None
-#     AmountPaid.short_description = 'Amount Paid'
-
-#     def DateEntry(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.entry_date if student_class_instance else None
-#     DateEntry.short_description = 'Date of Entry'
-
-#     # def RealizedDate(self, obj):
-#     #     student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#     #     return student_class_instance.realized_date if student_class_instance else None
-#     # RealizedDate.short_description = 'Realized Date'
-
-#     actions = ['mark_as_realized', 'mark_as_rejected']
-
-#     def mark_as_realized(self, request, queryset):
-#         for obj in queryset:
-#             student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#             if student_class_instance:
-#                 student_class_instance.cheque_status = 'Realized'
-#                 student_class_instance.realized_date = timezone.now()  # Update the realized date
-#                 student_class_instance.save()
-#     mark_as_realized.short_description = "Mark selected cheques as Realized"
-
-#     def mark_as_rejected(self, request, queryset):
-#         for obj in queryset:
-#             student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#             if student_class_instance:
-#                 student_class_instance.cheque_status = 'Rejected'
-#                 student_class_instance.realized_date = None  # Clear the realized date
-#                 student_class_instance.save()
-#     mark_as_rejected.short_description = "Mark selected cheques as Rejected"
-
-#     def get_queryset(self, request):
-#         # Filter records where cheque_status is 'Open'
-#         queryset = super().get_queryset(request)
-#         open_student_ids = student_fee.objects.filter(cheque_status='Open').values_list('student_id', flat=True)
-#         return queryset.filter(student_id__in=open_student_ids)
-
-#     def get_search_results(self, request, queryset, search_term):
-#         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
-#         if search_term:
-#             queryset = queryset.filter(
-#                 student_id__in=student_fee.objects.filter(
-#                     student_class__icontains=search_term
-#                 ).values('student_id')
-#             ) | queryset.filter(
-#                 student_id__in=student_fee.objects.filter(
-#                     student_section__icontains=search_term
-#                 ).values('student_id')
-#             )
-#         return queryset, use_distinct
-
-
-class ChequeStatusListAdmin(admin.ModelAdmin):
-    list_display = (
-        'addmission_no', 'Class', 'Section', 'student_name', 'FeesPeriod', 'Year', 'DatePayment',
-        'ChequeStatus', 'CheqNo', 'BankName', 'BranchName', 'TotalAmount', 'AmountPaid',
-        'DateEntry'
-    )
-    search_fields = [
-        'addmission_no', 'student_name', 'student_fee__year', 'student_fee__date_payment',
-        'student_fee__cheque_status', 'student_fee__cheq_no', 'student_fee__bank_name',
-        'student_fee__branch_name', 'student_fee__total_amount', 'student_fee__amount_paid',
-        'student_fee__entry_date'
-    ]
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-    
-    def format_date(self, date):
-        return DateFormat(date).format('Y-m-d') if date else None
-
-    def Class(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        return student_class_instance.student_class if student_class_instance else None
-    Class.short_description = 'Class'
-
-    def Section(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        return student_class_instance.student_section if student_class_instance else None
-    Section.short_description = 'Section'
-
-    def FeesPeriod(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        return student_class_instance.fees_period_month if student_class_instance else None
-    FeesPeriod.short_description = 'Fees Period Month'
-
-    def Year(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        return student_class_instance.year if student_class_instance else None
-    Year.short_description = 'Year'
-
-    def DatePayment(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        # return student_class_instance.date_payment if student_class_instance else None
-        return self.format_date(student_class_instance.date_payment) if student_class_instance else None
-    DatePayment.short_description = 'Date Payment'
-
-    def ChequeStatus(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        return student_class_instance.cheque_status if student_class_instance else None
-    ChequeStatus.short_description = 'Cheque Status'
-
-    def CheqNo(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        return student_class_instance.cheq_no if student_class_instance else None
-    CheqNo.short_description = 'Cheque No'
-
-    def BankName(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        return student_class_instance.bank_name if student_class_instance else None
-    BankName.short_description = 'Bank Name'
-
-    def BranchName(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        return student_class_instance.branch_name if student_class_instance else None
-    BranchName.short_description = 'Branch Name'
-
-    def TotalAmount(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        return student_class_instance.total_amount if student_class_instance else None
-    TotalAmount.short_description = 'Total Amount'
-
-    def AmountPaid(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        return student_class_instance.amount_paid if student_class_instance else None
-    AmountPaid.short_description = 'Amount Paid'
-
-    def DateEntry(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        # return student_class_instance.entry_date if student_class_instance else None
-        return self.format_date(student_class_instance.entry_date if student_class_instance else None)
-    DateEntry.short_description = 'Date of Entry'
-
-    def RealizedDate(self, obj):
-        student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-        return student_class_instance.realized_date if student_class_instance else None
-    RealizedDate.short_description = 'Realized Date'
-
-    actions = ['mark_as_realized', 'mark_as_rejected']
-
-    def mark_as_realized(self, request, queryset):
-        for obj in queryset:
-            student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-            if student_class_instance:
-                student_class_instance.cheque_status = 'Realized'
-                student_class_instance.realized_date = timezone.now()  # Update the realized date
-                student_class_instance.save()
-    mark_as_realized.short_description = "Mark selected cheques as Realized"
-
-    def mark_as_rejected(self, request, queryset):
-        for obj in queryset:
-            student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-            if student_class_instance:
-                student_class_instance.cheque_status = 'Rejected'
-                student_class_instance.realized_date = None  # Clear the realized date
-                student_class_instance.save()
-    mark_as_rejected.short_description = "Mark selected cheques as Rejected"
-
-    def get_queryset(self, request):
-        # Filter the `student_fee` records where `cheque_status` is 'Open'
-        student_ids_with_open_cheque = student_fee.objects.filter(cheque_status='Open').values_list('student_id', flat=True)
-        # Filter the queryset of `cheque_status` to include only those student_ids
-        queryset = super().get_queryset(request)
-        return queryset.filter(student_id__in=student_ids_with_open_cheque)
-
-# this is working
-
-# class ChequeStatusListForm(forms.Form):
-#     realized_date = forms.DateField(
-#         widget=forms.TextInput(attrs={'type': 'date'}),
-#         required=False,
-#         label="Realized Date"
-#     )
-
-# class ChequeStatusListAdmin(admin.ModelAdmin):
-#     list_display = (
-#         'addmission_no', 'Class', 'Section', 'student_name', 'FeesPeriod', 'Year', 'DatePayment',
-#         'ChequeStatus', 'CheqNo', 'BankName', 'BranchName', 'TotalAmount', 'AmountPaid', 'DateEntry'
-#     )
-#     search_fields = [
-#         'addmission_no', 'student_name', 'student_fee__year', 'student_fee__date_payment',
-#         'student_fee__cheque_status', 'student_fee__cheq_no', 'student_fee__bank_name',
-#         'student_fee__branch_name', 'student_fee__total_amount', 'student_fee__amount_paid',
-#         'student_fee__entry_date'
-#     ]
-
-#     actions = ['mark_as_realized', 'mark_as_rejected']
-
-#     def get_queryset(self, request):
-#         student_ids_with_open_cheque = student_fee.objects.filter(cheque_status='Open').values_list('student_id', flat=True)
-#         queryset = super().get_queryset(request)
-#         return queryset.filter(student_id__in=student_ids_with_open_cheque)
-
-#     def get_changelist_form(self, request, **kwargs):
-#         return ChequeStatusListForm
-
-#     def changelist_view(self, request, extra_context=None):
-#         if request.method == 'POST':
-#             form = ChequeStatusListForm(request.POST)
-#             if form.is_valid():
-#                 request.session['realized_date'] = form.cleaned_data['realized_date']
-#         else:
-#             form = ChequeStatusListForm()
-
-#         extra_context = extra_context or {}
-#         extra_context['changelist_form'] = form
-#         return super().changelist_view(request, extra_context=extra_context)
-
-#     def mark_as_realized(self, request, queryset):
-#         realized_date = request.session.get('realized_date', timezone.now().date())
-#         for obj in queryset:
-#             student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#             if student_class_instance:
-#                 student_class_instance.cheque_status = 'Realized'
-#                 student_class_instance.realized_date = realized_date
-#                 student_class_instance.save()
-#     mark_as_realized.short_description = "Mark selected cheques as Realized"
-
-#     def mark_as_rejected(self, request, queryset):
-#         realized_date = request.session.get('realized_date', None)
-#         for obj in queryset:
-#             student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#             if student_class_instance:
-#                 student_class_instance.cheque_status = 'Rejected'
-#                 student_class_instance.realized_date = realized_date
-#                 student_class_instance.save()
-#     mark_as_rejected.short_description = "Mark selected cheques as Rejected"
-
-# admin.site.register(cheque_status, ChequeStatusListAdmin)
-# this is working
-
-
-# class ChequeStatusListAdmin(admin.ModelAdmin):
-#     list_display = (
-#         'addmission_no', 'get_class', 'get_section', 'student_name', 'get_fees_period', 'get_year', 
-#         'get_date_payment', 'get_cheque_status', 'get_cheq_no', 'get_bank_name', 
-#         'get_branch_name', 'get_total_amount', 'get_amount_paid', 'get_date_entry'
-#     )
-#     search_fields = [
-#         'addmission_no', 'student_name', 'student_fee__year', 'student_fee__date_payment',
-#         'student_fee__cheque_status', 'student_fee__cheq_no', 'student_fee__bank_name',
-#         'student_fee__branch_name', 'student_fee__total_amount', 'student_fee__amount_paid',
-#         'student_fee__entry_date'
-#     ]
-
-#     actions = ['mark_as_realized', 'mark_as_rejected']
-
-    
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     # Define the methods for each custom field
-#     def get_class(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_class if student_class_instance else None
-#     get_class.short_description = 'Class'
-
-#     def get_section(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_section if student_class_instance else None
-#     get_section.short_description = 'Section'
-
-#     def get_fees_period(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.fees_period_month if student_class_instance else None
-#     get_fees_period.short_description = 'Fees Period Month'
-
-#     def get_year(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.year if student_class_instance else None
-#     get_year.short_description = 'Year'
-
-#     def get_date_payment(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.date_payment if student_class_instance else None
-#     get_date_payment.short_description = 'Date Payment'
-
-#     def get_cheque_status(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.cheque_status if student_class_instance else None
-#     get_cheque_status.short_description = 'Cheque Status'
-
-#     def get_cheq_no(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.cheq_no if student_class_instance else None
-#     get_cheq_no.short_description = 'Cheque No'
-
-#     def get_bank_name(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.bank_name if student_class_instance else None
-#     get_bank_name.short_description = 'Bank Name'
-
-#     def get_branch_name(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.branch_name if student_class_instance else None
-#     get_branch_name.short_description = 'Branch Name'
-
-#     def get_total_amount(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.total_amount if student_class_instance else None
-#     get_total_amount.short_description = 'Total Amount'
-
-#     def get_amount_paid(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.amount_paid if student_class_instance else None
-#     get_amount_paid.short_description = 'Amount Paid'
-
-#     def get_date_entry(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.entry_date if student_class_instance else None
-#     get_date_entry.short_description = 'Date of Entry'
-
-#     def get_queryset(self, request):
-#         student_ids_with_open_cheque = student_fee.objects.filter(cheque_status='Open').values_list('student_id', flat=True)
-#         queryset = super().get_queryset(request)
-#         return queryset.filter(student_id__in=student_ids_with_open_cheque)
-    
-
-
-#     def changelist_view(self, request, extra_context=None):
-#         if request.method == 'POST' and 'apply' in request.POST:
-#             realized_date_form = RealizedDateForm(request.POST)
-#             if realized_date_form.is_valid():
-#                 realized_date = realized_date_form.cleaned_data['realized_date']
-#                 # Store the realized_date in the session to use in actions
-#                 request.session['realized_date'] = str(realized_date)
-#         else:
-#             realized_date_form = RealizedDateForm()
-
-#         extra_context = extra_context or {}
-#         extra_context['realized_date_form'] = realized_date_form
-
-#         return super().changelist_view(request, extra_context=extra_context)
-
-#     def mark_as_realized(self, request, queryset):
-#         realized_date = request.session.get('realized_date')
-#         if realized_date:
-#             queryset.update(cheque_status='Realized', realized_date=realized_date)
-#         self.message_user(request, "Selected records marked as Realized.")
-    
-#     mark_as_realized.short_description = "Mark selected as Realized"
-
-#     def mark_as_rejected(self, request, queryset):
-#         realized_date = request.session.get('realized_date')
-#         if realized_date:
-#             queryset.update(cheque_status='Rejected', realized_date=realized_date)
-#         self.message_user(request, "Selected records marked as Rejected.")
-    
-#     mark_as_rejected.short_description = "Mark selected as Rejected"
-    
-    
-# from django.contrib import admin
-# from django.utils.dateformat import DateFormat
-# from .models import cheque_status, student_fee
-# from .forms import RealizedDateForm
-
-# class ChequeStatusListAdmin(admin.ModelAdmin):
-#     list_display = (
-#         'addmission_no', 'get_class', 'get_section', 'student_name', 'get_fees_period', 'get_year', 
-#         'get_date_payment', 'get_cheque_status', 'get_cheq_no', 'get_bank_name', 
-#         'get_branch_name', 'get_total_amount', 'get_amount_paid', 'get_date_entry'
-#     )
-#     search_fields = [
-#         'addmission_no', 'student_name', 'student_fee__year', 'student_fee__date_payment',
-#         'student_fee__cheque_status', 'student_fee__cheq_no', 'student_fee__bank_name',
-#         'student_fee__branch_name', 'student_fee__total_amount', 'student_fee__amount_paid',
-#         'student_fee__entry_date'
-#     ]
-
-#     actions = ['mark_as_realized', 'mark_as_rejected']
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     def format_date(self, date):
-#         return DateFormat(date).format('Y-m-d') if date else None
-
-#     def get_class(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_class if student_class_instance else None
-#     get_class.short_description = 'Class'
-
-#     def get_section(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_section if student_class_instance else None
-#     get_section.short_description = 'Section'
-
-#     def get_fees_period(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.fees_period_month if student_class_instance else None
-#     get_fees_period.short_description = 'Fees Period Month'
-
-#     def get_year(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.year if student_class_instance else None
-#     get_year.short_description = 'Year'
-
-#     def get_date_payment(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return self.format_date(student_class_instance.date_payment) if student_class_instance else None
-#     get_date_payment.short_description = 'Date Payment'
-
-#     def get_cheque_status(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.cheque_status if student_class_instance else None
-#     get_cheque_status.short_description = 'Cheque Status'
-
-#     def get_cheq_no(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.cheq_no if student_class_instance else None
-#     get_cheq_no.short_description = 'Cheque No'
-
-#     def get_bank_name(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.bank_name if student_class_instance else None
-#     get_bank_name.short_description = 'Bank Name'
-
-#     def get_branch_name(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.branch_name if student_class_instance else None
-#     get_branch_name.short_description = 'Branch Name'
-
-#     def get_total_amount(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.total_amount if student_class_instance else None
-#     get_total_amount.short_description = 'Total Amount'
-
-#     def get_amount_paid(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.amount_paid if student_class_instance else None
-#     get_amount_paid.short_description = 'Amount Paid'
-
-#     def get_date_entry(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return self.format_date(student_class_instance.entry_date) if student_class_instance else None
-#     get_date_entry.short_description = 'Date of Entry'
-
-#     def get_queryset(self, request):
-#         student_ids_with_open_cheque = student_fee.objects.filter(cheque_status='Open').values_list('student_id', flat=True)
-#         queryset = super().get_queryset(request)
-#         return queryset.filter(student_id__in=student_ids_with_open_cheque)
-    
-#     # def changelist_view(self, request, extra_context=None):
-#     #     if request.method == 'POST' and 'apply' in request.POST:
-#     #         realized_date_form = RealizedDateForm(request.POST)
-#     #         if realized_date_form.is_valid():
-#     #             realized_date = realized_date_form.cleaned_data['realized_date']
-#     #             request.session['realized_date'] = str(realized_date)
-#     #     else:
-#     #         realized_date_form = RealizedDateForm()
-
-#     #     extra_context = extra_context or {}
-#     #     extra_context['realized_date_form'] = realized_date_form
-
-#     #     return super().changelist_view(request, extra_context=extra_context)
-
-#     def mark_as_realized(self, request, queryset):
-#         realized_date = request.session.get('realized_date')
-#         if realized_date:
-#             queryset.update(cheque_status='Realized', realized_date=realized_date)
-#         self.message_user(request, "Selected records marked as Realized.")
-    
-#     mark_as_realized.short_description = "Mark selected as Realized"
-
-#     def mark_as_rejected(self, request, queryset):
-#         realized_date = request.session.get('realized_date')
-#         if realized_date:
-#             queryset.update(cheque_status='Rejected', realized_date=realized_date)
-#         self.message_user(request, "Selected records marked as Rejected.")
-    
-#     mark_as_rejected.short_description = "Mark selected as Rejected"
-
-# admin.site.register(cheque_status, ChequeStatusListAdmin)
-
-
-# class ChequeStatusListAdmin(admin.ModelAdmin):
-#     list_display = (
-#         'addmission_no', 'Class', 'Section', 'student_name', 'FeesPeriod',
-#         'Year', 'DatePayment', 'ChequeStatus', 'CheqNo', 'BankName',
-#         'BranchName', 'TotalAmount', 'AmountPaid', 'DateEntry'
-#     )
-#     search_fields = [
-#         'addmission_no', 'student_name', 'student_fee__year', 
-#         'student_fee__date_payment', 'student_fee__cheque_status', 
-#         'student_fee__cheq_no', 'student_fee__bank_name', 
-#         'student_fee__branch_name', 'student_fee__total_amount', 
-#         'student_fee__amount_paid', 'student_fee__entry_date'
-#     ]
-#     actions = ['mark_as_realized', 'mark_as_rejected']
-
-    
-#     def get_class(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_class if student_class_instance else None
-#     get_class.short_description = 'Class'
-
-#     def get_section(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.student_section if student_class_instance else None
-#     get_section.short_description = 'Section'
-
-#     def get_fees_period(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.fees_period_month if student_class_instance else None
-#     get_fees_period.short_description = 'Fees Period Month'
-
-#     def get_year(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.year if student_class_instance else None
-#     get_year.short_description = 'Year'
-
-#     def get_date_payment(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.date_payment if student_class_instance else None
-#     get_date_payment.short_description = 'Date Payment'
-
-#     def get_cheque_status(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.cheque_status if student_class_instance else None
-#     get_cheque_status.short_description = 'Cheque Status'
-
-#     def get_cheq_no(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.cheq_no if student_class_instance else None
-#     get_cheq_no.short_description = 'Cheque No'
-
-#     def get_bank_name(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.bank_name if student_class_instance else None
-#     get_bank_name.short_description = 'Bank Name'
-
-#     def get_branch_name(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.branch_name if student_class_instance else None
-#     get_branch_name.short_description = 'Branch Name'
-
-#     def get_total_amount(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.total_amount if student_class_instance else None
-#     get_total_amount.short_description = 'Total Amount'
-
-#     def get_amount_paid(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.amount_paid if student_class_instance else None
-#     get_amount_paid.short_description = 'Amount Paid'
-
-#     def get_date_entry(self, obj):
-#         student_class_instance = student_fee.objects.filter(student_id=obj.student_id).order_by('-added_at').first()
-#         return student_class_instance.entry_date if student_class_instance else None
-#     get_date_entry.short_description = 'Date of Entry'
-
-#     def get_queryset(self, request):
-#         student_ids_with_open_cheque = student_fee.objects.filter(cheque_status='Open').values_list('student_id', flat=True)
-#         queryset = super().get_queryset(request)
-#         return queryset.filter(student_id__in=student_ids_with_open_cheque)
-
-#     def changelist_view(self, request, extra_context=None):
-#         if request.method == 'POST' and 'apply' in request.POST:
-#             realized_date_form = RealizedDateForm(request.POST)
-#             if realized_date_form.is_valid():
-#                 realized_date = realized_date_form.cleaned_data['realized_date']
-#                 # Store the realized_date in the session to use in actions
-#                 request.session['realized_date'] = str(realized_date)
-#         else:
-#             realized_date_form = RealizedDateForm()
-
-#         extra_context = extra_context or {}
-#         extra_context['realized_date_form'] = realized_date_form
-
-#         return super().changelist_view(request, extra_context=extra_context)
-
-#     def mark_as_realized(self, request, queryset):
-#         realized_date = request.session.get('realized_date')
-#         if realized_date:
-#             queryset.update(cheque_status='Realized', realized_date=realized_date)
-#         self.message_user(request, "Selected records marked as Realized.")
-    
-#     mark_as_realized.short_description = "Mark selected as Realized"
-
-#     def mark_as_rejected(self, request, queryset):
-#         realized_date = request.session.get('realized_date')
-#         if realized_date:
-#             queryset.update(cheque_status='Rejected', realized_date=realized_date)
-#         self.message_user(request, "Selected records marked as Rejected.")
-    
-#     mark_as_rejected.short_description = "Mark selected as Rejected"
-
-
-# admin.site.register(cheque_status, ChequeStatusListAdmin)
-
-# # admin.site.register(transport)
-# from django.contrib import admin
-# from .models import transport, StudentMaster
-
-# Custom admin class for the transport model
-# from django.contrib import admin
-# from .models import transport, StudentMaster, StudentClass, BusFeesMaster, BusMaster
-# from django.db.models import OuterRef, Subquery
-
-# class TransportAdmin(admin.ModelAdmin):
-#     list_display = ('student_id', 'student_name', 'admission_no', 'bus_id', 'status')
-#     search_fields = ('student_name', 'admission_no', 'bus_id')
-#     list_filter = ('status',)
-
-#     def get_queryset(self, request):
-#         # Get filter parameters from the request
-#         busno = request.GET.get('busno', None)
-#         c = request.GET.get('class', None)  # 'class' might be a reserved keyword, use 'class_no'
-#         d = request.GET.get('destination', None)
-
-#         # Build the route and destination conditions
-#         busfees_filter = {}
-#         if busno:
-#             busfees_filter['route'] = busno
-#         if d:
-#             busfees_filter['destination'] = d
-
-#         # Filter students who are not "passed out"
-#         student_filter = {'status__ne': 'passed out'}
-
-#         # Get the latest student_class_id for each student (subquery)
-#         subquery = StudentClass.objects.filter(student_id=OuterRef('student_id')).order_by('-student_class_id').values('student_class_id')[:1]
-        
-
-#         # Filter based on bus route and destination
-#         bus_fees = BusFeesMaster.objects.filter(**busfees_filter)
-
-#         # Filter students manually based on conditions
-#         queryset = StudentMaster.objects.filter(
-#             student_id__in=Subquery(
-#                 StudentClass.objects.filter(student_class_id=subquery).values('student_id')
-#             ),
-#             bus_id__in=bus_fees.values('bus_id'),
-#             **student_filter
-#         )
-
-#         # Apply class filter if provided
-#         if c:
-#             queryset = queryset.filter(
-#                 student_id__in=StudentClass.objects.filter(class_no=c).values('student_id')
-#             )
-
-#     #         # Now get the bus details from BusMaster
-#         bus_routes = BusMaster.objects.filter(bus_route__in=bus_fees.values('route'))
-
-#         # Build the transport details
-#         trdetails = ""
-
-#         for student in students:
-#             student_class = StudentClass.objects.filter(student_id=student.student_id).first()
-#             bus_fees_record = bus_fees.filter(bus_id=student.bus_id).first()
-#             bus_route_record = bus_routes.filter(bus_route=bus_fees_record.route).first()
-
-#             trdetails += f"{student.student_id}*{student.student_name}*" \
-#                         f"{student.admission_no}*{student_class.class_no}*" \
-#                         f"{student_class.section}*{bus_fees_record.destination}*" \
-#                         f"{bus_fees_record.route}*{student.father_name}*" \
-#                         f"{student.phone_no}*{bus_route_record.bus_driver}*" \
-#                         f"{bus_route_record.driver_phone}*{bus_route_record.bus_conductor}*" \
-#                         f"{bus_route_record.conductor_phone}*" \
-#                         f"{bus_route_record.bus_attendant}*{bus_route_record.attendant_phone}&"
-
-
-
-#         return queryset
-
-# Register the transport model with the custom admin class
-# admin.site.register(transport, TransportAdmin)
-# from django.contrib import admin
-# from .models import transport, StudentMaster, StudentClass, BusFeesMaster, BusMaster
-# from django.db.models import OuterRef, Subquery
-# from collections import namedtuple
-
-# class TransportAdmin(admin.ModelAdmin):
-#     list_display = ('student_id', 'student_name', 'admission_no', 'class_no', 'section', 'destination', 'route', 'father_name', 'phone_no', 'bus_driver', 'driver_phone', 'bus_conductor', 'conductor_phone', 'bus_attendant', 'attendant_phone')
-#     search_fields = ('student_name', 'admission_no', 'bus_id')
-#     list_filter = ('status',)
-
-#     def get_queryset(self, request):
-#         # Get filter parameters from the request
-#         busno = request.GET.get('busno', None)
-#         c = request.GET.get('class', None)
-#         d = request.GET.get('destination', None)
-
-#         # Build the route and destination conditions
-#         busfees_filter = {}
-#         if busno:
-#             busfees_filter['route'] = busno
-#         if d:
-#             busfees_filter['destination'] = d
-
-#         # Filter students who are not "passed out"
-#         student_filter = {'status__ne': 'passed out'}
-
-#         # Get the latest student_class_id for each student (subquery)
-#         subquery = student_class.objects.filter(student_id=OuterRef('student_id')).order_by('-student_class_id').values('student_class_id')[:1]
-
-#         # Filter based on bus route and destination
-#         bus_fees = BusFeesMaster.objects.filter(**busfees_filter)
-
-#         # Filter students manually based on conditions
-#         queryset = student_master.objects.filter(
-#             student_id__in=Subquery(
-#                 student_class.objects.filter(student_class_id=subquery).values('student_id')
-#             ),
-#             bus_id__in=bus_fees.values('bus_id'),
-#             **student_filter
-#         )
-
-#         # Apply class filter if provided
-#         if c:
-#             queryset = queryset.filter(
-#                 student_id__in=student_class.objects.filter(class_no=c).values('student_id')
-#             )
-
-#         # Fetch bus route details from BusMaster
-#         bus_routes = BusMaster.objects.filter(bus_route__in=bus_fees.values('route'))
-
-#         # Define a named tuple to represent the custom fields
-#         TransportDetails = namedtuple('TransportDetails', [
-#             'student_id', 'student_name', 'admission_no', 'class_no', 'section', 'destination', 
-#             'route', 'father_name', 'phone_no', 'bus_driver', 'driver_phone', 
-#             'bus_conductor', 'conductor_phone', 'bus_attendant', 'attendant_phone'
-#         ])
-
-#         # Build a list of custom objects with transport details
-#         custom_queryset = []
-#         for student in queryset:
-#             student_class1 = student_class.objects.filter(student_id=student.student_id).first()
-#             bus_fees_record = bus_fees.filter(bus_id=student.bus_id).first()
-#             bus_route_record = bus_routes.filter(bus_route=bus_fees_record.route).first()
-
-#             # Create an object for each student with the desired fields
-#             transport_detail = TransportDetails(
-#                 student_id=student.student_id,
-#                 student_name=student.student_name,
-#                 admission_no=student.admission_no,
-#                 class_no=student_class1.class_no if student_class1 else None,
-#                 section=student_class1.section if student_class1 else None,
-#                 destination=bus_fees_record.destination if bus_fees_record else None,
-#                 route=bus_fees_record.route if bus_fees_record else None,
-#                 father_name=student.father_name,
-#                 phone_no=student.phone_no,
-#                 bus_driver=bus_route_record.bus_driver if bus_route_record else None,
-#                 driver_phone=bus_route_record.driver_phone if bus_route_record else None,
-#                 bus_conductor=bus_route_record.bus_conductor if bus_route_record else None,
-#                 conductor_phone=bus_route_record.conductor_phone if bus_route_record else None,
-#                 bus_attendant=bus_route_record.bus_attendant if bus_route_record else None,
-#                 attendant_phone=bus_route_record.attendant_phone if bus_route_record else None
-#             )
-
-#             # Append the transport detail object to the custom queryset
-#             custom_queryset.append(transport_detail)
-
-#         # Return the custom queryset (a list of TransportDetails named tuples)
-#         return custom_queryset
-
-# # Register the transport model with the custom admin class
-# admin.site.register(transport, TransportAdmin)
-
-# from django.contrib import admin
-# from .models import transport, StudentMaster, StudentClass, BusFeesMaster, BusMaster
-from django.db.models import OuterRef, Subquery
-from collections import namedtuple
-
-class TransportAdmin(admin.ModelAdmin):
-    # Define methods to display custom fields in the list display
-    list_display = (
-        'get_student_id', 'get_student_name', 'get_admission_no', 'get_class_no', 
-        'get_section', 'get_destination', 'get_route', 'get_father_name', 
-        'get_phone_no', 'get_bus_driver', 'get_driver_phone', 'get_bus_conductor', 
-        'get_conductor_phone', 'get_bus_attendant', 'get_attendant_phone'
-    )
-    # search_fields = ('student_name', 'admission_no', 'bus_id')
-    # list_filter = ('status',)
-
-    def get_queryset(self, request):
-        # Get filter parameters from the request
-        busno = request.GET.get('busno', None)
-        c = request.GET.get('class', None)
-        d = request.GET.get('destination', None)
-
-        # Build the route and destination conditions
-        busfees_filter = {}
-        if busno:
-            busfees_filter['route'] = busno
-        if d:
-            busfees_filter['destination'] = d
-
-        # Filter students who are not "passed out"
-        # student_filter = {'status__ne': 'passed out'}
-        student_filter = {'status': 'passed out'}
-
-
-        # Get the latest student_class_id for each student (subquery)
-        subquery = student_class.objects.filter(student_id=OuterRef('student_id')).order_by('-student_class_id').values('student_class_id')[:1]
-
-        # Filter based on bus route and destination
-        bus_fees = busfees_master.objects.filter(**busfees_filter)
-
-        # Filter students manually based on conditions
-        # queryset = student_master.objects.filter(
-        #     student_id__in=Subquery(
-        #         student_class.objects.filter(student_class_id=subquery).values('student_id')
-        #     ),
-        #     bus_id__in=bus_fees.values('bus_id'),
-        #     **student_filter
-        # )
-
-        queryset = student_master.objects.filter(
-            student_id__in=Subquery(
-                student_class.objects.filter(student_class_id=subquery).values('student_id')
-            ),
-            bus_id__in=bus_fees.values('bus_id')
-        ).exclude(**student_filter)
-
-
-        # Apply class filter if provided
-        if c:
-            queryset = queryset.filter(
-                student_id__in=student_class.objects.filter(class_no=c).values('student_id')
-            )
-
-        # Fetch bus route details from BusMaster
-        bus_routes = bus_master.objects.filter(bus_route__in=bus_fees.values('route'))
-
-        # Define a named tuple to represent the custom fields
-        TransportDetails = namedtuple('TransportDetails', [
-            'student_id', 'student_name', 'admission_no', 'class_no', 'section', 'destination', 
-            'route', 'father_name', 'phone_no', 'bus_driver', 'driver_phone', 
-            'bus_conductor', 'conductor_phone', 'bus_attendant', 'attendant_phone'
-        ])
-
-        # Build a list of custom objects with transport details
-        self.custom_queryset = []
-        for student in queryset:
-            student_class1 = student_class.objects.filter(student_id=student.student_id).first()
-            bus_fees_record = bus_fees.filter(bus_id=student.bus_id).first()
-            bus_route_record = bus_routes.filter(bus_route=bus_fees_record.route).first()
-
-            # Create an object for each student with the desired fields
-            transport_detail = views.DictWithAttributeAccess({
-                "student_id":student.student_id,
-                "student_name":student.student_name,
-                "admission_no":student.addmission_no,
-                "class_no":student_class1.class_no if student_class1 else None,
-                "section":student_class1.section if student_class1 else None,
-                "destination":bus_fees_record.destination if bus_fees_record else None,
-                "route":bus_fees_record.route if bus_fees_record else None,
-                "father_name":student.father_name,
-                "phone_no":student.phone_no,
-                "bus_driver":bus_route_record.bus_driver if bus_route_record else None,
-                "driver_phone":bus_route_record.driver_phone if bus_route_record else None,
-                "bus_conductor":bus_route_record.bus_conductor if bus_route_record else None,
-                "conductor_phone":bus_route_record.conductor_phone if bus_route_record else None,
-                "bus_attendant":bus_route_record.bus_attendant if bus_route_record else None,
-                "attendant_phone":bus_route_record.attendant_phone if bus_route_record else None
-            })
-
-            # Append the transport detail object to the custom queryset
-            self.custom_queryset.append(transport_detail)
-
-        # Return the custom queryset (a list of TransportDetails named tuples)
-        return self.custom_queryset
-
-    # Define methods for each field to display in list_display
-    def get_student_id(self, obj):
-        return obj.student_id
-
-    def get_student_name(self, obj):
-        return obj.student_name
-
-    def get_admission_no(self, obj):
-        return obj.admission_no
-
-    def get_class_no(self, obj):
-        return obj.class_no
-
-    def get_section(self, obj):
-        return obj.section
-
-    def get_destination(self, obj):
-        return obj.destination
-
-    def get_route(self, obj):
-        return obj.route
-
-    def get_father_name(self, obj):
-        return obj.father_name
-
-    def get_phone_no(self, obj):
-        return obj.phone_no
-
-    def get_bus_driver(self, obj):
-        return obj.bus_driver
-
-    def get_driver_phone(self, obj):
-        return obj.driver_phone
-
-    def get_bus_conductor(self, obj):
-        return obj.bus_conductor
-
-    def get_conductor_phone(self, obj):
-        return obj.conductor_phone
-
-    def get_bus_attendant(self, obj):
-        return obj.bus_attendant
-
-    def get_attendant_phone(self, obj):
-        return obj.attendant_phone
-
-    # Set short descriptions for admin display
-    get_student_id.short_description = 'Student ID'
-    get_student_name.short_description = 'Student Name'
-    get_admission_no.short_description = 'Admission No'
-    get_class_no.short_description = 'Class No'
-    get_section.short_description = 'Section'
-    get_destination.short_description = 'Destination'
-    get_route.short_description = 'Route'
-    get_father_name.short_description = 'Father Name'
-    get_phone_no.short_description = 'Phone No'
-    get_bus_driver.short_description = 'Bus Driver'
-    get_driver_phone.short_description = 'Driver Phone'
-    get_bus_conductor.short_description = 'Bus Conductor'
-    get_conductor_phone.short_description = 'Conductor Phone'
-    get_bus_attendant.short_description = 'Bus Attendant'
-    get_attendant_phone.short_description = 'Attendant Phone'
-
-# Register the transport model with the custom admin class
-# admin.site.register(transport, TransportAdmin)
-
-
-# class CustomAdminSite(admin.AdminSite):
-#     site_header = "School Admin"
-#     site_title = "Admin Portal"
-#     index_title = "Welcome to School Admin"
-
-# # Create a custom admin site instance
-# custom_admin_site = CustomAdminSite(name='custom_admin')
-
-# # Register models under custom sections
-# custom_admin_site.register(student_master, StudentMasterAdmin)
-# custom_admin_site.register(student_fee, StudentFeesAdmin)
-
-# custom_admin_site.register(cheque_status, ChequeStatusListAdmin)
-
-# custom_admin_site.register(transport, TransportAdmin)
-
-# try:
-#     admin.site.unregister(student_master)
-#     admin.site.unregister(student_fee)
-#     admin.site.unregister(cheque_status)
-#     admin.site.unregister(transport)
-# except admin.sites.NotRegistered:
-#     pass
-
-
-
-# from django.contrib import admin
-# from django.contrib import admin
-# from .models import (
-#     user, student_master, student_fee, student_class, specialfee_master,
-#     payment_schedule_master, latefee_master, fees_master, expense,
-#     concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list, cheque_status, transport
-# )
-
-# class CustomAdminSite(admin.AdminSite):
-#     site_header = "School Admin"
-#     site_title = "Admin Portal"
-#     index_title = "Welcome to School Admin"
-
-# # Create an instance of the custom admin site
-# custom_admin_site = CustomAdminSite(name='custom_admin')
-
-# # Register models to the custom admin site
-# custom_admin_site.register(student_master)
-# custom_admin_site.register(student_fee)
-# custom_admin_site.register(cheque_status)
-# custom_admin_site.register(transport)
-
-# # Optionally, unregister these models from the default admin site
-# try:
-#     admin.site.unregister(student_master)
-#     admin.site.unregister(student_fee)
-#     admin.site.unregister(cheque_status)
-#     admin.site.unregister(transport)
-# except admin.sites.NotRegistered:
-#     pass
-
-# print(custom_admin_site._registry)
-
-# admin.site.register(student_master)
-# admin.site.register(student_fee)
-
-# # Register Group 2 models
-# admin.site.register(cheque_status)
-# admin.site.register(transport)
+admin.site.register(generate_mobile_number_list,GenerateMobileNumbersListAdmin)
 
 
 
