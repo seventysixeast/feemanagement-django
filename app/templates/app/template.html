@@ -1948,18 +1948,27 @@
         var csrftoken = $('meta[name="csrf-token"]').attr('content');
 
         $.ajax({
+          // url: "/generate-payment-url/",  // Adjust this URL to match your Django view
+          // method: "POST",
+          // contentType: "application/json",  // Set content type to JSON
+          // data: JSON.stringify({
+          //   admission_no: admission_no,
+          //   student_id: student_id,
+          //   amount: payment_amount,
+          //   yearlyAggregatedDetails: selectedQuatersData
+          // }),
           url: "/generate-payment-url/",  // Adjust this URL to match your Django view
-          method: "POST",
-          contentType: "application/json",  // Set content type to JSON
-          data: JSON.stringify({
+          method: "GET",
+          // contentType: "application/json",  // Set content type to JSON
+          data: ({
             admission_no: admission_no,
             student_id: student_id,
             amount: payment_amount,
-            yearlyAggregatedDetails: selectedQuatersData
+            yearlyAggregatedDetails: JSON.stringify(selectedQuatersData)
           }),
-          headers: {
-            "X-CSRFToken": csrftoken  // Include the CSRF token in the request header
-          },
+          // headers: {
+          //   "X-CSRFToken": csrftoken  // Include the CSRF token in the request header
+          // },
           success: function (response) {
             console.log("response", response);
             if (response.success) {
