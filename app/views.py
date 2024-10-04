@@ -418,7 +418,6 @@ def last_payment_record(student_id=None):
         if stfees:
             # Extract necessary fields
             fees_for_months = stfees.fees_for_months
-
             # Calculate sum_total_paid and admission_fees_paid for the same month, student, class, section, and year
             sum_total_paid_result = student_fee.objects.filter(
                 fees_for_months=fees_for_months,
@@ -1489,7 +1488,7 @@ def save_school_fee_transaction(student_id, txn_ref_number, quarterly_payment_de
     # Aggregate details by year
     for payment in quarterly_payment_details:
         # year = payment['year']
-        year = payment.get('payment', None)  # Returns None if 'bus_id' is not present
+        year = payment.get('year', None)  
 
         if year not in yearly_aggregated_details:
             # Initialize a new entry for the year
