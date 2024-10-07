@@ -81,6 +81,10 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 
 from django.db.models import Q
+
+from django.core.mail import send_mail
+from django.conf import settings
+from django.core.mail import EmailMessage
 # from .models import StudentMaster  # Assuming you have a StudentMaster model
 
 # Load the .env file
@@ -217,7 +221,14 @@ def send_otp_verification(request):
 
         if admission_number and mobile_number:
             # Check if the student exists in the database
-            student = student_master.objects.filter(addmission_no=admission_number, phone_no=mobile_number).first()
+            # student = student_master.objects.filter(addmission_no=admission_number, phone_no=mobile_number).first()
+
+            student = student_master.objects.filter(
+                addmission_no=admission_number
+            ).filter(
+                Q(phone_no=mobile_number) | Q(mobile_no=mobile_number)
+            ).values('addmission_no', 'phone_no', 'mobile_no', 'email', 'student_name').first()
+
 
             if student:
                 # Generate a random OTP
@@ -225,15 +236,50 @@ def send_otp_verification(request):
                 if mobile_number == '8146558059':
                     otp = '2135'
 
-                # Use Textlocal to send the OTP
+                # Update OTP in the student record
+                student_master.objects.filter(addmission_no=admission_number).update(otp=otp)
+                # Send OTP via email
+                print('student.email',student['email']) 
+                # if student.email:
+                #     email = student.email
+                if student.get('email'):
+                    email = student['email']
+                    try:
+                        validate_email(email)
+                        email_response = send_email_otp(email, student['student_name'], otp)
+                        # print('email_response',email_response)
+                        if email_response['success']:
+                            response['success'] = True
+                            response['message'] = "OTP sent successfully via email"
+                    except ValidationError:
+                        response['message'] = "Invalid email format"
+
+                # Send OTP via SMS
                 sms_response = send_otp_via_textlocal(mobile_number, otp)
-                print('sms_response',sms_response)
+                # print('sms_response',sms_response)
+                if sms_response['status'] == 'success':
+                    response['success'] = True
+                    response['message'] = "OTP sent successfully via SMS"
+
+                # Send OTP via WhatsApp
+                # whatsapp_response = send_whatsapp_otp(mobile_number, student.student_name, otp)
+                # print('whatsapp_response',whatsapp_response)
+                # if whatsapp_response['success']:
+                #     response['success'] = True
+                #     response['message'] = "OTP sent successfully via WhatsApp"
+
+                if not response['success']:
+                    response['message'] = "Failed to send OTP via email and WhatsApp"
+
+                # Use Textlocal to send the OTP
+                # sms_response = send_otp_via_textlocal(mobile_number, otp)
+                # print('sms_response',sms_response)
 
                 # Check if the SMS was sent successfully
                 # if sms_response['status'] == 'success':
-                response['success'] = True
-                response['message'] = "OTP sent successfully"
-                response['data'] = {'otp': otp}
+                # response['success'] = True
+                # response['message'] = "OTP sent successfully"
+                # response['data'] = {'otp': otp}
                 # else:
                 #     response['message'] = sms_response['errors'][0]['message']
             else:
@@ -272,36 +318,144 @@ def send_otp_verification_mobile_app(request):
             student_master.objects.filter(addmission_no=admission_number).update(otp=otp)
 
             # Send OTP via email
-            # if student.get('email'):
-            #     email = student['email']
-            #     try:
-            #         validate_email(email)
-            #         email_response = send_email_otp(email, student['student_name'], otp)
-            #         if email_response['success']:
-            #             response['success'] = True
-            #             response['message'] = "OTP sent successfully via email"
-            #     except ValidationError:
-            #         response['message'] = "Invalid email format"
+            if student.get('email'):
+                email = student['email']
+                try:
+                    validate_email(email)
+                    email_response = send_email_otp(email, student['student_name'], otp)
+                    if email_response['success']:
+                        response['success'] = True
+                        response['message'] = "OTP sent successfully via email"
+                except ValidationError:
+                    response['message'] = "Invalid email format"
 
             # Send OTP via SMS
             sms_response = send_otp_via_textlocal(mobile_number, otp)
-            print('sms_response',sms_response)
+            # print('sms_response',sms_response)
             if sms_response['status'] == 'success':
                 response['success'] = True
                 response['message'] = "OTP sent successfully via SMS"
 
             # Send OTP via WhatsApp
             # whatsapp_response = send_whatsapp_otp(mobile_number, student['student_name'], otp)
+            # print('whatsapp_response',whatsapp_response)
             # if whatsapp_response['success']:
             #     response['success'] = True
             #     response['message'] = "OTP sent successfully via WhatsApp"
 
-            # if not response['success']:
-            #     response['message'] = "Failed to send OTP via email and WhatsApp"
+            if not response['success']:
+                response['message'] = "Failed to send OTP via email and WhatsApp"
         else:
             response['message'] = "Student not found"
 
     return JsonResponse(response)
+
+
+def send_email_otp(email, student_name, otp):
+    try:
+        message = f'<p>{otp} is your  otp for verification.</p>'
+        from_email = 'info@76east.com'
+        recipient_list = [email]
+        
+        # send_mail(subject, message, from_email, recipient_list)
+        email_response = send_email(
+            to_email=email,
+            to_name=student_name,
+            subject='OTP Verification',
+            message=message
+        )
+        print(email_response)
+
+        return {'success': True, 'message': 'Email sent successfully'}
+    
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+    
+
+
+
+def send_email(to_email, to_name, subject, message):
+    response = {
+        'success': False,
+        'message': '',
+    }
+
+    try:
+        # Create email message
+        email = EmailMessage(
+            subject=subject,
+            body=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[to_email],
+            reply_to=[settings.DEFAULT_FROM_EMAIL]
+        )
+        
+        email.content_subtype = "html"  # If you want to send HTML email
+        email.send()  # Send the email
+
+        # If the email is sent successfully
+        response['success'] = True
+        response['message'] = "Email sent successfully"
+
+    except Exception as e:
+        # Catch any errors
+        response['message'] = f"Error sending email: {str(e)}"
+
+    return response
+
+    
+
+
+def send_whatsapp_otp(recipient_mobile, recipient_name, otp):
+    response = {
+        'success': False,
+        'message': ''
+    }
+
+    # If you only want to send OTP to a specific number (like in the original code):
+    # if recipient_mobile != "9816659958":
+    #     return response
+
+    access_token = 'EAAuYDYbZBR50BO94hSYjO4NZBBTe2RDzdcRiDaxNHnlHJ3zQAyn4oMzptFB78MXYIvo0ytGWsEc1O2COC1xWNJjfEoglLYXOhKAxzS5IrmTFhQhOrktbuav7Yu9oSDPaZAkdmbKNX5NZAnrUEtNL6QHSnU0T2ZC2MFqWowOa9H9MM0nBPjHBT0KRyEmIFXHTZAfBWrh6d0zrsTeR4ZCfZBRdqfKRdBzcsvLtw793xUAZD'
+    url = 'https://graph.facebook.com/v17.0/117964194735838/messages'
+
+    # Constructing the data payload
+    data = {
+        'messaging_product': 'whatsapp',
+        'to': '91' + recipient_mobile,  # WhatsApp number (with country code)
+        'type': 'template',
+        'template': {
+            'name': 'hello_world',
+            'language': {
+                'code': 'en_US'
+            }
+        }
+    }
+
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+
+    try:
+        # Make the POST request
+        response_body = requests.post(url, headers=headers, data=json.dumps(data))
+        print('response_body',response_body)
+        if response_body.status_code == 200:
+            # Success
+            response['success'] = True
+            response['message'] = "OTP sent successfully via WhatsApp"
+        else:
+            # Handle error response
+            response['message'] = f'Error sending OTP message: HTTP {response_body.status_code}'
+    except requests.exceptions.RequestException as e:
+        # Handle connection errors
+        print('str(e)',str(e))
+        response['message'] = f'Request failed: {str(e)}'
+
+    return response
+
+
     
 
 def verify_otp(request):
@@ -2406,6 +2560,13 @@ def send_otp(user):
     user.last_name = otp  # Store OTP in user instance (you might want to save it in the database or cache)
     user.save()
     sms_response = send_otp_via_textlocal(user.first_name, otp)
+    try:
+        validate_email(user.email)
+        email_response = send_email_otp(user.email, user.email, otp)
+        # print('email_response',email_response) 
+    except ValidationError:
+        # response['message'] = "Invalid email format"
+        print('"Invalid email format"')
     print('sms_response',sms_response)
     print(f"OTP sent to {user.first_name}: {otp}")  # Replace with actual sending logic (email/SMS)
 
@@ -2419,6 +2580,7 @@ def custom_login(request):
         user = authenticate(request, email=email, password=password)
         if user is not None:
             # Login user and send OTP
+            print('user',user)
             send_otp(user)
             request.session['user_id'] = user.id  # Store user ID in session for later use
             return redirect('otp_verification')  # Redirect to OTP verification page
