@@ -1,8 +1,6 @@
-
 /* ========================================================================================== */
 
 $(document).ready(function () {
-
   console.log("=========== ssssssss testing DOMContentLoaded =====");
 
   // Get the form elements
@@ -12,10 +10,10 @@ $(document).ready(function () {
   const $classNoField = $('select[name="class_no"]');
   const $sectionField = $('select[name="section"]');
 
-  const $feesForMonthsField = $('#id_fees_for_months');
-  const $feesPeriodMonthField = $('#id_fees_period_month');
+  const $feesForMonthsField = $("#id_fees_for_months");
+  const $feesPeriodMonthField = $("#id_fees_period_month");
 
-  const $studentDropdown = $('#student-dropdown');
+  const $studentDropdown = $("#student-dropdown");
 
   let month = "";
   let stuId = "";
@@ -38,7 +36,10 @@ $(document).ready(function () {
     console.log("section", section);
 
     if (admissionNo || studentName || section || classNo) {
-      const url = new URL("/school-admin/app/student_fee/ajax/load-students/", window.location.origin);
+      const url = new URL(
+        "/school-admin/app/student_fee/ajax/load-students/",
+        window.location.origin
+      );
       if (admissionNo) url.searchParams.append("admission_no", admissionNo);
       if (studentName) url.searchParams.append("student_name", studentName);
       if (classNo) url.searchParams.append("class_no", classNo);
@@ -46,7 +47,7 @@ $(document).ready(function () {
 
       $.ajax({
         url: url,
-        method: 'GET',
+        method: "GET",
         success: function (data) {
           console.log("++++++ response +++++++", data);
 
@@ -63,27 +64,29 @@ $(document).ready(function () {
             const [id, sname] = idName.split("$");
             console.log("++++++ id +++++++", id);
             $studentDropdown.append(
-              $('<option>', {
+              $("<option>", {
                 value: id, // Use the student_id for the option value
-                text: `${sname} (${classNo})` // Display name and class number
+                text: `${sname} (${classNo})`, // Display name and class number
               })
             );
           });
         },
         error: function (error) {
           console.error("There was a problem with the fetch operation:", error);
-        }
+        },
       });
     } else {
-      console.warn("Please enter either admission number or student name to search.");
+      console.warn(
+        "Please enter either admission number or student name to search."
+      );
     }
   }
 
   // Call loadStudents function when the search button is clicked
-  $searchButton.on('click', loadStudents);
+  $searchButton.on("click", loadStudents);
 
   if ($studentDropdown.length) {
-    $studentDropdown.on('change', async function () {
+    $studentDropdown.on("change", async function () {
       const selectedId = $(this).val();
       if (selectedId) {
         await handleStudentId(selectedId);
@@ -91,11 +94,14 @@ $(document).ready(function () {
     });
   }
 
+  // get the specific student detail
   async function handleStudentId(studentId) {
     stuId = studentId;
 
     try {
-      const response = await fetch(`/school-admin/app/student_fee/ajax/get-student/?student_id=${studentId}`);
+      const response = await fetch(
+        `/school-admin/app/student_fee/ajax/get-student/?student_id=${studentId}`
+      );
       if (!response.ok) throw new Error("Network response was not ok");
       const data = await response.json();
       const details = data.data.split("$");
@@ -117,11 +123,11 @@ $(document).ready(function () {
         }
 
         // Trigger the request to load previous fees
-        //await loadPreviousFees(studentId, false);
+        await loadPreviousFees(studentId, false);
 
         // Trigger the request to calculate fees
         // await calculateFees(studentId, details[1], month, selectedYear);
-        //await feespay();
+        await feespay();
 
         // Trigger the request to pay fees (load action_payfees)
         // await loadPayFees(studentId, month);
@@ -133,12 +139,781 @@ $(document).ready(function () {
     }
   }
 
+  // Function to load previous fees and populate either table or form
+  async function loadPreviousFees(studentId) {
+    try {
+      const response = await fetch(
+        `/school-admin/app/student_fee/ajax/prev-fees/?student_id=${studentId}`
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
 
+      const data = await response.json();
+      const fees = data.data.split("&");
 
+      const $feesElement = $("#previous-fees-section"); // jQuery to select the placeholder
+      let tableHTML = `
+      <table class="table table-striped" style="width: 100%; border-collapse: collapse;">
+          <thead>
+              <tr>
+                  <th>Date</th>
+                  <th>Amount Paid</th>
+                  <th>Payment Mode</th>
+                  <th>Fees for Months</th>
+              </tr>
+          </thead>
+          <tbody>
+      `;
 
+      if (fees && fees.length > 0) {
+        fees.forEach((fee) => {
+          const [datePayment, amountPaid, paymentMode, feesForMonths] =
+            fee.split("$");
+
+          tableHTML += `
+              <tr>
+                  <td>${datePayment}</td>
+                  <td>${amountPaid}</td>
+                  <td>${paymentMode}</td>
+                  <td>${feesForMonths}</td>
+              </tr>`;
+        });
+      } else {
+        tableHTML += `
+          <tr>
+              <td colspan="4" style="text-align: center;">No previous fees found for this student.</td>
+          </tr>`;
+      }
+
+      tableHTML += `</tbody></table>`;
+      $feesElement.html(tableHTML); // Use jQuery to insert the HTML content
+    } catch (error) {
+      console.error("Error loading previous fees:", error);
+    }
+  }
+
+  // collapse pervious fees
+  $("fieldset.collapse").each(function () {
+    // Add toggle button to the fieldset
+    $(this)
+      .find("h2")
+      .first()
+      .append('<a class="collapse-toggle" href="#">(Show)</a>');
+
+    // Check if the fieldset is collapsed by default
+    if ($(this).hasClass("collapsed")) {
+      $(this).find(".form-row").hide();
+    }
+
+    // Toggle the visibility when the toggle is clicked
+    $(this)
+      .find(".collapse-toggle")
+      .on("click", function (e) {
+        e.preventDefault();
+        var $fieldset = $(this).closest("fieldset");
+        if ($fieldset.hasClass("collapsed")) {
+          $fieldset.removeClass("collapsed").find(".form-row").show();
+          $(this).text("(Hide)");
+        } else {
+          $fieldset.addClass("collapsed").find(".form-row").hide();
+          $(this).text("(Show)");
+        }
+      });
+  });
+
+  // Set the current date into date_payment
+  const today = new Date().toISOString().split("T")[0]; // Get the current date in YYYY-MM-DD format
+  $('input[name="date_payment"]').val(today);
+
+  // Get relevant fields for cheque
+  const paymentModeField = $('select[name="payment_mode"]');
+  const chequeNoField = $('input[name="cheque_no"]');
+  const bankNameField = $('select[name="bank_name"]');
+  const branchNameField = $('input[name="branch_name"]');
+  const chequeStatusField = $('select[name="cheque_status"]');
+
+  // Function to toggle cheque-related fields based on payment mode
+  function toggleChequeFields() {
+    const paymentMode = paymentModeField.val();
+
+    // Enable/Disable cheque fields based on the payment mode
+    const isCheque = paymentMode === "Cheque";
+    chequeNoField.prop("disabled", !isCheque);
+    bankNameField.prop("disabled", !isCheque);
+    branchNameField.prop("disabled", !isCheque);
+    chequeStatusField.prop("disabled", !isCheque);
+
+    if (!isCheque) {
+      // Clear the values if payment mode is not Cheque
+      chequeNoField.val("");
+      bankNameField.val("");
+      branchNameField.val("");
+      chequeStatusField.val("");
+    }
+  }
+
+  // Call the function initially in case the form has pre-selected values
+  toggleChequeFields();
+
+  // Add event listener to payment mode field to toggle cheque fields when it changes
+  paymentModeField.on("change", toggleChequeFields);
+
+  /* async function feespay() {
+    var fm = $("#id_fees_for_months").val(); // Updated field: fees_for_months
+
+    console.log("fm=========", fm);
+
+    if (fm == "") {
+      function setValue(selector, value, defaultValue = "0") {
+        let numValue = parseFloat(value);
+        if (isNaN(numValue) || numValue < 0)
+          numValue = parseFloat(defaultValue);
+        $(`input[name="${selector}"]`).val(numValue.toString());
+      }
+
+      // Clear the previous fee inputs when no months are selected
+      $("#id_fees_period_month").html("");
+
+      setValue("annual_fees_paid", 0);
+      setValue("tuition_fees_paid", 0);
+      setValue("funds_fees_paid", 0);
+      setValue("sports_fees_paid", 0);
+      setValue("admission_fees_paid", 0);
+      setValue("dayboarding_fees_paid", 0);
+      setValue("miscellaneous_fees_paid", 0);
+      setValue("bus_fees_paid", 0);
+      setValue("late_fees_paid", 0);
+      setValue("activity_fees", 0);
+      setValue("concession_type_id", 0);
+      setValue("concession_applied", 0);
+      setValue("total_amount", 0);
+      setValue("amount_paid", 0);
+    } else {
+      $("#id_fees_period_month").html("");
+      var selectedMonths = fm.split(",");
+      for (var i = 0; i < selectedMonths.length; i++) {
+        await monthdata(selectedMonths[i]);
+      }
+
+      await feesformonths(selectedMonths.length, fm);
+    }
+  }
+
+  async function monthdata(tmpVar) {
+    try {
+      const studentId = stuId; // Assuming `stuId` is globally available
+
+      const url = new URL(
+        `/school-admin/app/student_fee/ajax/pay-fees/`,
+        window.location.origin
+      );
+      url.searchParams.append("fm", tmpVar);
+      url.searchParams.append("sid", studentId);
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      const data = await response.json();
+      if (data.success) {
+        const feesPeriods = data.data.split("&")[0].split("$")[0].split(",");
+        const feesPeriodMonthField = $("#id_fees_period_month");
+        feesPeriodMonthField.empty();
+
+        feesPeriods.forEach((period) => {
+          feesPeriodMonthField.append(new Option(period, period, true, true));
+        });
+      } else {
+        console.error("Error loading fee periods:", data.error);
+      }
+    } catch (error) {
+      console.error("There was a problem loading the fee periods:", error);
+    }
+  }
+
+  async function feesformonths(a, b) {
+    var sid = $("#id_student_id").val();
+    var mf = $("#id_fees_period_month").val();
+    var cls = $("#id_display_student_class").val();
+    var class_year = $("#id_started_on").val();
+
+    if (mf) {
+      try {
+        const url = new URL(
+          `/school-admin/app/student_fee/ajax/calculate-fees/`,
+          window.location.origin
+        );
+        url.searchParams.append("sid", sid);
+        url.searchParams.append("cls", cls);
+        url.searchParams.append("mf", b);
+        url.searchParams.append("yr", class_year);
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Network response was not ok");
+
+        const data = await response.json();
+        if (data !== "-----------") {
+          const d = data.data.split("|");
+          const fields = [
+            "annual_fees_paid",
+            "tuition_fees_paid",
+            "funds_fees_paid",
+            "sports_fees_paid",
+            "activity_fees",
+            "admission_fees_paid",
+            "security_fees",
+            "dayboarding_fees_paid",
+            "miscellaneous_fees_paid",
+            "bus_fees_paid",
+            "concession_applied",
+            "late_fees_paid",
+            "total_amount",
+          ];
+
+          fields.forEach((field, index) => setValue(field, d[index]));
+
+          const concession = d[13] || "";
+          $('input[name="concession_applied"]').val(concession);
+          $('input[name="concession_type"]').val(d[16] || "");
+
+          const total = d[12] || calculateTotal(d);
+          $('input[name="total_amount"]').val(total);
+          $('input[name="amount_paid"]').val(total);
+        } else {
+          alert("Fees are not inserted for this class");
+        }
+      } catch (error) {
+        console.error("There was a problem calculating fees:", error);
+      }
+    } else {
+      alert("Please select fees for months first.");
+    }
+  }
+
+  function calculateTotal(data) {
+    return (
+      ["0", "1", "2", "3", "4", "5", "7", "8", "9", "11"].reduce(
+        (sum, index) => sum + (parseInt(data[index]) || 0),
+        0
+      ) - (parseInt(data[10]) || 0)
+    );
+  } */
+
+  /* function resetFeesFields() {
+    function setValue(selector, value, defaultValue = "0") {
+      let numValue = parseFloat(value);
+      if (isNaN(numValue) || numValue < 0) numValue = parseFloat(defaultValue);
+      $(`input[name="${selector}"]`).val(numValue.toString());
+    }
+
+    // Reset all fee fields to 0
+    [
+      "annual_fees_paid",
+      "tuition_fees_paid",
+      "funds_fees_paid",
+      "sports_fees_paid",
+      "admission_fees_paid",
+      "dayboarding_fees_paid",
+      "miscellaneous_fees_paid",
+      "bus_fees_paid",
+      "late_fees_paid",
+      "activity_fees",
+      "concession_type_id",
+      "concession_applied",
+      "total_amount",
+      "amount_paid",
+    ].forEach((field) => setValue(field, 0));
+  }
+
+  async function feespay() {
+    var fm = $("#id_fees_for_months").val(); // Get selected values from fees_for_months
+
+    console.log("fm=========", fm);
+
+    if (!fm || fm.length === 0) {
+      // If no months are selected
+      resetFeesFields();
+    } else {
+      var selectedMonths = fm; // Get the selected months directly since it's an array
+
+      for (var i = 0; i < selectedMonths.length; i++) {
+        await monthdata(selectedMonths[i]); // Fetch month data via AJAX
+      }
+
+      await feesformonths(selectedMonths.length, fm); // Process fee calculations
+    }
+  } */
+
+  async function monthdata(tmpVar) {
+    try {
+      const studentId = stuId; // Assuming `stuId` is globally available
+
+      const url = new URL(
+        `/school-admin/app/student_fee/ajax/pay-fees/`,
+        window.location.origin
+      );
+      url.searchParams.append("fm", tmpVar);
+      url.searchParams.append("sid", studentId);
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      const data = await response.json();
+      if (data.success) {
+        const feesPeriods = data.data.split("&")[0].split("$")[0].split(",");
+        const feesPeriodMonthField = $("#id_fees_period_month");
+        feesPeriodMonthField.empty();
+
+        feesPeriods.forEach((period) => {
+          feesPeriodMonthField.append(new Option(period, period, true, true));
+        });
+      } else {
+        console.error("Error loading fee periods:", data.error);
+      }
+    } catch (error) {
+      console.error("There was a problem loading the fee periods:", error);
+    }
+  }
+
+  async function feesformonths(a, b) {
+    var sid = $("#id_student_id").val(); // Get the student ID
+    var mf = $("#id_fees_period_month").val(); // Get the selected fee periods
+    var cls = $("#id_display_student_class").val(); // Get the class
+    var class_year = $("#id_started_on").val(); // Get the class year
+
+    if (mf) {
+      try {
+        const url = new URL(
+          `/school-admin/app/student_fee/ajax/calculate-fees/`,
+          window.location.origin
+        );
+        url.searchParams.append("sid", sid);
+        url.searchParams.append("cls", cls);
+        url.searchParams.append("mf", b); // Pass the selected months
+        url.searchParams.append("yr", class_year);
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Network response was not ok");
+
+        const data = await response.json();
+        if (data !== "-----------") {
+          const d = data.data.split("|");
+          const fields = [
+            "annual_fees_paid",
+            "tuition_fees_paid",
+            "funds_fees_paid",
+            "sports_fees_paid",
+            "activity_fees",
+            "admission_fees_paid",
+            "security_fees",
+            "dayboarding_fees_paid",
+            "miscellaneous_fees_paid",
+            "bus_fees_paid",
+            "concession_applied",
+            "late_fees_paid",
+            "total_amount",
+          ];
+
+          fields.forEach((field, index) => setValue(field, d[index] || 0));
+
+          const concession = d[13] || "";
+          $('input[name="concession_applied"]').val(concession);
+          $('input[name="concession_type"]').val(d[16] || "");
+
+          const total = d[12] || calculateTotal(d);
+          $('input[name="total_amount"]').val(total);
+          $('input[name="amount_paid"]').val(total);
+        } else {
+          alert("Fees are not inserted for this class");
+        }
+      } catch (error) {
+        console.error("There was a problem calculating fees:", error);
+      }
+    } else {
+      alert("Please select fees for months first.");
+    }
+  }
+
+  function calculateTotal(data) {
+    return (
+      ["0", "1", "2", "3", "4", "5", "7", "8", "9", "11"].reduce(
+        (sum, index) => sum + (parseInt(data[index]) || 0),
+        0
+      ) - (parseInt(data[10]) || 0)
+    );
+  }
+
+  function setValue(selector, value, defaultValue = "0") {
+    let numValue = parseFloat(value);
+    if (isNaN(numValue) || numValue < 0) numValue = parseFloat(defaultValue);
+    $(`input[name="${selector}"]`).val(numValue.toString());
+  }
+
+  // Function to get selected values from a multi-select
+  /* function getSelectedValues(selectElementId) {
+    const selectedValues = [];
+    $(`#${selectElementId} option:selected`).each(function () {
+      selectedValues.push($(this).val());
+    });
+    return selectedValues;
+  } */
+
+  // Function to set selected individual months (1-12) in fees_period_month based on fees_for_months
+  function setFeesPeriodMonths(feesForMonthsValues) {
+    const monthsToSelect = new Set(); // Using a Set to avoid duplicates
+
+    // Split each group into individual months and add them to the Set
+    $.each(feesForMonthsValues, function (index, group) {
+      const months = group.split(",");
+      $.each(months, function (i, month) {
+        monthsToSelect.add(month);
+      });
+    });
+
+    // Loop through the fees_period_month options and select the ones present in the Set
+    $("#id_fees_period_month option").each(function () {
+      $(this).prop("selected", monthsToSelect.has($(this).val()));
+    });
+  }
+
+  // Event listener for changes in fees_for_months select
+  $("#id_fees_for_months").on("change", function () {
+    const selectedFeesForMonths = getSelectedValues("id_fees_for_months");
+    setFeesPeriodMonths(selectedFeesForMonths);
+  });
+
+  const feesPeriodMonthElement = $('select[name="fees_period_month"]'); // Select element for fees_period_month
+  const feesForMonthsElement = $('select[name="fees_for_months"]'); // Select element for fees_for_months
+
+  // Trigger fee updates based on selected fees_for_months
+  feesForMonthsElement.on("change", async function () {
+    const selectedFeesForMonths = getSelectedValues("fees_for_months");
+    console.log("selectedFeesForMonths====", selectedFeesForMonths);
+
+    // Get all selected months and update fees_period_month accordingly
+    const allSelectedMonths = getAllSelectedMonths(selectedFeesForMonths);
+    setFeesPeriodMonths(allSelectedMonths);
+    await feespay(); // Fetch latest fees when fees_for_months changes
+  });
+
+  // Trigger fee updates based on selected fees_period_month
+  feesPeriodMonthElement.on("change", async function () {
+    const selectedFeesPeriodMonths = getSelectedValues("fees_period_month");
+    console.log("selectedFeesPeriodMonths====", selectedFeesPeriodMonths);
+
+    if (selectedFeesPeriodMonths.length === 0) {
+      // If no months are selected, fall back to fees_for_months
+      const selectedFeesForMonths = getSelectedValues("fees_for_months");
+      setFeesForMonths(selectedFeesForMonths);
+      await feesformonths(); // Call feesformonths to fetch based on fees_for_months
+    } else {
+      setFeesForMonths(selectedFeesPeriodMonths);
+      await feespay(); // Fetch latest fees when fees_period_month changes
+    }
+  });
+
+  // Function to set fees_period_month based on selected fees_for_months
+  function setFeesPeriodMonths(selectedMonths) {
+    $("#id_fees_period_month option").each(function () {
+      $(this).prop("selected", selectedMonths.includes($(this).val()));
+    });
+  }
+
+  // Function to set fees_for_months based on selected fees_period_month
+  function setFeesForMonths(selectedMonths) {
+    $("#id_fees_for_months option").each(function () {
+      $(this).prop("selected", selectedMonths.includes($(this).val()));
+    });
+  }
+
+  // Function to retrieve the selected values as an array
+  function getSelectedValues(name) {
+    return $(`select[name="${name}"] option:selected`)
+      .map(function () {
+        return this.value;
+      })
+      .get();
+  }
+
+  // Function to get all selected months based on selected fees_for_months
+  function getAllSelectedMonths(selectedFeesForMonths) {
+    let allMonths = new Set(); // Use a Set to avoid duplicates
+    selectedFeesForMonths.forEach((monthGroup) => {
+      monthGroup.split(",").forEach((month) => {
+        allMonths.add(month.trim());
+      });
+    });
+    return Array.from(allMonths); // Convert the Set back to an array
+  }
+
+  // Existing feespay function remains unchanged
+  async function feespay() {
+    var fm = $("#id_fees_for_months").val(); // Get selected values from fees_for_months
+
+    console.log("fm=========", fm);
+
+    if (!fm || fm.length === 0) {
+      // If no months are selected
+      resetFeesFields();
+    } else {
+      var selectedMonths = fm; // Get the selected months directly since it's an array
+
+      for (var i = 0; i < selectedMonths.length; i++) {
+        await monthdata(selectedMonths[i]); // Fetch month data via AJAX
+      }
+
+      await feesformonths(selectedMonths.length, fm); // Process fee calculations
+    }
+  }
+
+  function resetFeesFields() {
+    function setValue(selector, value, defaultValue = "0") {
+      let numValue = parseFloat(value);
+      if (isNaN(numValue) || numValue < 0) numValue = parseFloat(defaultValue);
+      $(`input[name="${selector}"]`).val(numValue.toString());
+    }
+
+    // Reset all fee fields to 0
+    [
+      "annual_fees_paid",
+      "tuition_fees_paid",
+      "funds_fees_paid",
+      "sports_fees_paid",
+      "admission_fees_paid",
+      "dayboarding_fees_paid",
+      "miscellaneous_fees_paid",
+      "bus_fees_paid",
+      "late_fees_paid",
+      "activity_fees",
+      "concession_type_id",
+      "concession_applied",
+      "total_amount",
+      "amount_paid",
+    ].forEach((field) => setValue(field, 0));
+  }
+
+  /* const feesPeriodMonthElement = $('select[name="fees_period_month"]'); // Select element for fees_period_month
+  const feesForMonthsElement = $('select[name="fees_for_months"]'); // Select element for fees_for_months
+
+  // Trigger fee updates based on selected fees_for_months
+  feesForMonthsElement.on("change", async function () {
+    const selectedFeesForMonths = getSelectedValues("fees_for_months");
+    console.log("selectedFeesForMonths====", selectedFeesForMonths);
+
+    // Update fees_period_month based on the new selection
+    const allSelectedMonths = getAllSelectedMonths(selectedFeesForMonths);
+    setFeesPeriodMonths(allSelectedMonths);
+    await feespay(); // Fetch latest fees when fees_for_months changes
+  });
+
+  // Trigger fee updates based on selected fees_period_month
+  feesPeriodMonthElement.on("change", async function () {
+    const selectedFeesPeriodMonths = getSelectedValues("fees_period_month");
+    console.log("selectedFeesPeriodMonths====", selectedFeesPeriodMonths);
+
+    if (selectedFeesPeriodMonths.length === 0) {
+      // If no months are selected, fall back to fees_for_months
+      const selectedFeesForMonths = getSelectedValues("fees_for_months");
+      setFeesForMonths(selectedFeesForMonths);
+      await feesformonths(); // Call feesformonths to fetch based on fees_for_months
+    } else {
+      setFeesForMonths(selectedFeesPeriodMonths);
+      await feespay(); // Fetch latest fees when fees_period_month changes
+    }
+  });
+
+  // Function to set fees_period_month based on selected fees_for_months
+  function setFeesPeriodMonths(selectedMonths) {
+    $("#id_fees_period_month option").each(function () {
+      $(this).prop("selected", selectedMonths.includes($(this).val()));
+    });
+  }
+
+  // Function to set fees_for_months based on selected fees_period_month
+  function setFeesForMonths(selectedMonths) {
+    $("#id_fees_for_months option").each(function () {
+      $(this).prop("selected", selectedMonths.includes($(this).val()));
+    });
+  }
+
+  // Function to retrieve the selected values as an array
+  function getSelectedValues(name) {
+    return $(`select[name="${name}"] option:selected`)
+      .map(function () {
+        return this.value;
+      })
+      .get();
+  }
+
+  // Function to get all selected months based on selected fees_for_months
+  function getAllSelectedMonths(selectedFeesForMonths) {
+    let allMonths = new Set(); // Use a Set to avoid duplicates
+    selectedFeesForMonths.forEach((monthGroup) => {
+      monthGroup.split(",").forEach((month) => {
+        allMonths.add(month.trim());
+      });
+    });
+    return Array.from(allMonths); // Convert the Set back to an array
+  } */
+  /* const feesPeriodMonthElement = $('select[name="fees_period_month"]'); // Select element for fees_period_month
+  const feesForMonthsElement = $('select[name="fees_for_months"]'); // Select element for fees_for_months
+
+  // Event listener for fees_period_month
+  feesPeriodMonthElement.on("change", async function () {
+    // Capture the changed value of fees_period_month
+    let periodValue = feesPeriodMonthElement.val() || [];
+
+    console.log("periodValue (fees_period_month)--------", periodValue);
+
+    // Update fees_for_months based on the periodValue
+    await updateFeesMonthsBasedOnPeriod(periodValue);
+    await feespay(); // Fetch latest fees when fees_period_month changes
+  });
+
+  // Event listener for fees_for_months
+  feesForMonthsElement.on("change", async function () {
+    let monthsValue = feesForMonthsElement.val() || [];
+
+    console.log("monthsValue (fees_for_months)--------", monthsValue);
+
+    // Update fees_period_month based on monthsValue
+    await updateFeesPeriodBasedOnMonths(monthsValue);
+    await feespay(); // Fetch latest fees when fees_for_months changes
+  });
+
+  // Update fees_for_months based on fees_period_month
+  async function updateFeesMonthsBasedOnPeriod(periodValue) {
+    const monthsArray = periodValue.split(",");
+
+    // Clear all previous selections
+    feesForMonthsElement.find("option").prop("selected", false);
+
+    // Select the matching options in the fees_for_months element
+    monthsArray.forEach((month) => {
+      const option = feesForMonthsElement.find(
+        `option[value="${month.trim()}"]`
+      );
+      if (option.length) {
+        option.prop("selected", true);
+      }
+    });
+
+    await feespay(); // Fetch latest fees after updating fees_for_months
+  }
+
+  // Update fees_period_month based on fees_for_months
+  async function updateFeesPeriodBasedOnMonths(monthsValue) {
+    const monthsArray = monthsValue.split(",");
+
+    // Clear all previous selections
+    feesPeriodMonthElement.find("option").prop("selected", false);
+
+    // Select the matching options in the fees_period_month element
+    monthsArray.forEach((month) => {
+      const option = feesPeriodMonthElement.find(
+        `option[value="${month.trim()}"]`
+      );
+      if (option.length) {
+        option.prop("selected", true);
+      }
+    });
+
+    await feespay(); // Fetch latest fees after updating fees_period_month
+  } */
+
+  // const feesPeriodMonthElement = $('select[name="fees_period_month"]'); // Select element for fees_period_month
+  // const feesForMonthsElement = $('select[name="fees_for_months"]'); // Select element for fees_for_months
+
+  // // Trigger fee updates based on selected fees_for_months
+  // feesForMonthsElement.on("change", async function () {
+  //   const selectedFeesForMonths = getSelectedValues("fees_for_months");
+  //   console.log("selectedFeesForMonths====", selectedFeesForMonths);
+
+  //   setFeesPeriodMonths(selectedFeesForMonths);
+  //   await feespay(); // Fetch latest fees when fees_for_months changes
+  // });
+
+  // // Trigger fee updates based on selected fees_period_month
+  // feesPeriodMonthElement.on("change", async function () {
+  //   const selectedFeesPeriodMonths = getSelectedValues("fees_period_month");
+  //   console.log("selectedFeesPeriodMonths====", selectedFeesPeriodMonths);
+
+  //   if (selectedFeesPeriodMonths.length === 0) {
+  //     // If no months are selected, fall back to fees_for_months
+  //     const selectedFeesForMonths = getSelectedValues("fees_for_months");
+  //     setFeesForMonths(selectedFeesForMonths);
+  //     await feesformonths(); // Call feesformonths to fetch based on fees_for_months
+  //   } else {
+  //     setFeesForMonths(selectedFeesPeriodMonths);
+  //     await feespay(); // Fetch latest fees when fees_period_month changes
+  //   }
+  // });
+
+  // // Function to set fees_period_month based on selected fees_for_months
+  // function setFeesPeriodMonths(selectedMonths) {
+  //   $("#id_fees_period_month option").each(function () {
+  //     $(this).prop("selected", selectedMonths.includes($(this).val()));
+  //   });
+  // }
+
+  // // Function to set fees_for_months based on selected fees_period_month
+  // function setFeesForMonths(selectedMonths) {
+  //   $("#id_fees_for_months option").each(function () {
+  //     $(this).prop("selected", selectedMonths.includes($(this).val()));
+  //   });
+  // }
+
+  // // Function to retrieve the selected values as an array
+  // function getSelectedValues(name) {
+  //   return $(`select[name="${name}"] option:selected`)
+  //     .map(function () {
+  //       return this.value;
+  //     })
+  //     .get();
+  // }
+
+  /* // Trigger fee updates based on selected fees_for_months
+  $("#id_fees_for_months").on("change", function () {
+    const selectedFeesForMonths = getSelectedValues("id_fees_for_months");
+    console.log("selectedFeesForMonths====", selectedFeesForMonths);
+
+    setFeesPeriodMonths(selectedFeesForMonths);
+    feespay(); // Fetch latest fees when fees_for_months changes
+  });
+
+  // Trigger fee updates based on selected fees_period_month
+  $("#id_fees_period_month").on("change", function () {
+    const selectedFeesPeriodMonths = getSelectedValues("id_fees_period_month");
+    console.log("selectedFeesPeriodMonths====", selectedFeesPeriodMonths);
+
+    setFeesForMonths(selectedFeesPeriodMonths);
+    feespay(); // Fetch latest fees when fees_period_month changes
+  });
+
+  // Function to set fees_period_month based on selected fees_for_months
+  function setFeesPeriodMonths(selectedMonths) {
+    // Logic to select corresponding fees_period_months based on selected fees_for_months
+    $("#id_fees_period_month option").each(function () {
+      $(this).prop("selected", selectedMonths.includes($(this).val()));
+    });
+  }
+
+  // Function to set fees_for_months based on selected fees_period_month
+  function setFeesForMonths(selectedMonths) {
+    // Logic to select corresponding fees_for_months based on selected fees_period_months
+    $("#id_fees_for_months option").each(function () {
+      $(this).prop("selected", selectedMonths.includes($(this).val()));
+    });
+  }
+
+  // Function to retrieve the selected values as an array
+  function getSelectedValues(name) {
+    return $(`select[name="${name}"] option:selected`)
+      .map(function () {
+        return this.value;
+      })
+      .get();
+  } */
 
   // ============  show parent portal  ==================
-
   $("#show-parent-portal").on("click", function () {
     console.log("============  im clicked  ==================");
 

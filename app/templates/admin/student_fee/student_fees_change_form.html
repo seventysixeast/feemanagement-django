@@ -6,7 +6,7 @@
 <form method="POST" action="." enctype="multipart/form-data">
     {% csrf_token %}
 
-
+    <!-- Student Search Section -->
     <fieldset class="module aligned">
         <legend>Student Search</legend>
 
@@ -61,6 +61,16 @@
         </div>
     </fieldset>
 
+    <!-- Previous Fees Records Section -->
+    <fieldset class="module aligned collapse">
+        <h2>Previous Fees Records</h2>
+        <div class="form-row">
+            <div id="previous-fees-section">
+                <!-- Previous fees will be injected here dynamically -->
+                <p>No previous fees records available.</p>
+            </div>
+        </div>
+    </fieldset>
 
     <!-- Student Information Section -->
     <fieldset class="module aligned">
@@ -70,6 +80,7 @@
                 <div class="flex-container">
                     <label>Admission No:</label>
                     <div class="readonly">{{ form.display_admission_no }}</div>
+                    {{ form.student_id }}
                 </div>
             </div>
         </div>
@@ -118,38 +129,7 @@
         </div>
     </fieldset>
 
-    <!-- Previous Fees Records Section -->
-    <fieldset class="module aligned">
-        <legend>Previous Fees Records</legend>
-        <div class="form-row">
-            {% if previous_fees_records %}
-            <table class="table table-striped" style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Amount Paid</th>
-                        <th>Payment Mode</th>
-                        <th>Fees for Months</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in previous_fees_records %}
-                    <tr>
-                        <td>{{ record.date_payment }}</td>
-                        <td>{{ record.amount_paid }}</td>
-                        <td>{{ record.payment_mode }}</td>
-                        <td>{{ record.fees_for_months }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p>No previous fees records available.</p>
-            {% endif %}
-        </div>
-    </fieldset>
     <!-- Payment Section -->
-    
     <fieldset class="module aligned">
         <legend>Payment Section</legend>
         <div class="form-row field-fees_for_months">
