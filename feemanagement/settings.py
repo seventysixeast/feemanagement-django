@@ -207,3 +207,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 DAB_FIELD_RENDERER = 'django_admin_bootstrapped.renderers.BootstrapFieldRenderer'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.shishuniketanmohali.org.in'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = 'info@shishuniketanmohali.org.in'  # Your SMTP username
+EMAIL_HOST_PASSWORD = 'NeoiQ[eS2.G6'  # Your SMTP password
+DEFAULT_FROM_EMAIL = 'info@shishuniketanmohali.org.in'
+
