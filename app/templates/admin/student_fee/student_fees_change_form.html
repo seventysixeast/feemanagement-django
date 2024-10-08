@@ -7,7 +7,7 @@
     {% csrf_token %}
 
     <!-- Student Search Section -->
-    <fieldset class="module aligned">
+    <fieldset class="module aligned search-student-section">
         <legend>Student Search</legend>
 
         <div class="form-row field-student_name">
@@ -64,6 +64,16 @@
     <!-- Previous Fees Records Section -->
     <fieldset class="module aligned collapse">
         <h2>Previous Fees Records</h2>
+
+        {% if form.instance.student_id %}
+        <span>
+            <button id="pre-button-id" type="button" class="button">Fetch Previous Fees</button>
+        </span>
+        {% endif %}
+        <span style="margin-right: 5px;">
+            <button id="show-parent-portal" type="button" class="button">Show Parent Portal</button>
+        </span>
+
         <div class="form-row">
             <div id="previous-fees-section">
                 <!-- Previous fees will be injected here dynamically -->
@@ -285,6 +295,13 @@
             <div class="flex-container">
                 <label>Cheque Status:</label>
                 {{ form.cheque_status }}
+            </div>
+
+        </div>
+        <div class="form-row field-amount_paid">
+            <div class="flex-container">
+                <label>Amount Paid:</label>
+                {{ form.amount_paid }}
             </div>
 
         </div>
