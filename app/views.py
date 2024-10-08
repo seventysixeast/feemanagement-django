@@ -76,6 +76,13 @@ from django.db.models.functions import ExtractYear
 
 from dotenv import load_dotenv
 
+from django.core.mail import send_mail
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+
+from django.db.models import Q
+# from .models import StudentMaster  # Assuming you have a StudentMaster model
+
 # Load the .env file
 load_dotenv()
 
@@ -198,7 +205,6 @@ def send_otp_via_textlocal(phone_number, otp):
     response = requests.post(url, data=data)
     return response.json()
 
-
 def send_otp_verification(request):
     if request.method == 'POST':
         admission_number = request.POST.get('admission_number')
@@ -237,41 +243,101 @@ def send_otp_verification(request):
     else:
         return render(request, 'app/template.html')
 
+@require_GET
+def send_otp_verification_mobile_app(request):
+    admission_number = request.GET.get('admissionNumber')
+    mobile_number = request.GET.get('mobileNumber')
+    
+    response = {
+        'success': False,
+        'message': "Invalid admission number",
+        'data': []
+    }
 
+    if admission_number and mobile_number:
+        # Check if student exists in the database with the given admission number and phone/mobile number
+        student = student_master.objects.filter(
+            addmission_no=admission_number
+        ).filter(
+            Q(phone_no=mobile_number) | Q(mobile_no=mobile_number)
+        ).values('addmission_no', 'phone_no', 'mobile_no', 'email', 'student_name').first()
 
-# @guest
-# def send_otp_verification(request):
-#     if request.method =='POST':
-#         admission_number = request.POST.get('admission_number')
-#         mobile_number = request.POST.get('mobile_number')
-#         print('admission_number ',admission_number)
-#         print('mobile_number ',mobile_number)
+        if student:
+            # Generate 4-digit random OTP
+            otp = str(random.randint(1000, 9999))
+            if mobile_number == '8146558059':
+                otp = '2135'  # Fixed OTP for this number
 
-#         response = {
-#             'success': False,
-#             'message': "Invalid admission number",
-#             'data': {}
-#         }
+            # Update OTP in the student record
+            student_master.objects.filter(addmission_no=admission_number).update(otp=otp)
 
-#         if admission_number and mobile_number:
-#             # Query the database for the student
-#             student = student_master.objects.filter(addmission_no=admission_number, phone_no=mobile_number).first()
-            
-#             if student:
-#                 otp = str(random.randint(1000, 9999))
-#                 if mobile_number == '8146558059':
-#                     otp = '2135'
+            # Send OTP via email
+            # if student.get('email'):
+            #     email = student['email']
+            #     try:
+            #         validate_email(email)
+            #         email_response = send_email_otp(email, student['student_name'], otp)
+            #         if email_response['success']:
+            #             response['success'] = True
+            #             response['message'] = "OTP sent successfully via email"
+            #     except ValidationError:
+            #         response['message'] = "Invalid email format"
 
-#                 # Assume sending OTP via email/sms is always successful
-#                 response['success'] = True
-#                 response['message'] = "OTP sent successfully via email"
-#                 response['data']['otp'] = otp
-#             else:
-#                 response['message'] = "Student not found"
-#             return JsonResponse(response)
-        
-#     else:
-#         return render(request, 'app/template.html')
+            # Send OTP via SMS
+            sms_response = send_otp_via_textlocal(mobile_number, otp)
+            print('sms_response',sms_response)
+            if sms_response['status'] == 'success':
+                response['success'] = True
+                response['message'] = "OTP sent successfully via SMS"
+
+            # Send OTP via WhatsApp
+            # whatsapp_response = send_whatsapp_otp(mobile_number, student['student_name'], otp)
+            # if whatsapp_response['success']:
+            #     response['success'] = True
+            #     response['message'] = "OTP sent successfully via WhatsApp"
+
+            # if not response['success']:
+            #     response['message'] = "Failed to send OTP via email and WhatsApp"
+        else:
+            response['message'] = "Student not found"
+
+    return JsonResponse(response)
+    
+
+def verify_otp(request):
+    # Extract parameters from the request
+    admission_number = request.GET.get('admissionNumber')
+    mobile_number = request.GET.get('mobileNumber')
+    otp = request.GET.get('otp')
+    
+    # Prepare a response structure
+    response = {
+        'success': False,
+        'message': 'Invalid parameters',
+        'data': []
+    }
+
+    # Check if all required parameters are provided
+    if admission_number and mobile_number and otp:
+        # Query the student from the database based on admission number and phone/mobile number
+        student = student_master.objects.filter(
+            addmission_no=admission_number
+        ).filter(
+            Q(phone_no=mobile_number) | Q(mobile_no=mobile_number)
+        ).values('otp').first()
+
+        if student:
+            # Compare the provided OTP with the one in the database
+            if student['otp'] == otp:
+                response['success'] = True
+                response['message'] = 'OTP verified successfully'
+            else:
+                response['message'] = 'Invalid OTP. Please try again.'
+        else:
+            response['message'] = 'Student not found'
+
+    # Return the response as JSON
+    return JsonResponse(response)
 
 
 def get_highest_order_month(month_list):
@@ -418,7 +484,6 @@ def last_payment_record(student_id=None):
         if stfees:
             # Extract necessary fields
             fees_for_months = stfees.fees_for_months
-
             # Calculate sum_total_paid and admission_fees_paid for the same month, student, class, section, and year
             sum_total_paid_result = student_fee.objects.filter(
                 fees_for_months=fees_for_months,
@@ -1489,7 +1554,7 @@ def save_school_fee_transaction(student_id, txn_ref_number, quarterly_payment_de
     # Aggregate details by year
     for payment in quarterly_payment_details:
         # year = payment['year']
-        year = payment.get('payment', None)  # Returns None if 'bus_id' is not present
+        year = payment.get('year', None)  
 
         if year not in yearly_aggregated_details:
             # Initialize a new entry for the year
@@ -1728,18 +1793,19 @@ def save_school_fee_transaction(student_id, txn_ref_number, quarterly_payment_de
 
 @csrf_exempt
 def generate_payment_url(request):
-    if request.method == 'POST':
+    print('request.method',request.method)
+    if request.method == 'GET':
         # data = json.loads(request.body)
         # request.POST.get('admission_number')
         # admission_no = request.POST.get('admission_no')
         # student_id = request.POST.get('student_id')
         # amount = request.POST.get('amount')
         # yearly_aggregated_details = request.POST.get('yearlyAggregatedDetails')
-        data = json.loads(request.body)
-        admission_no = data.get('admission_no')
-        student_id = data.get('student_id')
-        amount = data.get('amount')
-        yearly_aggregated_details = data.get('yearlyAggregatedDetails')
+        # data = json.loads(request.body)
+        admission_no = request.GET.get('admission_no')
+        student_id = request.GET.get('student_id')
+        amount = request.GET.get('amount')
+        yearly_aggregated_details = request.GET.get('yearlyAggregatedDetails')
         print("request.POST.get('yearly_aggregated_details')", yearly_aggregated_details)
 
         response = {}
@@ -1814,7 +1880,8 @@ def generate_payment_url(request):
             ref_number = generate_unique_reference_number()
             # ref_number = '456789'
             # saved = save_school_fee_transaction(student_id, ref_number, json.loads(yearly_aggregated_details))
-            saved = save_school_fee_transaction(student_id, ref_number, yearly_aggregated_details)
+            fee_data = json.loads(yearly_aggregated_details)
+            saved = save_school_fee_transaction(student_id, ref_number, fee_data)
             print('saved',saved)
             if saved.get('status') == "success":
                 class_ = saved['class']
