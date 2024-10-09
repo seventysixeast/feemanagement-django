@@ -2744,20 +2744,86 @@ class StudentFeesAdminForm(forms.ModelForm):
         widget=forms.SelectMultiple(attrs={'style': 'width:150px;', 'id': 'id_fees_period_month'})
     )
 
+    # # Fields for fees amounts
+    # annual_fees_paid = forms.DecimalField(label="Annual Fees Paid", required=False)
+    # tuition_fees_paid = forms.DecimalField(label="Tuition Fees Paid", required=False)
+    # funds_fees_paid = forms.DecimalField(label="Funds Fees Paid", required=False)
+    # sports_fees_paid = forms.DecimalField(label="Sports Fees Paid", required=False)
+    # activity_fees = forms.DecimalField(label="Activity Fees", required=False)
+    # admission_fees_paid = forms.DecimalField(label="Admission Fees Paid", required=False)
+    # miscellaneous_fees_paid = forms.DecimalField(label="Miscellaneous Fees Paid", required=False)
+    # late_fees_paid = forms.DecimalField(label="Late Fees Paid", required=False)
+    # dayboarding_fees_paid = forms.DecimalField(label="Dayboarding Fees Paid", required=False)
+    # bus_fees_paid = forms.DecimalField(label="Bus Fees Paid", required=False)
+    # concession_type = forms.CharField(label="Concession Type", required=False)
+    # concession_applied = forms.DecimalField(label="Concession Applied", required=False)
+    # total_amount = forms.DecimalField(label="Total Amount", required=False)
     # Fields for fees amounts
-    annual_fees_paid = forms.DecimalField(label="Annual Fees Paid", required=False)
-    tuition_fees_paid = forms.DecimalField(label="Tuition Fees Paid", required=False)
-    funds_fees_paid = forms.DecimalField(label="Funds Fees Paid", required=False)
-    sports_fees_paid = forms.DecimalField(label="Sports Fees Paid", required=False)
-    activity_fees = forms.DecimalField(label="Activity Fees", required=False)
-    admission_fees_paid = forms.DecimalField(label="Admission Fees Paid", required=False)
-    miscellaneous_fees_paid = forms.DecimalField(label="Miscellaneous Fees Paid", required=False)
-    late_fees_paid = forms.DecimalField(label="Late Fees Paid", required=False)
-    dayboarding_fees_paid = forms.DecimalField(label="Dayboarding Fees Paid", required=False)
-    bus_fees_paid = forms.DecimalField(label="Bus Fees Paid", required=False)
-    concession_type = forms.CharField(label="Concession Type", required=False)
-    concession_applied = forms.DecimalField(label="Concession Applied", required=False)
-    total_amount = forms.DecimalField(label="Total Amount", required=False)
+    annual_fees_paid = forms.DecimalField(
+        label="Annual Fees Paid", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
+    tuition_fees_paid = forms.DecimalField(
+        label="Tuition Fees Paid", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
+    funds_fees_paid = forms.DecimalField(
+        label="Funds Fees Paid", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
+    sports_fees_paid = forms.DecimalField(
+        label="Sports Fees Paid", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
+    activity_fees = forms.DecimalField(
+        label="Activity Fees", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
+    admission_fees_paid = forms.DecimalField(
+        label="Admission Fees Paid", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
+    miscellaneous_fees_paid = forms.DecimalField(
+        label="Miscellaneous Fees Paid", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
+    late_fees_paid = forms.DecimalField(
+        label="Late Fees Paid", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
+    dayboarding_fees_paid = forms.DecimalField(
+        label="Dayboarding Fees Paid", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
+    bus_fees_paid = forms.DecimalField(
+        label="Bus Fees Paid", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
+    concession_type = forms.CharField(
+        label="Concession Type", 
+        required=False, 
+        widget=forms.TextInput(attrs={'class': 'feeschange'})
+    )
+    concession_applied = forms.DecimalField(
+        label="Concession Applied", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
+    total_amount = forms.DecimalField(
+        label="Total Amount", 
+        required=False, 
+        widget=forms.NumberInput(attrs={'class': 'feeschange'})
+    )
 
     # Payment section fields
     date_payment = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}), label="Date Payment", required=False)
@@ -3233,9 +3299,10 @@ class StudentFeesAdmin(admin.ModelAdmin):
         
         previous_fee_info = last_payment_record(sid)
 
-        print(f" +++++++ previous_fee_info +++++++ {previous_fee_info}")
+        print(f" +++++++ mf +++++++ {mf}")
+        # print(f" +++++++ previous_fee_info +++++++ {previous_fee_info}")
 
-        include_admission_fee = not previous_fee_info  # Include admission fee if no previous fee record
+        include_admission_fee = not previous_fee_info  # Include admission fee, annual fees, miscellaneous fees, sports fees if no previous fee record
         pay_months = mf
         months_in_quarters = [
             '4,5,6',
@@ -3257,6 +3324,8 @@ class StudentFeesAdmin(admin.ModelAdmin):
                     'months_paid': ','.join(intersection),
                 })
 
+        print(f" +++++++ quarters +++++++ {quarters}")
+
         student_id = sid
         class_no = cls
         year = yr
@@ -3264,7 +3333,7 @@ class StudentFeesAdmin(admin.ModelAdmin):
         total_fees_payable = 0
         fee_details = fetch_fee_details_for_class(student_id, class_no)
 
-        print(f" +++++++ fee_details +++++++ {fee_details}")
+        # print(f" +++++++ fee_details +++++++ {fee_details}")
 
         if fee_details:
             current_payment_details = {
@@ -3307,6 +3376,12 @@ class StudentFeesAdmin(admin.ModelAdmin):
                     include_admission_fee = False
                 else:
                     payment_details['admission_fees'] = 0
+                    payment_details['annual_fees'] = 0
+                    payment_details['miscellaneous_fees'] = 0
+                    payment_details['sports_fees'] = 0
+
+
+                #'annual_fees', 'miscellaneous_fees', 'sports_fees', 'admission_fees' 
 
                 fields_to_calculate = [
                     'tuition_fees', 'funds_fees', 'sports_fees', 'bus_fees', 'activity_fees', 
@@ -3380,9 +3455,13 @@ class StudentFeesAdmin(admin.ModelAdmin):
 
                 current_payment_details_array.append(payment_details)
 
-                fee_details
+                print(f"----payment_details----:{payment_details}")
+                
+            print(f"----current_payment_details_array----:{current_payment_details_array}")
 
-            sum_dict = {
+
+        # Initial sum dictionary
+        sum_dict = {
             'annual_fees': 0,
             'tuition_fees': 0,
             'funds_fees': 0,
@@ -3393,27 +3472,62 @@ class StudentFeesAdmin(admin.ModelAdmin):
             'dayboarding_fees': 0,
             'miscellaneous_fees': 0,
             'bus_fees': 0,
+            'concession_amount': 0,
             'concession_applied': 0,
+            'concession_percent': '',
+            'concession_id': '',
+            'concession_type': '',
             'late_fee': 0,
             'total_fee': 0,
         }
 
-        excluded_keys = ['concession_amount', 'concession_percent', 'concession_id', 'concession_type']
+        # Keys to sum up
+        sum_keys = [
+            'annual_fees',
+            'tuition_fees',
+            'funds_fees',
+            'sports_fees',
+            'activity_fees',
+            'admission_fees',
+            'security_fees',
+            'dayboarding_fees',
+            'miscellaneous_fees',
+            'bus_fees',
+            'concession_applied',
+            'late_fee',
+            'total_fee'
+        ]
 
+        # Keys that are excluded from summing but just set directly
+        excluded_keys = [
+            'concession_amount',
+            'concession_percent',
+            'concession_id',
+            'concession_type'
+        ]
+
+        # Loop through current payment details
         for details in current_payment_details_array:
-            for key in sum_dict:
-                sum_dict[key] += details.get(key, 0)
+
+            # Sum specified keys
+            for key in sum_keys:
+                sum_dict[key] += details.get(key, 0)  # Use .get() to avoid KeyError
+
+            # Set excluded keys (no summing)
             for key in excluded_keys:
-                sum_dict[key] = details.get(key)
+                sum_dict[key] = details.get(key, sum_dict[key])  # Keep the last value
 
-            # return JsonResponse(sum_dict)
-            response_data = "|".join([str(sum_dict[key]) for key in sum_dict])
+        # sum_dict now contains the merged result
 
-            # return JsonResponse(sum_fees)
-            return JsonResponse({
-                        'success': True,
-                        'data': response_data,
-                    })
+
+        # return JsonResponse(sum_dict)
+        response_data = "|".join([str(sum_dict[key]) for key in sum_dict])
+
+        # return JsonResponse(sum_fees)
+        return JsonResponse({
+                    'success': True,
+                    'data': response_data,
+                })
     
     def action_payfees(self, request):
         fm = request.GET.get('fm')

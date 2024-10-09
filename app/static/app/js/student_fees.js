@@ -357,7 +357,11 @@ $(document).ready(function () {
               "dayboarding_fees_paid",
               "miscellaneous_fees_paid",
               "bus_fees_paid",
+              "concession_amount",
               "concession_applied",
+              'concession_percent',
+              'concession_id',
+              'concession_type',
               "late_fees_paid",
               "total_amount",
             ];
@@ -366,9 +370,9 @@ $(document).ready(function () {
 
             const concession = d[13] || "";
             $('input[name="concession_applied"]').val(concession);
-            $('input[name="concession_type"]').val(d[16] || "");
+            $('input[name="concession_type"]').val(d[14] || "");
 
-            const total = d[12] || calculateTotal(d);
+            const total = d[16] || calculateTotal(d);
             $('input[name="total_amount"]').val(total);
             $('input[name="amount_paid"]').val(total);
           } else {
@@ -569,4 +573,32 @@ $(document).ready(function () {
     // Hide the search section if student_id exists
     $('.search-student-section').hide();
   }
+
+  $(".feeschange").change(function() {
+    // Set the value of the 'isdefault' field to "false" when any fees field changes
+    //document.getElementById('isdefault').value = "false";
+
+    // Get the values of the fees fields, and use 0 as default if not filled
+    let annualFeesPaid = parseInt($("#id_annual_fees_paid").val()) || 0;
+    let tuitionFeesPaid = parseInt($("#id_tuition_fees_paid").val()) || 0;
+    let fundsFeesPaid = parseInt($("#id_funds_fees_paid").val()) || 0;
+    let sportsFeesPaid = parseInt($("#id_sports_fees_paid").val()) || 0;
+    let activityFees = parseInt($("#id_activity_fees").val()) || 0;
+    let admissionFeesPaid = parseInt($("#id_admission_fees_paid").val()) || 0;
+    let dayboardingFeesPaid = parseInt($("#id_dayboarding_fees_paid").val()) || 0;
+    let miscellaneousFeesPaid = parseInt($("#id_miscellaneous_fees_paid").val()) || 0;
+    let busFeesPaid = parseInt($("#id_bus_fees_paid").val()) || 0;
+    let concessionApplied = parseInt($("#id_concession_applied").val()) || 0;
+    let lateFeesPaid = parseInt($("#id_late_fees_paid").val()) || 0;
+
+    // Calculate the total amount
+    let totalAmount = annualFeesPaid + tuitionFeesPaid + fundsFeesPaid + sportsFeesPaid +
+                      activityFees + admissionFeesPaid + dayboardingFeesPaid + 
+                      miscellaneousFeesPaid + busFeesPaid + lateFeesPaid - concessionApplied;
+
+    // Update the total amount and amount paid fields
+    $("#id_total_amount").val(totalAmount);
+    $("#id_amount_paid").val(totalAmount);
+});
+
 });
