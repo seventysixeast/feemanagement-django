@@ -1,0 +1,330 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block content %}
+
+<form method="POST" action="." enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <!-- Student Search Section -->
+    <fieldset class="module aligned search-student-section">
+        <legend>Student Search</legend>
+
+        <div class="form-row field-student_name">
+            <div class="flex-container">
+                <label for="id_student_name">Student Name:</label>
+                {{ adminform.form.student_name }}
+            </div>
+
+        </div>
+
+        <div class="form-row field-admission_no">
+            <div class="flex-container">
+                <label for="id_admission_no">Admission Number:</label>
+                {{ adminform.form.admission_no }}
+            </div>
+
+        </div>
+
+        <div class="form-row field-class_no">
+            <div class="flex-container">
+                <label for="id_class_no">Class:</label>
+                {{ adminform.form.class_no }}
+            </div>
+
+        </div>
+
+        <div class="form-row field-section">
+            <div class="flex-container">
+                <label for="id_section">Section:</label>
+                {{ adminform.form.section }}
+            </div>
+
+        </div>
+
+        <!-- Search button -->
+        <div class="form-row field-search_button">
+            <div class="flex-container">
+                <label>&nbsp;</label> <!-- Blank label to align button -->
+                {{ adminform.form.search_button }}
+            </div>
+
+        </div>
+
+        <!-- Search Results Dropdown -->
+        <div class="form-row field-search_results">
+            <div class="flex-container">
+                <label for="id_search_results">Select Student:</label>
+                {{ adminform.form.search_results }}
+            </div>
+
+        </div>
+    </fieldset>
+
+    <!-- Previous Fees Records Section -->
+    <fieldset class="module aligned collapse">
+        <h2>Previous Fees Records</h2>
+
+        {% if form.instance.student_id %}
+        <span>
+            <button id="pre-button-id" type="button" class="button">Fetch Previous Fees</button>
+        </span>
+        {% endif %}
+        <span style="margin-right: 5px;">
+            <button id="show-parent-portal" type="button" class="button">Show Parent Portal</button>
+        </span>
+
+        <div class="form-row">
+            <div id="previous-fees-section">
+                <!-- Previous fees will be injected here dynamically -->
+                <p>No previous fees records available.</p>
+            </div>
+        </div>
+    </fieldset>
+
+    <!-- Student Information Section -->
+    <fieldset class="module aligned">
+        <legend>Student Information</legend>
+        <div class="form-row">
+            <div class="field-admission_no">
+                <div class="flex-container">
+                    <label>Admission No:</label>
+                    <div class="readonly">{{ form.display_admission_no }}</div>
+                    {{ form.student_id }}
+                </div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="field-student_name">
+                <div class="flex-container">
+                    <label>Student Name:</label>
+                    <div class="readonly">{{ form.display_student_name }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="field-father_name">
+                <div class="flex-container">
+                    <label>Father Name:</label>
+                    <div class="readonly">{{ form.display_father_name }}</div>
+                </div>
+            </div>
+
+        </div>
+        <div class="form-row">
+            <div class="field-student_class">
+                <div class="flex-container">
+                    <label>Class:</label>
+                    <div class="readonly">{{ form.display_student_class }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="field-student_section">
+                <div class="flex-container">
+                    <label>Section:</label>
+                    <div class="readonly">{{ form.display_student_section }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="field-started_on">
+                <div class="flex-container">
+                    <label>Started On:</label>
+                    <div class="readonly">{{ form.started_on }}</div>
+                </div>
+            </div>
+        </div>
+    </fieldset>
+
+    <!-- Payment Section -->
+    <fieldset class="module aligned">
+        <legend>Payment Section</legend>
+        <div class="form-row field-fees_for_months">
+            <div class="flex-container">
+                <label class="required" for="id_fees_for_months">Fees for Months:</label>
+                {{ form.fees_for_months }}
+            </div>
+        </div>
+
+        <div class="form-row field-fees_period_month">
+            <div class="flex-container">
+                <label class="required" for="id_fees_period_month">Fees Period Month:</label>
+                {{ form.fees_period_month }}
+            </div>
+        </div>
+
+        <div class="form-row field-annual_fees_paid">
+            <div class="flex-container">
+                <label for="id_annual_fees_paid">Annual Fees Paid:</label>
+                {{ form.annual_fees_paid }}
+            </div>
+        </div>
+
+        <!-- Additional fields for payment section -->
+        <div class="form-row field-tuition_fees_paid">
+            <div class="flex-container">
+                <label>Tuition Fees Paid:</label>
+                {{ form.tuition_fees_paid }}
+            </div>
+
+        </div>
+        <div class="form-row field-funds_fees_paid">
+            <div class="flex-container">
+                <label>Funds Fees Paid:</label>
+                {{ form.funds_fees_paid }}
+            </div>
+        </div>
+
+        <div class="form-row field-sports_fees_paid">
+            <div class="flex-container">
+                <label>Sports Fees Paid:</label>
+                {{ form.sports_fees_paid }}
+            </div>
+
+        </div>
+
+        <div class="form-row field-admission_fees_paid">
+            <div class="flex-container">
+                <label>Admission Fees Paid:</label>
+                {{ form.admission_fees_paid }}
+            </div>
+        </div>
+
+        <!-- More fields for payment details -->
+        <div class="form-row field-miscellaneous_fees_paid">
+            <div class="flex-container">
+                <label>Miscellaneous Fees Paid:</label>
+                {{ form.miscellaneous_fees_paid }}
+            </div>
+
+        </div>
+
+        <div class="form-row field-late_fees_paid">
+            <div class="flex-container">
+                <label>Late Fees Paid:</label>
+                {{ form.late_fees_paid }}
+            </div>
+        </div>
+
+        <div class="form-row field-dayboarding_fees_paid">
+            <div class="flex-container">
+                <label>Dayboarding Fees Paid:</label>
+                {{ form.dayboarding_fees_paid }}
+            </div>
+
+        </div>
+        <div class="form-row field-bus_fees_paid">
+            <div class="flex-container">
+                <label>Bus Fees Paid:</label>
+                {{ form.bus_fees_paid }}
+            </div>
+        </div>
+
+        <div class="form-row field-concession_type">
+            <div class="flex-container">
+                <label>Concession Type:</label>
+                {{ form.concession_type }}
+            </div>
+
+        </div>
+
+        <div class="form-row field-concession_applied">
+            <div class="flex-container">
+                <label>Concession Applied:</label>
+                {{ form.concession_applied }}
+            </div>
+        </div>
+
+        <div class="form-row field-total_amount">
+            <div class="flex-container">
+                <label>Total Amount:</label>
+                {{ form.total_amount }}
+            </div>
+        </div>
+    </fieldset>
+
+    <!-- Payment Method Section -->
+    <fieldset class="module aligned">
+        <legend>Payment Method</legend>
+        <div class="form-row field-date_payment">
+            <div class="flex-container">
+                <label>Date Payment:</label>
+                {{ form.date_payment }}
+            </div>
+
+        </div>
+        <div class="form-row field-payment_mode">
+            <div class="flex-container">
+                <label>Payment Mode:</label>
+                {{ form.payment_mode }}
+            </div>
+        </div>
+
+        <div class="form-row field-cheque_no">
+            <div class="flex-container">
+                <label>Cheque No:</label>
+                {{ form.cheque_no }}
+            </div>
+
+        </div>
+        <div class="form-row field-bank_name">
+            <div class="flex-container">
+                <label>Bank Name:</label>
+                {{ form.bank_name }}
+            </div>
+        </div>
+
+        <div class="form-row field-branch_name">
+            <div class="flex-container">
+                <label>Branch Name:</label>
+                {{ form.branch_name }}
+            </div>
+
+        </div>
+        <div class="form-row field-realized_date">
+            <div class="flex-container">
+                <label>Realized Date:</label>
+                {{ form.realized_date }}
+            </div>
+        </div>
+
+        <div class="form-row field-cheque_status">
+            <div class="flex-container">
+                <label>Cheque Status:</label>
+                {{ form.cheque_status }}
+            </div>
+
+        </div>
+        <div class="form-row field-amount_paid">
+            <div class="flex-container">
+                <label>Amount Paid:</label>
+                {{ form.amount_paid }}
+            </div>
+
+        </div>
+        <div class="form-row field-remarks">
+            <div class="flex-container">
+                <label>Remarks:</label>
+                {{ form.remarks }}
+            </div>
+        </div>
+    </fieldset>
+
+    <!-- Submit Button Section -->
+    <div class="submit-row">
+        <!-- Save button -->
+        <input type="submit" value="Save" class="default" name="_save">
+
+        <!-- Save and add another button -->
+        <input type="submit" value="Save and add another" name="_addanother">
+
+        <!-- Save and continue editing button -->
+        <input type="submit" value="Save and continue editing" name="_continue">
+    </div>
+
+</form>
+
+{% endblock %}
