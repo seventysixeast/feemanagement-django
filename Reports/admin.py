@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    transport, tuition_fees_defaulter,admission_report
+    transport, tuition_fees_defaulter,admission_report,collection_report
 )
 
 from app.models import (
@@ -38,6 +38,9 @@ from datetime import datetime
 
 from django.db.models import Subquery, OuterRef
 from django.db.models import Exists, OuterRef
+
+from django.db.models import Sum, Max
+from datetime import datetime, timedelta
 
 # from .models import transport, BusFeesMaster, BusMaster, StudentClasses
 
@@ -1209,12 +1212,410 @@ class AdmissionReportAdmin(ExportMixin, admin.ModelAdmin):
 # Register the AdmissionReport proxy model with the custom admin
 admin.site.register(admission_report, AdmissionReportAdmin)
 
-
-
-
-
 # admin.site.register(tuition_fees_defaulter, TuitionFeesDefaulterAdmin)
 
 
-# admin.site.register(tuition_fees_defaulter)
 
+
+# class CollectionReportResource(resources.ModelResource):
+#     class Meta:
+#         model = collection_report
+#         # Specify the fields you want to include, or leave it empty for all fields
+#         fields = ('id', 'student_id', 'date_payment', 'total_amount', 'amount_paid', 'remarks', 'added_by', 'added_at', 'edited_by', 'edited_at')
+#         # If you want to set up import/export options, you can define them here.
+
+# class CollectionReportAdmin(ExportMixin, admin.ModelAdmin):
+#     resource_class = CollectionReportResource
+#     list_display = (
+#         'student_class',
+#         'student_section',
+#         'fees_for_months',
+#         'fees_period_month',
+#         'year',
+#         'date_payment',
+#         'concession_applied',
+#         'annual_fees_paid',
+#         'tuition_fees_paid',
+#         'funds_fees_paid',
+#         'admission_fees_paid',
+#         'dayboarding_fees_paid',
+#         'miscellaneous_fees_paid',
+#         'bus_fees_paid',
+#         'activity_fees',
+#         'total_amount',
+#         'amount_paid',
+#         'payment_mode',
+#         'cheq_no',
+#         'txn_id',
+#         'bank_name',
+#         'cheque_status',
+#         'realized_date',
+#         'added_by',
+#         'txn_ref_number',
+#         'branch_name',
+#         'txn_response_code',
+#         'txn_payment_mode',
+#         'added_at',
+#         'edited_by',
+#         'edited_at',
+#         'remarks',
+#         'entry_date',
+#     )
+
+#     def has_add_permission(self, request):
+#         return False
+
+#     def has_change_permission(self, request, obj=None):
+#         return False
+
+#     def has_delete_permission(self, request, obj=None):
+#         return False
+
+#     def changelist_view(self, request, extra_context=None):
+#         """
+#         Custom changelist view to show only the search results.
+#         """
+#         # Extract filters from the request
+#         datefrom = request.GET.get('datefrom')
+#         dateto = request.GET.get('dateto')
+#         paymentType = request.GET.get('paymentType')
+#         deviceType = request.GET.get('deviceType')
+#         radioval = request.GET.get('radioval')
+
+#         # Convert date strings to date objects (if provided)
+#         datefrom1 = datetime.strptime(datefrom, "%Y-%m-%d") if datefrom else None
+#         dateto1 = datetime.strptime(dateto, "%Y-%m-%d") if dateto else None
+
+#         # Base queryset
+#         queryset = student_fee.objects.all()
+
+#         # Apply filters based on GET parameters
+#         if radioval == 'advancedfees':
+#             current_year = datetime.now().year
+#             from_date = f"{current_year - 1}-04-01"
+#             to_date = f"{current_year}-03-31"
+#             queryset = queryset.filter(year=current_year, date_payment__range=[from_date, to_date])
+#         elif radioval == 'customfees':
+#             if datefrom1 and dateto1:
+#                 queryset = queryset.filter(date_payment__range=[datefrom1, dateto1])
+#             else:
+#                 # Default to filtering by the last day if no date range is provided
+#                 yesterday = datetime.now() - timedelta(days=1)
+#                 queryset = queryset.filter(added_at__gte=yesterday, added_at__lt=datetime.now())
+        
+#         if paymentType:
+#             queryset = queryset.filter(payment_mode=paymentType)
+#         if deviceType:
+#             queryset = queryset.filter(request_source=deviceType)
+
+#         # Pass the filtered queryset to the context to display in the template
+#         extra_context = extra_context or {}
+#         # extra_context['cl'] = self.get_changelist_instance(request, queryset=queryset)
+
+#         return super().changelist_view(request, extra_context=extra_context)
+
+#     change_list_template = "admin/collection_report/change_list.html"  # Specify your custom template
+
+
+# admin.site.register(collection_report, CollectionReportAdmin)
+
+
+# class CollectionReportResource(resources.ModelResource):
+#     class Meta:
+#         model = collection_report
+#         fields = ('id', 'student_id', 'date_payment', 'total_amount', 'amount_paid', 'remarks', 'added_by', 'added_at', 'edited_by', 'edited_at')
+
+class CollectionReportAdmin(ExportMixin, admin.ModelAdmin):
+    # resource_class = CollectionReportResource
+    list_display = (
+        'student_class',
+        'student_section',
+        'fees_for_months',
+        'fees_period_month',
+        'year',
+        'date_payment',
+        'concession_applied',
+        'annual_fees_paid',
+        'tuition_fees_paid',
+        'funds_fees_paid',
+        'admission_fees_paid',
+        'dayboarding_fees_paid',
+        'miscellaneous_fees_paid',
+        'bus_fees_paid',
+        'activity_fees',
+        'total_amount',
+        'amount_paid',
+        'payment_mode',
+        'cheq_no',
+        'txn_id',
+        'bank_name',
+        'cheque_status',
+        'realized_date',
+        'added_by',
+        'txn_ref_number',
+        'branch_name',
+        'txn_response_code',
+        'txn_payment_mode',
+        'added_at',
+        'edited_by',
+        'edited_at',
+        'remarks',
+        'entry_date',
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    # def changelist_view(self, request, extra_context=None):
+    #     """
+    #     Custom changelist view to show filtered results or an empty list initially.
+    #     """
+    #     extra_context = extra_context or {}
+        
+    #     # Get filters and search term from the request
+    #     datefrom = request.GET.get('datefrom')
+    #     dateto = request.GET.get('dateto')
+    #     paymentType = request.GET.get('paymentType')
+    #     deviceType = request.GET.get('deviceType')
+    #     radioval = request.GET.get('radioval')
+    #     search_term = request.GET.get('q', '')  # Get search term from the request
+
+    #     # Base queryset is empty to prevent showing the list initially
+    #     queryset = collection_report.objects.none()
+
+    #     # Check if any filters or search terms have been applied
+    #     if datefrom or dateto or paymentType or deviceType or radioval or search_term:
+    #         # Convert date strings to date objects (if provided)
+    #         datefrom1 = datetime.strptime(datefrom, "%Y-%m-%d") if datefrom else None
+    #         dateto1 = datetime.strptime(dateto, "%Y-%m-%d") if dateto else None
+
+    #         # Create the base queryset
+    #         queryset = collection_report.objects.all()
+
+    #         # Apply filters based on GET parameters
+    #         if radioval == 'advancedfees':
+    #             current_year = datetime.now().year
+    #             from_date = f"{current_year - 1}-04-01"
+    #             to_date = f"{current_year}-03-31"
+    #             queryset = queryset.filter(year=current_year, date_payment__range=[from_date, to_date])
+    #         elif radioval == 'customfees':
+    #             if datefrom1 and dateto1:
+    #                 queryset = queryset.filter(date_payment__range=[datefrom1, dateto1])
+    #             else:
+    #                 # Default to filtering by the last day if no date range is provided
+    #                 yesterday = datetime.now() - timedelta(days=1)
+    #                 queryset = queryset.filter(added_at__gte=yesterday, added_at__lt=datetime.now())
+
+    #         if paymentType:
+    #             queryset = queryset.filter(payment_mode=paymentType)
+    #         if deviceType:
+    #             queryset = queryset.filter(request_source=deviceType)
+
+    #         # Search results
+    #         if search_term:
+    #             queryset = queryset.filter(
+    #                 Q(student_id__icontains=search_term) |
+    #                 Q(date_payment__icontains=search_term) |
+    #                 Q(total_amount__icontains=search_term) |
+    #                 Q(remarks__icontains=search_term) |
+    #                 Q(added_by__icontains=search_term) |
+    #                 Q(edited_by__icontains=search_term)
+    #             ).distinct()
+
+    #     # Pass the filtered queryset to the context to display in the template
+    #     extra_context['filtered_queryset'] = queryset
+
+    #     return super().changelist_view(request, extra_context=extra_context)
+
+
+    # def changelist_view(self, request, extra_context=None):
+    #     """
+    #     Custom changelist view to show filtered results or an empty list initially.
+    #     """
+    #     extra_context = extra_context or {}
+        
+    #     # Get filters and search term from the request
+    #     datefrom = request.GET.get('datefrom')
+    #     dateto = request.GET.get('dateto')
+    #     paymentType = request.GET.get('paymentType')
+    #     deviceType = request.GET.get('deviceType')
+    #     radioval = request.GET.get('radioval')
+    #     search_term = request.GET.get('q', '')  # Get search term from the request
+
+    #     # Base queryset is empty to prevent showing the list initially
+    #     queryset = collection_report.objects.none()
+
+    #     # Initialize date variables
+    #     datefrom1 = datetime.strptime(datefrom, "%Y-%m-%d") if datefrom else None
+    #     dateto1 = datetime.strptime(dateto, "%Y-%m-%d") if dateto else None
+    #     current_year = datetime.now().year
+    #     from_date = f"{current_year - 1}-04-01"
+    #     to_date = f"{current_year}-03-31"
+
+    #     # Check if any filters or search terms have been applied
+    #     if datefrom or dateto or paymentType or deviceType or radioval or search_term:
+    #         # Create the base queryset
+    #         queryset = collection_report.objects.all()
+
+    #         # Apply filters based on GET parameters
+    #         if radioval == 'advancedfees':
+    #             queryset = queryset.filter(year=current_year, date_payment__range=[from_date, to_date])
+    #         elif radioval == 'customfees':
+    #             if datefrom1 and dateto1:
+    #                 queryset = queryset.filter(date_payment__range=[datefrom1, dateto1])
+    #             else:
+    #                 # Default to filtering by the last day if no date range is provided
+    #                 yesterday = datetime.now() - timedelta(days=1)
+    #                 queryset = queryset.filter(added_at__gte=yesterday, added_at__lt=datetime.now())
+
+    #         if paymentType:
+    #             queryset = queryset.filter(payment_mode=paymentType)
+    #         if deviceType:
+    #             queryset = queryset.filter(request_source=deviceType)
+
+    #         # Search results
+    #         if search_term:
+    #             queryset = queryset.filter(
+    #                 Q(student_id__icontains=search_term) |
+    #                 Q(date_payment__icontains=search_term) |
+    #                 Q(total_amount__icontains=search_term) |
+    #                 Q(remarks__icontains=search_term) |
+    #                 Q(added_by__icontains=search_term) |
+    #                 Q(edited_by__icontains=search_term)
+    #             ).distinct()
+
+    #     # Pass the filtered queryset to the context to display in the template
+    #     extra_context['filtered_queryset'] = queryset
+
+    #     return super().changelist_view(request, extra_context=extra_context)
+
+
+    def changelist_view(self, request, extra_context=None):
+        """
+        Custom changelist view to show filtered results based on the form submission.
+        """
+        extra_context = extra_context or {}
+
+        # Start with an empty queryset
+        queryset = collection_report.objects.none()  
+
+        # Initialize current year for filter logic
+        current_year = datetime.now().year
+
+        # Create the base queryset if any form filters are present
+        if request.GET:
+            # Create the base queryset from `collection_report` (or the relevant model)
+            queryset = collection_report.objects.all()
+
+            # Check for the fee type radio button
+            if 'feestype' in request.GET:
+                fee_type = request.GET['feestype']
+                if fee_type == 'advancedfees':
+                    queryset = queryset.filter(year=current_year)
+                elif fee_type == 'customfees':
+                    datefrom = request.GET.get('date_from')
+                    dateto = request.GET.get('date_to')
+                    if datefrom and dateto:
+                        # Convert dates to datetime objects
+                        datefrom1 = datetime.strptime(datefrom, "%Y-%m-%d")
+                        dateto1 = datetime.strptime(dateto, "%Y-%m-%d")
+                        queryset = queryset.filter(date_payment__range=[datefrom1, dateto1])
+                    else:
+                        # Default to filtering by the last day if no date range is provided
+                        yesterday = datetime.now() - timedelta(days=1)
+                        queryset = queryset.filter(added_at__gte=yesterday, added_at__lt=datetime.now())
+
+            # Additional filters (if provided in the request)
+            if 'paymentType' in request.GET:
+                paymentType = request.GET['paymentType']
+                if paymentType:
+                    queryset = queryset.filter(payment_mode=paymentType)
+
+            if 'deviceType' in request.GET:
+                deviceType = request.GET['deviceType']
+                if deviceType:
+                    queryset = queryset.filter(request_source=deviceType)
+
+            # Search term filter
+            search_term = request.GET.get('q', '')  # Default to empty string if not present
+            if search_term:
+                queryset = queryset.filter(
+                    Q(student_id__icontains=search_term) |
+                    Q(date_payment__icontains=search_term) |
+                    Q(total_amount__icontains=search_term) |
+                    Q(remarks__icontains=search_term) |
+                    Q(added_by__icontains=search_term) |
+                    Q(edited_by__icontains=search_term)
+                ).distinct()
+
+        # Pass the filtered queryset to the context to display in the template
+        extra_context['filtered_queryset'] = queryset
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def get_search_results(self, request, queryset, search_term):
+        """
+        Filter the queryset based on search parameters from the request.
+        """
+        # Get filters from the request
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        payment_type = request.GET.get('paymentType')
+        device_type = request.GET.get('deviceType')
+        fee_type = request.GET.get('feestype')
+
+        print(f"date_from-date_to-payment_type-fee_type -> {date_from}-{date_to}-{payment_type}-{fee_type}")
+
+        # Convert date strings to date objects
+        date_from = datetime.strptime(date_from, "%Y-%m-%d") if date_from else None
+        date_to = datetime.strptime(date_to, "%Y-%m-%d") if date_to else None
+
+        # Start with the base queryset
+        if fee_type == 'advancedfees':
+            current_year = timezone.now().year
+            from_date = f"{current_year - 1}-04-01"
+            to_date = f"{current_year}-03-31"
+            queryset = queryset.filter(year=current_year, date_payment__range=[from_date, to_date])
+        elif fee_type == 'customfees':
+            if date_from and date_to:
+                queryset = queryset.filter(date_payment__range=[date_from, date_to])
+            else:
+                # Default to filtering by the last day if no date range is provided
+                yesterday = timezone.now() - timedelta(days=1)
+                queryset = queryset.filter(added_at__gte=yesterday, added_at__lt=timezone.now())
+        else:
+            if date_from and date_to:
+                queryset = queryset.filter(date_payment__range=[date_from, date_to])
+            else:
+                # Apply any default filtering logic if necessary
+                queryset = queryset.none()  # Or another default behavior
+
+        # Apply additional filters based on payment type and device type
+        if payment_type:
+            queryset = queryset.filter(payment_mode=payment_type)
+        # if device_type:
+        #     queryset = queryset.filter(request_source=device_type)
+
+        # Apply search term filtering (if necessary)
+        if search_term:
+            queryset = queryset.filter(
+                Q(student_id__icontains=search_term) |
+                Q(date_payment__icontains=search_term) |
+                Q(total_amount__icontains=search_term) |
+                Q(remarks__icontains=search_term) |
+                Q(added_by__icontains=search_term) |
+                Q(edited_by__icontains=search_term)
+            ).distinct()
+
+        return queryset, True
+
+
+    change_list_template = "admin/collection_report/change_list.html"  # Specify your custom template
+
+admin.site.register(collection_report, CollectionReportAdmin)

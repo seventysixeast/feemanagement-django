@@ -12,9 +12,13 @@ from app.models import (
 
 class cheque_status(student_master):
   class Meta:
-      proxy = True  # Use this model as a proxy for the original model
-      # verbose_name = "Model 3"
-      # verbose_name_plural = "Model 3 Group"
-      # app_label = 'group2'
+    proxy = True
+    verbose_name = 'Cheque Status'
+    verbose_name_plural = 'Cheque Status'
+#   class Meta:
+#       proxy = True  # Use this model as a proxy for the original model
+#       # verbose_name = "Model 3"
+#       # verbose_name_plural = "Model 3 Group"
+#       # app_label = 'group2'
 
 
