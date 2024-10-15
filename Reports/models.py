@@ -27,3 +27,9 @@ class collection_report(student_fee):
       proxy = True
       verbose_name = 'Collection'
       verbose_name_plural = 'Collection'
+
+class activity_fees_defaulter(student_fee):
+  class Meta:
+      proxy = True
+      verbose_name = 'Activity Fees Defaulters'
+      verbose_name_plural = 'Activity Fees Defaulters'

@@ -1,0 +1,49 @@
+<!-- templates/admin/activity_fees_defaulters.html -->
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+    <h2>Activity Fees Defaulters Report</h2>
+
+    <form method="POST">
+        {% csrf_token %}
+        <table style="width:400px;">
+            <tr>
+                <th>Select Class</th>
+                <td>{{ form.student_class }}</td>
+                <th>Select Year</th>
+                <td>{{ form.year }}</td>
+            </tr>
+        </table>
+
+        <input type="submit" value="Search">
+    </form>
+
+    {% if results %}
+        <br>
+        <h3>Defaulters List:</h3>
+        <table id="studenttable" style="width:700px;">
+            <thead>
+                <tr>
+                    <th>Admission no</th>
+                    <th>Student name</th>
+                    <th>Class</th>
+                    <th>Section</th>
+                    <th>Activity Fees unpaid for months</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fee in results %}
+                    <tr>
+                        <td>{{ fee.student_id.addmission_no }}</td>
+                        <td>{{ fee.student_id.student_name }}</td>
+                        <td>{{ fee.student_class }}</td>
+                        <td>{{ fee.student_section }}</td>
+                        <td>{{ fee.fees_for_months }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% elif form.is_bound %}
+        <p>No defaulters found for the selected class and year.</p>
+    {% endif %}
+{% endblock %}

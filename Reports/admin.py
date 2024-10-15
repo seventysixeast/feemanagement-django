@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    transport, tuition_fees_defaulter,admission_report,collection_report
+    transport, tuition_fees_defaulter,admission_report,collection_report,activity_fees_defaulter
 )
 
 from app.models import (
@@ -41,6 +41,8 @@ from django.db.models import Exists, OuterRef
 
 from django.db.models import Sum, Max
 from datetime import datetime, timedelta
+from django import forms
+from django.template.response import TemplateResponse
 
 # from .models import transport, BusFeesMaster, BusMaster, StudentClasses
 
@@ -1619,3 +1621,72 @@ class CollectionReportAdmin(ExportMixin, admin.ModelAdmin):
     change_list_template = "admin/collection_report/change_list.html"  # Specify your custom template
 
 admin.site.register(collection_report, CollectionReportAdmin)
+
+
+
+
+class DefaultersReportForm(forms.Form):
+    CLASS_CHOICES = [
+        ('', 'Select Class'),
+        ('nursery', 'Nursery'),
+        ('LKG', 'LKG'),
+        ('UKG', 'UKG'),
+        ('1', '1st Grade'),
+        ('2', '2nd Grade'),
+        # Add other classes as needed
+    ]
+
+    current_year = datetime.now().year
+    YEAR_CHOICES = [(str(year), str(year)) for year in range(current_year, current_year - 6, -1)]
+
+    student_class = forms.ChoiceField(choices=CLASS_CHOICES, required=True, label="Class")
+    year = forms.ChoiceField(choices=YEAR_CHOICES, required=True, label="Year")
+
+
+class ActivityFeesDefaulterAdmin(admin.ModelAdmin):
+    # list_display = ('student', 'class_no', 'section', 'activity_fees_due', 'last_payment_date', 'is_defaulter')
+    # list_filter = ('class_no', 'section', 'is_defaulter')
+    # search_fields = ('student__student_name', 'class_no')
+
+    def has_add_permission(self, request):
+        return False  # You may want to disallow adding defaulters manually
+
+    def has_change_permission(self, request, obj=None):
+        return False  # Disallow changing defaulters
+
+    def has_delete_permission(self, request, obj=None):
+        return False  # Disallow deleting defaulters
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('activity-fees-defaulters/', self.admin_site.admin_view(self.activity_fees_defaulters_view)),
+            # path('ajax/get-students/', self.admin_site.admin_view(self.get_students), name='ajax_get_students'),
+        ]
+        return custom_urls + urls
+
+    def activity_fees_defaulters_view(self, request):
+        form = DefaultersReportForm(request.POST or None)
+        results = None
+
+        if request.method == 'POST' and form.is_valid():
+            selected_class = form.cleaned_data['student_class']
+            selected_year = form.cleaned_data['year']
+
+            # Query students with unpaid activity fees
+            results = student_fee.objects.filter(
+                student_class=selected_class,
+                year=selected_year,
+                activity_fees_paid__isnull=True
+            )
+
+        context = dict(
+            self.each_context(request),
+            form=form,
+            results=results,
+            title="Activity Fees Defaulters Report",
+        )
+        return TemplateResponse(request, "admin/activity_fees_defaulter/change_list.html", context)
+
+admin.site.register(activity_fees_defaulter, ActivityFeesDefaulterAdmin)
+
