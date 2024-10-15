@@ -1579,14 +1579,14 @@
             $("#student_fee_wrapper").show(); // show main div
             if (response.success) {
               // Prevent fee from portal for concession cases
-              if (response.data.studentDetails.length > 0 && response.data.studentDetails[0].concession_id && response.data.studentDetails[0].concession_id !== null) {
-                alert('Please visit the school fee counter for fee payment.  Thank you');
-                return false;
-              }
-              if (response.data.contactAdmin) {
-                alert('Please visit the school fee counter for fee payment. Thank you');
-                return false;
-              }
+              // if (response.data.studentDetails.length > 0 && response.data.studentDetails[0].concession_id && response.data.studentDetails[0].concession_id !== null) {
+              //   alert('Please visit the school fee counter for fee payment.  Thank you');
+              //   return false;
+              // }
+              // if (response.data.contactAdmin) {
+              //   alert('Please visit the school fee counter for fee payment. Thank you');
+              //   return false;
+              // }
               // Update student details
               if (response.data.studentDetails.length > 0) {
                 $("#toggleReceipts").show();

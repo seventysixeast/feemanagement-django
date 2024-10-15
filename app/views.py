@@ -1135,7 +1135,7 @@ def action_student_payment_details(request, admission=None):
                         elif check_outstanding_amount < 0:
                             # Outstanding amount is negative
                             prev_pending_amount = outstanding_amount
-                            contact_admin = True
+                            contactAdmin = True
                             prev_pending_amount = 0
 
                         # Update outstanding amount
