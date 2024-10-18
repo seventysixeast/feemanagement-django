@@ -19,3 +19,13 @@ class admission_report(student_master):
       proxy = True
       verbose_name = 'Admission Report'
       verbose_name_plural = 'Admission Reports'
+
+class final_fees_report(student_fee):
+  class Meta:
+      proxy = True  # Use this model as a proxy for the original model
+      # fields = ('student_class', 'total_annual_fees')
+
+     
+class transport_defaulter(student_fee):
+  class Meta:
+      proxy = True  # Use this model as a proxy for the original model

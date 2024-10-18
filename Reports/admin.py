@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    transport, tuition_fees_defaulter,admission_report
+    transport, tuition_fees_defaulter,admission_report, final_fees_report, transport_defaulter
 )
 
 from app.models import (
@@ -15,7 +15,6 @@ from import_export.fields import Field
 
 
 from django.db.models import OuterRef, Subquery
-from django.contrib import admin
 from django.urls import path
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -38,6 +37,10 @@ from datetime import datetime
 
 from django.db.models import Subquery, OuterRef
 from django.db.models import Exists, OuterRef
+
+from django.db.models import Sum
+
+
 
 # from .models import transport, BusFeesMaster, BusMaster, StudentClasses
 
@@ -710,215 +713,6 @@ class DateToFilter(admin.SimpleListFilter):
     #   
     # 
 
-# class AdmissionReportResource(resources.ModelResource):
-
-#     class Meta:
-#         model = admission_report
-#         fields = ('addmission_no', 'admission_date', 'student_name', 'birth_date',
-#         'class_no', 'section', 'father_name', 'mother_name', 'address')
-
-#     student_name = Field(attribute='student_name', column_name='Student Name')
-#     addmission_no = Field(attribute='addmission_no', column_name='Admission No')
-#     admission_date = Field(attribute='admission_date', column_name='Admission Date')
-#     class_no = Field(attribute='class_no', column_name='Class')
-#     section = Field(attribute='section', column_name='Section')
-
-#     father_name = Field(attribute='father_name', column_name='Father Name')
-#     mother_name = Field(attribute='phone_no', column_name='Mother Name')
-#     address = Field(attribute='address', column_name='Address')
-#     birth_date = Field(attribute='birth_date', column_name='Birth Date')
-
-
-#     def dehydrate_class_no(self, obj):
-#         # Assuming 'bus_driver' is a related field on the model
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.class_no if student_class_instance else None
-#         # return obj.class_no if obj.class_no else ''
-
-    
-#     def dehydrate_section(self, obj):
-#         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-#         return student_class_instance.section if student_class_instance else None
-    
-#     # def dehydrate_class_no(self, obj):
-#     #     # Subquery to fetch class_no from student_class without foreign key
-#     #     # subquery = student_class.objects.filter(
-#     #     #     student_id=obj.student_id
-#     #     # ).order_by('-student_class_id').values('class_no')[:1]
-#     #     # result = subquery.first()
-#     #     # return result.get('class_no') if result else None
-#     #     search_class_no = self._request.GET.get('class_no', None)
-
-#     #     # Filter by class_no and/or section if available
-#     #     if search_class_no:
-#     #         student_class_instance = student_class.objects.filter(student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
-#     #     else:
-#     #         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-
-#     #     return student_class_instance.class_no if student_class_instance else None
-
-#     # def dehydrate_section(self, obj):
-#     #     # Subquery to fetch section from student_class without foreign key
-#     #     # subquery = student_class.objects.filter(
-#     #     #     student_id=obj.student_id
-#     #     # ).order_by('-student_class_id').values('section')[:1]
-#     #     # result = subquery.first()
-#     #     # return result.get('section') if result else None
-#     #     search_class_no = self._request.GET.get('class_no', None)
-
-#     #     # Filter by class_no and/or section if available
-#     #     if search_class_no:
-#     #         student_class_instance = student_class.objects.filter(student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
-#     #     else:
-#     #         student_class_instance = student_class.objects.filter(student_id=obj.student_id).order_by('-started_on').first()
-
-#     #     return student_class_instance.section if student_class_instance else None
-
-#     # # get_section.short_description = 'Section'
-
-
-  
-#         # return obj.bus_driver
-    
-# class AdmissionReportResource(resources.ModelResource):
-#     def __init__(self, request=None):
-#         super().__init__()
-#         self._request = request
-
-#     class Meta:
-#         model = admission_report
-#         fields = ('addmission_no', 'admission_date', 'student_name', 'birth_date',
-#                   'class_no', 'section', 'father_name', 'mother_name', 'address')
-
-#     # Define fields
-#     student_name = Field(attribute='student_name', column_name='Student Name')
-#     addmission_no = Field(attribute='addmission_no', column_name='Admission No')
-#     admission_date = Field(attribute='admission_date', column_name='Admission Date')
-#     class_no = Field(attribute='class_no', column_name='Class')
-#     section = Field(attribute='section', column_name='Section')
-#     father_name = Field(attribute='father_name', column_name='Father Name')
-#     mother_name = Field(attribute='phone_no', column_name='Mother Name')
-#     address = Field(attribute='address', column_name='Address')
-#     birth_date = Field(attribute='birth_date', column_name='Birth Date')
-
-#     # Custom dehydrate methods
-#     def dehydrate_class_no(self, obj):
-#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
-
-#         if search_class_no:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
-#         else:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id).order_by('-started_on').first()
-
-#         return student_class_instance.class_no if student_class_instance else None
-
-#     def dehydrate_section(self, obj):
-#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
-
-#         if search_class_no:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
-#         else:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id).order_by('-started_on').first()
-
-#         return student_class_instance.section if student_class_instance else None
-
-# class AdmissionReportResource(resources.ModelResource):
-#     def __init__(self, request=None):
-#         super().__init__()
-#         self._request = request  # Store the request passed from the Admin class
-
-#     class Meta:
-#         model = admission_report
-#         fields = ('addmission_no', 'admission_date', 'student_name', 'birth_date',
-#                   'class_no', 'section', 'father_name', 'mother_name', 'address')
-
-#     # Define fields
-#     student_name = Field(attribute='student_name', column_name='Student Name')
-#     addmission_no = Field(attribute='addmission_no', column_name='Admission No')
-#     admission_date = Field(attribute='admission_date', column_name='Admission Date')
-#     class_no = Field(attribute='class_no', column_name='Class')
-#     section = Field(attribute='section', column_name='Section')
-#     father_name = Field(attribute='father_name', column_name='Father Name')
-#     mother_name = Field(attribute='phone_no', column_name='Mother Name')
-#     address = Field(attribute='address', column_name='Address')
-#     birth_date = Field(attribute='birth_date', column_name='Birth Date')
-
-#     # Custom dehydrate methods
-#     def dehydrate_class_no(self, obj):
-#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
-
-#         if search_class_no:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
-#         else:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id).order_by('-started_on').first()
-
-#         return student_class_instance.class_no if student_class_instance else None
-
-#     def dehydrate_section(self, obj):
-#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
-
-#         if search_class_no:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
-#         else:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id).order_by('-started_on').first()
-
-#         return student_class_instance.section if student_class_instance else None
-
-# class AdmissionReportResource(resources.ModelResource):
-#     def __init__(self, request=None, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self._request = request  # Store the request passed from the Admin class
-#         # Handle other keyword arguments like 'encoding'
-#         self.extra_args = kwargs
-
-#     class Meta:
-#         model = admission_report
-#         fields = ('addmission_no', 'admission_date', 'student_name', 'birth_date',
-#                   'class_no', 'section', 'father_name', 'mother_name', 'address')
-
-#     # Define fields
-#     student_name = Field(attribute='student_name', column_name='Student Name')
-#     addmission_no = Field(attribute='addmission_no', column_name='Admission No')
-#     admission_date = Field(attribute='admission_date', column_name='Admission Date')
-#     class_no = Field(attribute='class_no', column_name='Class')
-#     section = Field(attribute='section', column_name='Section')
-#     father_name = Field(attribute='father_name', column_name='Father Name')
-#     mother_name = Field(attribute='phone_no', column_name='Mother Name')
-#     address = Field(attribute='address', column_name='Address')
-#     birth_date = Field(attribute='birth_date', column_name='Birth Date')
-
-#     # Custom dehydrate methods
-#     def dehydrate_class_no(self, obj):
-#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
-#         print('search_class_no',search_class_no)
-#         if search_class_no:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
-#         else:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id).order_by('-started_on').first()
-
-#         return student_class_instance.class_no if student_class_instance else None
-
-#     def dehydrate_section(self, obj):
-#         search_class_no = self._request.GET.get('class_no', None) if self._request else None
-
-#         if search_class_no:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id, class_no=search_class_no).order_by('-started_on').first()
-#         else:
-#             student_class_instance = student_class.objects.filter(
-#                 student_id=obj.student_id).order_by('-started_on').first()
-
-#         return student_class_instance.section if student_class_instance else None
 
 class AdmissionReportResource(resources.ModelResource):
     # def __init__(self, request=None, *args, **kwargs):
@@ -1210,11 +1004,894 @@ class AdmissionReportAdmin(ExportMixin, admin.ModelAdmin):
 admin.site.register(admission_report, AdmissionReportAdmin)
 
 
+ # Use obj as a dict because values() returns a dict
+
+
+# class FinalFeesReportAdmin(admin.ModelAdmin):
+#     model = final_fees_report
+
+#     list_display = (
+#         'student_class', 'total_annual_fees'
+#     )
+
+#     def has_add_permission(self, request):
+#         return False
+
+#     def has_change_permission(self, request, obj=None):
+#         return False
+
+#     def has_delete_permission(self, request, obj=None):
+#         return False
+    
+#     class MoneySerializer(serializers.ModelSerializer):
+#     total_annual_fees = serializers.IntegerField()
+
+#     class Meta:
+#         model =  final_fees_report
+#         fields = ('student_class', 'total_annual_fees')
+
+#     def get_queryset(self, request):
+#         # Extract parameters from request (you can modify this part as needed)
+#         year = "2024"  # Hardcoded for testing, adjust dynamically if needed
+
+#         try:
+#             year = int(year)
+#         except ValueError:
+#             year = datetime.now().year  # Fallback to current year if invalid
+
+#         # Calculate date range for the academic year
+#         from_year = f"{year}-04-01"
+#         to_year = f"{year + 1}-03-31"
+
+#         # Perform aggregation but still return the queryset as model instances
+#         queryset = student_fee.objects.filter(
+#             date_payment__range=[from_year, to_year]
+#         ).values('student_class').annotate(
+#             total_annual_fees=Sum('annual_fees_paid'),
+#             # total_tuition_fees=Sum('tuition_fees_paid'),
+#             # total_funds_fees=Sum('funds_fees_paid'),
+#             # total_sports_fees=Sum('sports_fees_paid'),
+#             # total_activity_fees=Sum('activity_fees'),
+#             # total_admission_fees=Sum('admission_fees_paid'),
+#             # total_security_fees=Sum('security_paid'),
+#             # total_late_fees=Sum('late_fees_paid'),
+#             # total_dayboarding_fees=Sum('dayboarding_fees_paid'),
+#             # total_bus_fees=Sum('bus_fees_paid'),
+#             # total_fees_amount=Sum('total_amount'),
+#             # total_amount_paid=Sum('amount_paid')
+#         ).order_by('student_class')
+
+#         return queryset
+
+    # Display method for total annual fees
+    # def total_annual_fees_display(self, obj):
+    #     return obj.total_annual_fees  # Access the annotated field directly
+
+
+from rest_framework import serializers  # Importing serializers for the MoneySerializer
+
+# Serializer for handling data representation (useful for APIs or exporting data)
+# class MoneySerializer(serializers.ModelSerializer):
+#     total_annual_fees = serializers.IntegerField()
+
+#     class Meta:
+#         model = final_fees_report
+#         fields = ('student_class', 'total_annual_fees')
+
+# Django Admin class for displaying the data
+# class FinalFeesReportAdmin(admin.ModelAdmin):
+#     model = final_fees_report
+
+#     list_display = (
+#         'student_class','total_annual_fees_display',
+#     )
+
+#     def has_add_permission(self, request):
+#         return False
+
+#     def has_change_permission(self, request, obj=None):
+#         return False
+
+#     def has_delete_permission(self, request, obj=None):
+#         return False
+
+#     def get_queryset(self, request):
+#         # Extract parameters from request or hardcode for testing
+#         year = "2024"  # You can replace this with dynamic extraction from request if needed
+
+#         try:
+#             year = int(year)
+#         except ValueError:
+#             year = datetime.now().year  # Fallback to current year if the value is invalid
+
+#         # Calculate date range for the academic year
+#         from_year = f"{year}-04-01"
+#         to_year = f"{year + 1}-03-31"
+
+#         # Perform aggregation but return the queryset as model instances
+#         queryset = student_fee.objects.filter(
+#             date_payment__range=[from_year, to_year]
+#         ).values('student_class').annotate(
+#             total_annual_fees=Sum('annual_fees_paid'),
+#         ).order_by('student_class')
+
+#         print('queryset',queryset)
+
+#         # return queryset
+#         return list(queryset)
+    
+#     # Custom display for total_annual_fees in list_display
+#     def total_annual_fees_display(self, obj):
+#         # Access the 'total_annual_fees' from the dictionary returned by get_queryset
+#         return obj.get('total_annual_fees', 0)
+
+#     total_annual_fees_display.short_description = "Total Annual Fees"
+
+#     # Display the student class in the list
+#     def student_class(self, obj):
+#         return obj.get('student_class', 'Unknown')
+
+#     student_class.short_description = "Student Class"
+
+    # Custom display for total_annual_fees
+    # def total_annual_fees_display(self, obj):
+    #     print('Full object:', obj.__dict__)
+    #     return obj.student_class if obj.student_class else 0
+
+    # total_annual_fees_display.short_description = "Total Annual Fees"
+
+# Register the admin class with the model
+# admin.site.register(final_fees_report, FinalFeesReportAdmin)
+
+
+# Register the admin
+
+# from django.contrib import admin
+# from django.db.models import Sum
+# from .models import student_fee  # Ensure you import your model
+# working fine
+# class FinalFeesReportAdmin(admin.ModelAdmin):
+#     model = final_fees_report
+#     list_display = (
+#         'student_class', 'total_annual_fees_display',  # Add the display method for total fees
+#     )
+
+#     def has_add_permission(self, request):
+#         return False
+
+#     def has_change_permission(self, request, obj=None):
+#         return False
+
+#     def has_delete_permission(self, request, obj=None):
+#         return False
+
+#     def get_queryset(self, request):
+#         # Extract parameters from request or hardcode for testing
+#         year = "2024"  # You can replace this with dynamic extraction from request if needed
+
+#         try:
+#             year = int(year)
+#         except ValueError:
+#             year = datetime.now().year  # Fallback to current year if the value is invalid
+
+#         # Calculate date range for the academic year
+#         from_year = f"{year}-04-01"
+#         to_year = f"{year + 1}-03-31"
+
+#         # Perform aggregation
+#         queryset = student_fee.objects.filter(
+#             date_payment__range=[from_year, to_year]
+#         ).values('student_class').annotate(
+#             total_annual_fees=Sum('annual_fees_paid'),
+#             total_tuition_fees=Sum('tuition_fees_paid'),
+#             total_funds_fees=Sum('funds_fees_paid'),
+#             total_sports_fees=Sum('sports_fees_paid'),
+#             total_activity_fees=Sum('activity_fees'),
+#             total_admission_fees=Sum('admission_fees_paid'),
+#             total_security_fees=Sum('security_paid'),
+#             total_late_fees=Sum('late_fees_paid'),
+#             total_dayboarding_fees=Sum('dayboarding_fees_paid'),
+#             total_bus_fees=Sum('bus_fees_paid'),
+#             total_fees_amount=Sum('total_amount'),
+#             total_amount_paid=Sum('amount_paid')
+#         ).order_by('student_class')
+
+#         # Use list() to convert to a list of dictionaries
+#         return (queryset)
+
+#     # Custom display for total_annual_fees in list_display
+#     def total_annual_fees_display(self, obj):
+#         # Access the 'total_annual_fees' from the dictionary returned by get_queryset
+#         return obj.get('total_annual_fees', 0)
+
+#     total_annual_fees_display.short_description = "Total Annual Fees"
+
+#     # Display the student class in the list
+#     def student_class(self, obj):
+#         return obj.get('student_class', 'Unknown')
+
+#     student_class.short_description = "Student Class"
+# working fine
+
+
+# class FinalFeesReportAdmin(admin.ModelAdmin):
+#     model = final_fees_report
+
+#     list_display = (
+#         'student_class',
+#     )
+
+#     def has_add_permission(self, request):
+#         return False
+
+#     def has_change_permission(self, request, obj=None):
+#         return False
+
+#     def has_delete_permission(self, request, obj=None):
+#         return False
+
+#     def get_search_results(self, request, queryset, search_term):
+#         # Extract parameters from request
+#         reporttype = request.GET.get('reporttype')
+#         year = request.GET.get('year')
+
+#         if reporttype == "summaryreport" and year:
+#             try:
+#                 year = int(year)
+#             except ValueError:
+#                 year = datetime.now().year  # Fallback to current year if invalid
+
+#             # Calculate date range from the year
+#             from_year = f"{year}-04-01"
+#             to_year = f"{year + 1}-03-31"
+
+#             # Aggregate the data based on the class
+#             queryset = student_fee.objects.filter(
+#                 date_payment__range=[from_year, to_year]
+#             ).values('student_class').annotate(
+#                 total_annual_fees=Sum('annual_fees_paid'),
+#                 total_tuition_fees=Sum('tuition_fees_paid'),
+#                 total_funds_fees=Sum('funds_fees_paid'),
+#                 total_sports_fees=Sum('sports_fees_paid'),
+#                 total_activity_fees=Sum('activity_fees'),
+#                 total_admission_fees=Sum('admission_fees_paid'),
+#                 total_security_fees=Sum('security_paid'),
+#                 total_late_fees=Sum('late_fees_paid'),
+#                 total_dayboarding_fees=Sum('dayboarding_fees_paid'),
+#                 total_bus_fees=Sum('bus_fees_paid'),
+#                 total_amount=Sum('Total_amount'),
+#                 total_amount_paid=Sum('amount_paid'),
+#             ).order_by('student_class')
+
+#         return queryset, False
+
+# Register the admin
+# admin.site.register(final_fees_report, FinalFeesReportAdmin)
+
+from django.shortcuts import render
+from django.template.response import TemplateResponse
+from django.utils.datetime_safe import datetime
+
+class FinalFeesReportAdmin(admin.ModelAdmin):
+    model = student_fee
+    change_list_template = "admin/final_fees_report_change_list.html"  # Custom template
+    
+    list_display = ('student_class',)
+    
+    # Permissions removed
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        reporttype = request.GET.get('reporttype', 'summaryreport')  # Default to 'summaryreport'
+        year = request.GET.get('year', datetime.now().year)  # Default to current year
+
+        # Ensure year is valid
+        try:
+            year = int(year)
+        except ValueError:
+            year = datetime.now().year
+
+        queryset = self.get_filtered_queryset(reporttype, year)
+
+        extra_context = extra_context or {}
+        extra_context['reporttype'] = reporttype
+        extra_context['year'] = year
+        extra_context['years'] = list(range(2000, 2026))  # Populate years 2000-2025
+        extra_context['report_types'] = ["Summary report", "Advance report"]  # Populate report types
+        extra_context['opts'] = self.model._meta
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+
+    def get_filtered_queryset(self, reporttype, year):
+        """
+        Return a filtered queryset based on report type and year.
+        """
+        from_year = f"{year}-04-01"
+        to_year = f"{year + 1}-03-31"
+
+        # Modify queryset based on reporttype
+        if reporttype == "summaryreport":
+            queryset = student_fee.objects.filter(
+                date_payment__range=[from_year, to_year]
+            ).values(
+                'student_class'
+            ).annotate(
+                total_annual_fees=Sum('annual_fees_paid'),
+                total_tuition_fees=Sum('tuition_fees_paid'),
+                total_funds_fees=Sum('funds_fees_paid'),
+                total_sports_fees=Sum('sports_fees_paid'),
+                total_activity_fees=Sum('activity_fees'),
+                total_admission_fees=Sum('admission_fees_paid'),
+                total_security_fees=Sum('security_paid'),
+                total_late_fees=Sum('late_fees_paid'),
+                total_dayboarding_fees=Sum('dayboarding_fees_paid'),
+                total_bus_fees=Sum('bus_fees_paid'),
+                total_fees_amount=Sum('total_amount'),
+                total_amount_paid=Sum('amount_paid'),
+            ).order_by('student_class')
+
+            print("queryset",queryset)
+        else:
+            # Handle "Advance report" or any other type if needed
+            queryset = student_fee.objects.filter(
+                date_payment__range=[from_year, to_year]
+            ).values(
+                'student_class'
+            ).distinct().order_by('student_class')
+
+        return list(queryset)
 
 
 
-# admin.site.register(tuition_fees_defaulter, TuitionFeesDefaulterAdmin)
+# from django.db.models import Sum
+# from django.utils.html import format_html
+# from django.db.models import Sum
+# from django.db.models import Sum
+
+# class FinalFeesReportAdmin(admin.ModelAdmin):
+#     model = student_fee  # Ensure this is the correct model
+
+#     # Display the student class and total fees
+#     list_display = ('student_class', 'total_annual_fees')
+
+#     def has_add_permission(self, request):
+#         return False
+
+#     def has_change_permission(self, request, obj=None):
+#         return False
+
+#     def has_delete_permission(self, request, obj=None):
+#         return False
+
+#     def get_queryset(self, request):
+#         """
+#         Return the normal queryset with all model instances.
+#         We'll handle aggregation separately to keep model instances in the admin.
+#         """
+#         year = "2024"  # Static for now, but you can dynamically adjust
+#         try:
+#             year = int(year)
+#         except ValueError:
+#             year = datetime.now().year
+
+#         # Define date range for the academic year
+#         from_year = f"{year}-04-01"
+#         to_year = f"{year + 1}-03-31"
+
+#         # Return the standard model instances queryset
+#         return student_fee.objects.filter(date_payment__range=[from_year, to_year]).order_by('student_class').order_by('student_class').distinct()
+
+#     def total_annual_fees(self, obj):
+#         """
+#         Calculate the total annual fees for each student_class and return.
+#         This method performs aggregation on model instances.
+#         """
+#         year = "2024"  # Ensure year matches, or make this dynamic based on user input
+#         try:
+#             year = int(year)
+#         except ValueError:
+#             year = datetime.now().year
+
+#         # Calculate date range for the academic year
+#         from_year = f"{year}-04-01"
+#         to_year = f"{year + 1}-03-31"
+
+#         # Aggregate total fees paid for this specific student class
+#         total_fees = student_fee.objects.filter(
+#             date_payment__range=[from_year, to_year],
+#             student_class=obj.student_class
+#         ).aggregate(total_annual_fees=Sum('annual_fees_paid'))['total_annual_fees']
+
+#         # Return the calculated total fees, or 0 if there's no data
+#         return total_fees or 0
+
+#     # Set the display name for the custom method in the list display
+#     total_annual_fees.short_description = 'Total Annual Fees'
+
+# from django.db.models import Sum
+
+# class FinalFeesReportAdmin(admin.ModelAdmin):
+#     model = student_fee  # Make sure this is the correct model
+
+#     # Display the student class and total fees
+#     list_display = ('student_class_display', 'total_annual_fees_display')
+
+#     def has_add_permission(self, request):
+#         return False
+
+#     def has_change_permission(self, request, obj=None):
+#         return False
+
+#     def has_delete_permission(self, request, obj=None):
+#         return False
+
+#     # def get_queryset(self, request):
+#     #     """
+#     #     Return a queryset with distinct student_class and annotate the total fees.
+#     #     """
+#     #     year = "2024"  # Static for now, adjust dynamically if needed
+#     #     try:
+#     #         year = int(year)
+#     #     except ValueError:
+#     #         year = datetime.now().year
+
+#     #     # Define date range for the academic year
+#     #     from_year = f"{year}-04-01"
+#     #     to_year = f"{year + 1}-03-31"
+
+#     #     # Perform aggregation while returning model instances
+#     #     queryset = student_fee.objects.filter(
+#     #         date_payment__range=[from_year, to_year]
+#     #     ).values(
+#     #         'student_class'
+#     #     ).annotate(
+#     #         total_annual_fees=Sum('annual_fees_paid')
+#     #     ).order_by('student_class')
+
+#     #     # Convert the values() queryset into a list of model instances
+#     #     # using distinct values for 'student_class' and returning model instances
+#     #     return student_fee.objects.values(
+#     #         'student_class'
+#     #     ).distinct()
+
+#     def get_queryset(self, request):
+#         """
+#         Return a queryset with distinct student_class values without aggregation.
+#         """
+#         year = "2024"  # Static for now, adjust dynamically if needed
+#         try:
+#             year = int(year)
+#         except ValueError:
+#             year = datetime.now().year
+
+#         # Define date range for the academic year
+#         from_year = f"{year}-04-01"
+#         to_year = f"{year + 1}-03-31"
+
+#         # Fetch distinct student_class values without aggregation
+#         queryset = student_fee.objects.filter(
+#             date_payment__range=[from_year, to_year]
+#         ).values(
+#             'student_class'
+#         ).distinct().order_by('student_class')  # Ensure distinct and ordered by student_class
+
+#         return queryset
+    
+#     def total_annual_fees_display(self, obj):
+#         """
+#         Calculate total fees for the given student class.
+#         """
+#         year = "2024"  # Static, adjust dynamically if needed
+#         try:
+#             year = int(year)
+#         except ValueError:
+#             year = datetime.now().year
+
+#         # Define date range for the academic year
+#         from_year = f"{year}-04-01"
+#         to_year = f"{year + 1}-03-31"
+
+#         # Calculate total fees for each student_class
+#         total_fees = student_fee.objects.filter(
+#             date_payment__range=[from_year, to_year],
+#             student_class=obj['student_class']
+#         ).aggregate(total_fees=Sum('annual_fees_paid'))['total_fees']
+
+#         return total_fees or 0  # Return total fees, or 0 if none
+
+#     def student_class_display(self, obj):
+#         return obj['student_class']
+
+#     # def total_annual_fees_display(self, obj):
+#     #     """
+#     #     Display total annual fees for each student_class by aggregating in the queryset.
+#     #     """
+#     #     year = "2024"  # Make this dynamic as necessary
+#     #     try:
+#     #         year = int(year)
+#     #     except ValueError:
+#     #         year = datetime.now().year
+
+#     #     # Define date range for the academic year
+#     #     from_year = f"{year}-04-01"
+#     #     to_year = f"{year + 1}-03-31"
+
+#     #     # Calculate total fees for each student_class
+#     #     total_fees = student_fee.objects.filter(
+#     #         date_payment__range=[from_year, to_year],
+#     #         student_class=obj.student_class
+#     #     ).aggregate(total_annual_fees=Sum('annual_fees_paid'))['total_annual_fees']
+
+#     #     return total_fees or 0
+
+#     # # Set the display name for the custom method in the list display
+#     # total_annual_fees_display.short_description = 'Total Annual Fees'
 
 
-# admin.site.register(tuition_fees_defaulter)
+
+
+# Register the admin class with the model
+# admin.site.register(student_fee, FinalFeesReportAdmin)
+
+# admin.site.register(final_fees_report, FinalFeesReportAdmin)
+
+
+admin.site.register(final_fees_report, FinalFeesReportAdmin)
+
+
+
+
+
+# class TransportDefaulterReportAdmin(admin.ModelAdmin):
+#     def get_search_results(self, request, queryset, search_term):
+#         year = search_term if search_term else None
+
+#         # Default year logic
+#         if year is None or year == "":
+#             current_month = datetime.now().month
+#             year = datetime.now().year if current_month >= 4 else datetime.now().year - 1
+
+#         current_date = datetime.now().date()
+
+#         # Get list of months for the year
+#         montharray = get_months_array(year)
+#         months_str = ",".join(map(str, montharray))
+
+#         # Extract query parameters from the request
+#         busno = request.GET.get('busno', None)
+#         destination = request.GET.get('destination', None)
+#         class_no = request.GET.get('class', None)
+
+#         # if not busno and not destination and not class_no:
+#         #     return queryset.none(), False
+        
+#         # Base queryset filtering only on student_fees
+#         query = queryset.filter(
+#             year=year,
+#             bus_fees_paid__gt=0,
+#             student_id__in=queryset.filter(bus_id__isnull=False).values('student_id')
+#         )
+
+#         if busno:
+#             query = query.filter(student_id__in=queryset.filter(bus_route=busno).values('student_id'))
+
+#         if destination:
+#             query = query.filter(student_id__in=queryset.filter(bus_destination=destination).values('student_id'))
+
+#         if class_no:
+#             query = query.filter(student_class=class_no)
+
+#         # Annotate queryset with concatenated months_paid (fees_period_month)
+#         query = query.annotate(
+#             months_paid=Concat('fees_period_month', output_field=CharField())
+#         )
+
+#         results = query.values(
+#             'student_id',
+#             'months_paid',
+#             'student_class',
+#             'student_master__admission_no',
+#             'student_master__admission_date',
+#             'student_master__passedout_date',
+#             'student_master__student_name',
+#             'student_master__bus_route',
+#             'student_master__bus_destination',
+#         ).distinct()
+
+#         fees_records = []
+
+#         for data in results:
+#             months_paid = data['months_paid']
+#             passedout_date = data['student_master__passedout_date']
+            
+#             # Cleaning months_paid by removing any extra spaces
+#             months_paid_list = list(map(str.strip, months_paid.split(',')))
+
+#             # Calculate months not paid using set difference
+#             unpaid_months = list(set(montharray) - set(months_paid_list))
+#             unpaid_months_str = ",".join(unpaid_months)
+
+#             if unpaid_months_str == "" or (passedout_date and passedout_date < current_date):
+#                 # If all months are paid or student passed out before current date
+#                 continue
+#             else:
+#                 fees_records.append(data)  # Add to result if months are unpaid
+
+#         return fees_records
+
+
+
+
+# class TransportDefaulterReportAdmin(admin.ModelAdmin):
+#     def get_search_results(self, request, queryset, search_term):
+#         year = search_term if search_term else None
+
+#         # Default year logic
+#         if year is None or year == "":
+#             current_month = datetime.now().month
+#             year = datetime.now().year if current_month >= 4 else datetime.now().year - 1
+
+#         current_date = datetime.now().date()
+
+#         # Get list of months for the year
+#         montharray = get_months_array(year)
+#         months_str = ",".join(map(str, montharray))
+
+#         # Extract query parameters from the request
+#         busno = request.GET.get('busno', None)
+#         destination = request.GET.get('destination', None)
+#         student_class = request.GET.get('class', None)
+
+#         # Base queryset filtering only on student_fees
+#         query = queryset.filter(
+#             year=year,
+#             bus_fees_paid__gt=0,
+#             student_id__in=queryset.filter(bus_id__isnull=False).values('student_id')
+#         )
+
+#         if busno:
+#             query = query.filter(student_id__in=queryset.filter(bus_route=busno).values('student_id'))
+
+#         if destination:
+#             query = query.filter(student_id__in=queryset.filter(bus_destination=destination).values('student_id'))
+
+#         if student_class:
+#             query = query.filter(student_class=student_class)
+
+#         # Use RawSQL for group_concat equivalent
+#         query = query.annotate(
+#             months_paid=RawSQL(
+#                 "GROUP_CONCAT(TRIM(fees_period_month) ORDER BY CAST(fees_period_month AS UNSIGNED))", 
+#                 []
+#             )
+#         )
+
+#         results = query.values(
+#             'student_id',
+#             'months_paid',
+#             'student_class',
+#             'student_master__admission_no',
+#             'student_master__admission_date',
+#             'student_master__passedout_date',
+#             'student_master__student_name',
+#             'student_master__bus_route',
+#             'student_master__bus_destination',
+#         ).distinct()
+
+#         fees_records = []
+
+#         for data in results:
+#             months_paid = data['months_paid']
+#             passedout_date = data['student_master__passedout_date']
+            
+#             # Cleaning months_paid by removing any extra spaces
+#             months_paid_list = list(map(str.strip, months_paid.split(',')))
+
+#             # Calculate months not paid using set difference
+#             unpaid_months = list(set(montharray) - set(months_paid_list))
+#             unpaid_months_str = ",".join(unpaid_months)
+
+#             if unpaid_months_str == "" or (passedout_date and passedout_date < current_date):
+#                 # If all months are paid or student passed out before current date
+#                 continue
+#             else:
+#                 fees_records.append(data)  # Add to result if months are unpaid
+
+#         return fees_records
+
+# from datetime import datetime
+# from django.db.models import F, Q, Value, CharField
+# from django.db.models.expressions import RawSQL
+# from django.contrib import admin
+
+# class TransportDefaulterReportAdmin(admin.ModelAdmin):
+#     def get_search_results(self, request, queryset, search_term):
+#         year = search_term if search_term else None
+
+#         # Default year logic
+#         if year is None or year == "":
+#             current_month = datetime.now().month
+#             year = datetime.now().year if current_month >= 4 else datetime.now().year - 1
+
+#         current_date = datetime.now().date()
+
+#         # Get list of months for the year
+#         montharray = get_months_array(year)
+#         months_str = ",".join(map(str, montharray))
+
+#         # Extract query parameters from the request
+#         busno = request.GET.get('busno', None)
+#         destination = request.GET.get('destination', None)
+#         student_class = request.GET.get('class', None)
+
+#         # Base queryset filtering only on student_fees
+#         query = queryset.filter(
+#             year=year,
+#             bus_fees_paid__gt=0,
+#             student_id__bus_id__isnull=False  # Filtering where student_id's bus_id is not null
+#         )
+
+#         if busno:
+#             query = query.filter(student_id__bus_route=busno)  # Correctly referencing bus_route through student_id
+
+#         if destination:
+#             query = query.filter(student_id__bus_destination=destination)  # Correctly referencing bus_destination through student_id
+
+#         if student_class:
+#             query = query.filter(student_class=student_class)
+
+#         # Use RawSQL for group_concat equivalent on fees_period_month
+#         query = query.annotate(
+#             months_paid=RawSQL(
+#                 "GROUP_CONCAT(TRIM(fees_period_month) ORDER BY CAST(fees_period_month AS UNSIGNED))", 
+#                 []
+#             )
+#         )
+
+#         results = query.values(
+#             'student_id',  # Correct field
+#             'months_paid',
+#             'student_class',
+#             'student_id__addmission_no',  # Correctly referencing admission_no through student_id
+#             'student_id__admission_date',  # Correctly referencing admission_date through student_id
+#             'student_id__passedout_date',  # Correctly referencing passedout_date through student_id
+#             'student_id__student_name',  # Correctly referencing student_name through student_id
+#             'student_id__bus_route',  # Correctly referencing bus_route through student_id
+#             'student_id__bus_destination',  # Correctly referencing bus_destination through student_id
+#         ).distinct()
+
+#         fees_records = []
+
+#         for data in results:
+#             months_paid = data['months_paid']
+#             passedout_date = data['student_id__passedout_date']
+            
+#             # Cleaning months_paid by removing any extra spaces
+#             months_paid_list = list(map(str.strip, months_paid.split(',')))
+
+#             # Calculate months not paid using set difference
+#             unpaid_months = list(set(montharray) - set(months_paid_list))
+#             unpaid_months_str = ",".join(unpaid_months)
+
+#             if unpaid_months_str == "" or (passedout_date and passedout_date < current_date):
+#                 # If all months are paid or student passed out before current date
+#                 continue
+#             else:
+#                 fees_records.append(data)  # Add to result if months are unpaid
+
+#         return fees_records
+
+
+from datetime import datetime
+from django.db.models import F, Q, Value, CharField
+from django.db.models.expressions import RawSQL
+from django.contrib import admin
+
+class TransportDefaulterReportAdmin(admin.ModelAdmin):
+    def get_search_results(self, request, queryset, search_term):
+        year = search_term if search_term else None
+
+        # Default year logic
+        if year is None or year == "":
+            current_month = datetime.now().month
+            year = datetime.now().year if current_month >= 4 else datetime.now().year - 1
+
+        current_date = datetime.now().date()
+
+        # Get list of months for the year
+        montharray = get_months_array(year)
+        months_str = ",".join(map(str, montharray))
+
+        # Extract query parameters from the request
+        busno = request.GET.get('busno', None)
+        destination = request.GET.get('destination', None)
+        student_class = request.GET.get('class', None)
+
+        # Base queryset filtering only on student_fees
+        query = queryset.filter(
+            year=year,
+            bus_fees_paid__gt=0,
+            student_id__bus_id__isnull=False  # Filtering where student_id's bus_id is not null
+        )
+
+        # RawSQL to get the route and destination from busfees_master using the bus_id from student_master
+        route_subquery = RawSQL(
+            "(SELECT route FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
+            []
+        )
+
+        destination_subquery = RawSQL(
+            "(SELECT destination FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
+            []
+        )
+
+        # Annotate the queryset with route and destination using RawSQL
+        query = query.annotate(
+            route=route_subquery,
+            destination=destination_subquery,
+            months_paid=RawSQL(
+                "GROUP_CONCAT(TRIM(fees_period_month) ORDER BY CAST(fees_period_month AS UNSIGNED))", 
+                []
+            )
+        )
+
+        if busno:
+            query = query.filter(route=busno)
+
+        if destination:
+            query = query.filter(destination=destination)
+
+        if student_class:
+            query = query.filter(student_class=student_class)
+
+        results = query.values(
+            'student_id',  # Correct field
+            'months_paid',
+            'student_class',
+            'student_id__addmission_no',  # Correctly referencing admission_no through student_id
+            'student_id__admission_date',  # Correctly referencing admission_date through student_id
+            'student_id__passedout_date',  # Correctly referencing passedout_date through student_id
+            'student_id__student_name',  # Correctly referencing student_name through student_id
+            'route',  # Annotated route field
+            'destination',  # Annotated destination field
+        ).distinct()
+
+        fees_records = []
+
+        for data in results:
+            months_paid = data['months_paid']
+            passedout_date = data['student_id__passedout_date']
+            
+            # Cleaning months_paid by removing any extra spaces
+            months_paid_list = list(map(str.strip, months_paid.split(',')))
+
+            # Calculate months not paid using set difference
+            unpaid_months = list(set(montharray) - set(months_paid_list))
+            unpaid_months_str = ",".join(unpaid_months)
+
+            if unpaid_months_str == "" or (passedout_date and passedout_date < current_date):
+                # If all months are paid or student passed out before current date
+                continue
+            else:
+                fees_records.append(data)  # Add to result if months are unpaid
+
+        return fees_records
+
+    
+
+admin.site.register(transport_defaulter, TransportDefaulterReportAdmin)
+
+
+
+
+
+
 
