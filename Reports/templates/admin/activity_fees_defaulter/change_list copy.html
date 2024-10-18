@@ -1,0 +1,143 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+    {% comment %} <h2>Activity Fees Defaulters Report</h2> {% endcomment %}
+
+    <form id="defaultersForm">
+        {% csrf_token %}
+        <table style="width:400px;">
+            <tr>
+                <th>Select Class</th>
+                <td>{{ form.student_class }}</td>
+                <th>Select Year</th>
+                <td>{{ form.year }}</td>
+            </tr>
+            <tr>
+                <td colspan="4">
+                    {{form.search_button}}
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <a href="?export=1&file_format=csv">Export as CSV</a>
+                    <a href="?export=1&file_format=xlsx">Export as Excel</a>
+                </td>
+            </tr>
+        </table>
+    </form>
+
+    <br>
+    <h3>Defaulters List:</h3>
+    <table id="studenttable" style="width:700px;">
+        <thead>
+            <tr>
+                <th>Admission no</th>
+                <th>Student name</th>
+                <th>Class</th>
+                <th>Section</th>
+                <th>Activity Fees unpaid for months</th>
+            </tr>
+        </thead>
+        <tbody id="defaultersList">
+            {% if results %}
+                {% for fee in results %}
+                    <tr>
+                        <td>{{ fee.student_id.admission_no }}</td>
+                        <td>{{ fee.student_id.student_name }}</td>
+                        <td>{{ fee.student_class }}</td>
+                        <td>{{ fee.student_section }}</td>
+                        <td>{{ fee.fees_for_months }}</td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr><td colspan="5">No defaulters found for the selected class and year.</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+    $(document).ready(function() {
+
+        // Validate before submitting the request
+        function validateForm() {
+            var studentClass = $('#id_student_class').val();
+            var year = $('#id_year').val();
+
+            console.log("=============== studentClass ============",studentClass);
+            console.log("=============== year ============",year);
+
+            if (studentClass === "" || year === "") {
+                alert("Please select both class and year.");
+                return false;
+            }
+            return true;
+        }
+
+
+        $('#id_search_button').on('click', function() {
+
+
+            console.log("=============== im in ============");
+
+            if (!validateForm()) {
+                return; // Stop if validation fails
+            }
+
+            var formData = $('#defaultersForm').serialize();  // Serialize form data
+
+            $.ajax({
+                type: 'POST',
+                url: '',  // Current URL to send the request to the same view
+                data: formData,
+                dataType: 'json',
+                success: function(response) {
+                    var tableBody = $('#defaultersList');
+                    tableBody.empty();  // Clear the table before inserting new data
+
+
+                   data =  [{
+                        admission_no: "1721",
+                        student_name: "GAURANSH RANA",
+                        student_class: "1",
+                        student_section: "A",
+                        fees_for_months: ["4", "5", "6", "7", "8", "9"]
+                    },
+                    {
+                        admission_no: "1741",
+                        student_name: "RITIKA KAMBOJ",
+                        student_class: "1",
+                        student_section: "A",
+                        fees_for_months: ["4", "5", "6", "7", "8", "9"]
+                    },
+                    {
+                        admission_no: "1772",
+                        student_name: "BHAVYA JAIN",
+                        student_class: "1",
+                        student_section: "A",
+                        fees_for_months: ["4", "5", "6", "7", "8", "9"]
+                    }]
+
+
+                    // Assuming tableBody is a jQuery object pointing to your table body element
+
+                    if (data.length > 0) {
+                        $.each(data, function(index, defaulter) {
+                            var row = '<tr>' +
+                                '<td>' + defaulter.admission_no + '</td>' +
+                                '<td>' + defaulter.student_name + '</td>' +
+                                '<td>' + defaulter.student_class + '</td>' +
+                                '<td>' + defaulter.student_section + '</td>' +
+                                '<td>' + defaulter.fees_for_months.join(", ") + '</td>' +
+                                '</tr>';
+                            tableBody.append(row);
+                        });
+                    } else {
+                        tableBody.append('<tr><td colspan="5">No defaulters found.</td></tr>');
+                    }
+                }
+            });
+        });
+    });
+    </script>
+{% endblock %}

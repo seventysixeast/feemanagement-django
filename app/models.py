@@ -326,6 +326,7 @@ class student_fee(models.Model):
   student_fee_id = models.BigAutoField(primary_key=True)
   # student_id = models.IntegerField()
   student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='fees',db_column='student_id')
+  # student_class = models.ForeignKey(student_class, on_delete=models.CASCADE, related_name='fees')
   student_class = models.CharField(max_length=20)
   student_section = models.CharField(max_length=1, null=True, blank=True)
   fees_for_months = models.CharField(max_length=20)
