@@ -375,6 +375,8 @@ $(document).ready(function () {
             const concession = d[11] || "";
             $('input[name="concession_applied"]').val(concession);
             $('input[name="concession_type"]').val(d[14] || "");
+            $('input[name="concession_type_id"]').val(d[13] || "");
+            
 
             const total = d[16] || calculateTotal(d);
             $('input[name="total_amount"]').val(total);
