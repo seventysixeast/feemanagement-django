@@ -3480,6 +3480,27 @@ class StudentFeesAdmin(admin.ModelAdmin):
             'late_fee': 0,
             'total_fee': 0,
         }
+        # sample data
+        #   {
+        #     "annual_fees": "6750.0",
+        #     "tuition_fees": "7950.0",
+        #     "funds_fees": "0.0",
+        #     "sports_fees": "0.0",
+        #     "activity_fees": "0",
+        #     "admission_fees": "27000.0",
+        #     "security_fees": "0",
+        #     "dayboarding_fees": "0.0",
+        #     "miscellaneous_fees": "850.0",
+        #     "bus_fees": "0.0",
+        #     "concession_amount": "300",
+        #     "concession_applied": "200.0",
+        #     "concession_percent": "amount",
+        #     "concession_id": "1",
+        #     "concession_type": "Siblings",
+        #     "late_fee": "800.0",
+        #     "total_fee": "43150.0"
+        #     }
+
 
         # Keys to sum up
         sum_keys = [
