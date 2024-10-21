@@ -2851,6 +2851,8 @@ class StudentFeesAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # print(f"self--------:{self.fields}")
+
         # Populate the 'fees_for_months' field with default quarter, if necessary
         self.fields['fees_for_months'].initial = get_default_quarter()
 
@@ -2865,6 +2867,83 @@ class StudentFeesAdminForm(forms.ModelForm):
             self.fields['search_button'].widget.attrs['disabled'] = 'disabled'
 
             student = self.instance.student_id
+            
+            # Fetch the concession_type_id from the student_fee instance
+            concession_type_id = self.instance.concession_type_id
+            
+            # If needed, you can set it as the initial value for a form field
+            # self.fields['concession_type_id'].initial = concession_type_id
+
+            # Get student's concession_type_id and filter concession_master
+            if concession_type_id:
+                try:
+                    concession = concession_master.objects.get(concession_id=concession_type_id)
+                    # Populate the 'concession_type' field with the filtered concession_type
+                    self.fields['concession_type'].initial = concession.concession_type
+                except concession_master.DoesNotExist:
+                    print(f"Concession with ID {student.concession_type_id} does not exist.")
+
+
+            # Fetch and pre-select fees_period_month
+            fees_period_month_value = self.instance.fees_period_month
+
+
+            # Split the comma-separated string and strip any extra spaces
+            # if fees_period_month_value:
+            #     # Convert the string into a list of strings (e.g., "4,5,6" -> ['4', '5', '6'])
+            #     selected_months = [month.strip() for month in fees_period_month_value.split(',')]
+            #     print(f"selected_months--------:{selected_months}")
+            #     # Ensure the values are integers, as the choices are defined as integers
+            #     selected_months = [int(month) for month in selected_months]
+                
+            #     # Join the list into a string without spaces (e.g., "4,5,6")
+            #     selected_months_str = ','.join([str(month) for month in selected_months])
+            #     print(f"fees_period_month_value 2--------:{selected_months_str}")
+            #     # Preselect the values for fees_period_month (still using list format for form initial values)
+            #     self.fields['fees_period_month'].initial = selected_months
+
+            # Split the comma-separated string and strip any extra spaces
+
+            # Get the current months from fees_for_months
+            fees_for_months_value = self.instance.fees_for_months
+            print(f"selected_months--------:{fees_for_months_value}")
+            # Split the string into a set of months, removing any leading/trailing spaces
+            current_months = set(month.strip() for month in fees_for_months_value.split(','))
+            print(f"current_months--------:{current_months}")
+            # Sort the months and convert them to integers
+            current_months = sorted(current_months, key=int)
+            print(f"current_months 1--------:{current_months}")
+            # Set the initial value for fees_period_month as a list of integers
+            self.fields['fees_period_month'].initial = current_months
+
+
+            # if fees_period_month_value:
+            #     # Convert the string into a list of strings (e.g., "4, 5, 6" -> ['4', '5', '6'])
+            #     # and strip any extra spaces around the numbers
+            #     selected_months = [month.strip() for month in fees_period_month_value.split(', ')]
+            #     print(f"selected_months--------:{selected_months}")
+            #     # Ensure the values are integers, as the choices are defined as integers
+            #     selected_months = [int(month) for month in selected_months]
+            #     print(f"fees_period_month_value 2--------:{selected_months}")
+            #     # Preselect the values for fees_period_month
+            #     self.fields['fees_period_month'].initial = selected_months
+        
+            # Split the comma-space-separated string into a list for pre-selection
+            # if fees_period_month_value:
+            #     # Convert the string into a list of strings (e.g. "4, 5, 6" -> ['4', '5', '6'])
+            #     selected_months = fees_period_month_value.split(', ')
+            #     print(f"selected_months--------:{selected_months}")
+                
+            #     # Ensure the values are integers, as the choices are defined as integers
+            #     selected_months = [int(month) for month in selected_months]
+            #     print(f"fees_period_month_value 2--------:{selected_months}")
+                
+            #     # Preselect the values for fees_period_month
+            #     self.fields['fees_period_month'].initial = selected_months
+            # fees_period_month_value = self.instance.fees_period_month
+            # if fees_period_month_value:
+            #     print(f"fees_period_month_value--------:{fees_period_month_value}")
+            #     self.fields['fees_period_month'].initial = fees_period_month_value.split(', ')
 
             if student.student_id:
                 try:
@@ -2885,6 +2964,7 @@ class StudentFeesAdminForm(forms.ModelForm):
 
                     # Set hidden student_id field
                     self.fields['student_id'].initial = student.student_id
+                    
                 except student_master.DoesNotExist:
                     print(f"Student with ID {student.student_id} does not exist.")
 
