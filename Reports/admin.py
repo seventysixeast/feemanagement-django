@@ -1790,58 +1790,631 @@ admin.site.register(final_fees_report, FinalFeesReportAdmin)
 #         return fees_records
 
 
-from datetime import datetime
+# from datetime import datetime
 from django.db.models import F, Q, Value, CharField
-from django.db.models.expressions import RawSQL
-from django.contrib import admin
+# from django.db.models.expressions import RawSQL
+# from django.contrib import admin
+
+# class TransportDefaulterReportAdmin(admin.ModelAdmin):
+#     def get_search_results(self, request, queryset, search_term):
+#         year = search_term if search_term else None
+
+#         # Default year logic
+#         if year is None or year == "":
+#             current_month = datetime.now().month
+#             year = datetime.now().year if current_month >= 4 else datetime.now().year - 1
+
+#         current_date = datetime.now().date()
+
+#         # Get list of months for the year
+#         montharray = get_months_array(year)
+#         months_str = ",".join(map(str, montharray))
+
+#         # Extract query parameters from the request
+#         busno = request.GET.get('busno', None)
+#         destination = request.GET.get('destination', None)
+#         student_class = request.GET.get('class', None)
+
+#         # Base queryset filtering only on student_fees
+#         query = queryset.filter(
+#             year=year,
+#             bus_fees_paid__gt=0,
+#             student_id__bus_id__isnull=False  # Filtering where student_id's bus_id is not null
+#         )
+
+#         # RawSQL to get the route and destination from busfees_master using the bus_id from student_master
+#         route_subquery = RawSQL(
+#             "(SELECT route FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
+#             []
+#         )
+
+#         destination_subquery = RawSQL(
+#             "(SELECT destination FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
+#             []
+#         )
+
+#         # Annotate the queryset with route and destination using RawSQL
+#         query = query.annotate(
+#             route=route_subquery,
+#             destination=destination_subquery,
+#             months_paid=RawSQL(
+#                 "GROUP_CONCAT(TRIM(fees_period_month) ORDER BY CAST(fees_period_month AS UNSIGNED))", 
+#                 []
+#             )
+#         )
+
+#         if busno:
+#             query = query.filter(route=busno)
+
+#         if destination:
+#             query = query.filter(destination=destination)
+
+#         if student_class:
+#             query = query.filter(student_class=student_class)
+
+#         results = query.values(
+#             'student_id',  # Correct field
+#             'months_paid',
+#             'student_class',
+#             'student_id__addmission_no',  # Correctly referencing admission_no through student_id
+#             'student_id__admission_date',  # Correctly referencing admission_date through student_id
+#             'student_id__passedout_date',  # Correctly referencing passedout_date through student_id
+#             'student_id__student_name',  # Correctly referencing student_name through student_id
+#             'route',  # Annotated route field
+#             'destination',  # Annotated destination field
+#         ).distinct()
+
+#         fees_records = []
+
+#         for data in results:
+#             months_paid = data['months_paid']
+#             print('months_paid',months_paid)
+#             passedout_date = data['student_id__passedout_date']
+            
+#             # Cleaning months_paid by removing any extra spaces
+#             # months_paid_list = list(map(str.strip, months_paid.split(',')))
+#             # print('montharray',montharray)
+#             # print('months_paid_list',months_paid_list)
+#             # # Calculate months not paid using set difference
+#             # unpaid_months = list(set(montharray) - set(months_paid_list))
+#             # print('unpaid_months',unpaid_months)
+#             # unpaid_months_str = ",".join(unpaid_months)
+#             # Remove duplicates and convert months_paid_list to integers
+#             # months_paid_list = list(map(int, set(map(str.strip, months_paid.split(',')))))
+#             if not months_paid:
+#                 months_paid_list = []  # Handle empty months_paid case
+#             else:
+#                 try:
+#                     # Remove duplicates and convert months_paid_list to integers
+#                     months_paid_list = list(map(int, set(map(str.strip, months_paid.split(',')))))
+#                 except ValueError as e:
+#                     # Handle cases where the conversion to int fails
+#                     print(f"Error converting months_paid to integers: {e}")
+#                     months_paid_list = [] 
+
+#             # Print debugging information
+#             print('montharray:', montharray)
+#             print('months_paid_list:', months_paid_list)
+
+#             # Calculate months not paid using set difference
+#             unpaid_months = list(set(montharray) - set(months_paid_list))
+#             print('unpaid_months:', unpaid_months)
+
+#             # Convert unpaid_months to strings for joining
+#             unpaid_months_str = ",".join(map(str, unpaid_months))
+#             print('unpaid_months_str:', unpaid_months_str)
+
+
+#             if unpaid_months_str == "" or (passedout_date and passedout_date < current_date):
+#                 # If all months are paid or student passed out before current date
+#                 continue
+#             else:
+#                 fees_records.append(data)  # Add to result if months are unpaid
+
+#         return fees_records
+
+# class TransportDefaulterReportAdmin(admin.ModelAdmin):
+#     def get_search_results(self, request, queryset, search_term):
+#         year = search_term if search_term else None
+
+#         # Default year logic
+#         if year is None or year == "":
+#             current_month = datetime.now().month
+#             year = datetime.now().year if current_month >= 4 else datetime.now().year - 1
+
+#         current_date = datetime.now().date()
+
+#         # Get list of months for the year
+#         montharray = get_months_array(year)
+#         months_str = ",".join(map(str, montharray))
+
+#         # Extract query parameters from the request
+#         busno = request.GET.get('busno', None)
+#         destination = request.GET.get('destination', None)
+#         student_class = request.GET.get('class', None)
+
+#         # Base queryset filtering only on student_fees
+#         query = queryset.filter(
+#             year=year,
+#             bus_fees_paid__gt=0,
+#             student_id__bus_id__isnull=False  # Filtering where student_id's bus_id is not null
+#         )
+
+#         # RawSQL to get the route and destination from busfees_master using the bus_id from student_master
+#         route_subquery = RawSQL(
+#             "(SELECT route FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
+#             []
+#         )
+
+#         destination_subquery = RawSQL(
+#             "(SELECT destination FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
+#             []
+#         )
+
+#         # Annotate the queryset with route and destination using RawSQL
+#         query = query.annotate(
+#             route=route_subquery,
+#             destination=destination_subquery,
+#             months_paid=RawSQL(
+#                 "COALESCE(GROUP_CONCAT(TRIM(fees_period_month) ORDER BY CAST(fees_period_month AS UNSIGNED)), '')", 
+#                 []
+#             )  # Use COALESCE to return an empty string if no values are found
+#         )
+
+#         if busno:
+#             query = query.filter(route=busno)
+
+#         if destination:
+#             query = query.filter(destination=destination)
+
+#         if student_class:
+#             query = query.filter(student_class=student_class)
+
+#         results = query.values(
+#             'student_id',  # Correct field
+#             'months_paid',
+#             'student_class',
+#             'student_id__addmission_no',  # Correctly referencing admission_no through student_id
+#             'student_id__admission_date',  # Correctly referencing admission_date through student_id
+#             'student_id__passedout_date',  # Correctly referencing passedout_date through student_id
+#             'student_id__student_name',  # Correctly referencing student_name through student_id
+#             'route',  # Annotated route field
+#             'destination',  # Annotated destination field
+#         ).distinct()
+
+#         fees_records = []
+
+#         for data in results:
+#             months_paid = data['months_paid']
+#             print('months_paid', months_paid)
+#             passedout_date = data['student_id__passedout_date']
+            
+#             # Handle cases where months_paid is empty
+#             if not months_paid:
+#                 months_paid_list = []  # Handle empty months_paid case
+#             else:
+#                 try:
+#                     # Remove duplicates and convert months_paid_list to integers
+#                     months_paid_list = list(map(int, set(map(str.strip, months_paid.split(',')))))
+#                 except ValueError as e:
+#                     # Handle cases where the conversion to int fails
+#                     print(f"Error converting months_paid to integers: {e}")
+#                     months_paid_list = []  # Default to empty list if parsing fails
+
+#             # Print debugging information
+#             print('montharray:', montharray)
+#             print('months_paid_list:', months_paid_list)
+
+#             # Calculate months not paid using set difference
+#             unpaid_months = list(set(montharray) - set(months_paid_list))
+#             print('unpaid_months:', unpaid_months)
+
+#             # Convert unpaid_months to strings for joining
+#             unpaid_months_str = ",".join(map(str, unpaid_months))
+#             print('unpaid_months_str:', unpaid_months_str)
+
+#             if unpaid_months_str == "" or (passedout_date and passedout_date < current_date):
+#                 # If all months are paid or student passed out before current date
+#                 continue
+#             else:
+#                 fees_records.append(data)  # Add to result if months are unpaid
+
+#         return fees_records
+
+
+# class TransportDefaulterReportAdmin(admin.ModelAdmin):
+#     def get_search_results(self, request, queryset, search_term):
+#         year = search_term if search_term else None
+
+#         # Default year logic
+#         if year is None or year == "":
+#             current_month = datetime.now().month
+#             year = datetime.now().year if current_month >= 4 else datetime.now().year - 1
+
+#         current_date = datetime.now().date()
+
+#         # Get list of months for the year
+#         montharray = get_months_array(year)
+#         months_str = ",".join(map(str, montharray))
+
+#         # Extract query parameters from the request
+#         busno = request.GET.get('busno', None)
+#         destination = request.GET.get('destination', None)
+#         student_class = request.GET.get('class', None)
+
+#         # Base queryset filtering only on student_fees
+#         query = queryset.filter(
+#             year=year,
+#             bus_fees_paid__gt=0,
+#             student_id__bus_id__isnull=False  # Filtering where student_id's bus_id is not null
+#         )
+
+#         # RawSQL to get the route and destination from busfees_master using the bus_id from student_master
+#         route_subquery = RawSQL(
+#             "(SELECT route FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
+#             []
+#         )
+
+#         destination_subquery = RawSQL(
+#             "(SELECT destination FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
+#             []
+#         )
+
+#         # Annotate the queryset with route and destination using RawSQL
+#         query = query.annotate(
+#             route=route_subquery,
+#             destination=destination_subquery,
+#             months_paid=RawSQL(
+#                 "COALESCE(GROUP_CONCAT(TRIM(fees_period_month) ORDER BY CAST(fees_period_month AS UNSIGNED)), '')", 
+#                 []
+#             )  # Use COALESCE to return an empty string if no values are found
+#         )
+
+#         if busno:
+#             query = query.filter(route=busno)
+
+#         if destination:
+#             query = query.filter(destination=destination)
+
+#         if student_class:
+#             query = query.filter(student_class=student_class)
+
+#         results = query.values(
+#             'student_id',  # Correct field
+#             'months_paid',
+#             'student_class',
+#             'student_id__addmission_no',  # Correctly referencing admission_no through student_id
+#             'student_id__admission_date',  # Correctly referencing admission_date through student_id
+#             'student_id__passedout_date',  # Correctly referencing passedout_date through student_id
+#             'student_id__student_name',  # Correctly referencing student_name through student_id
+#             'route',  # Annotated route field
+#             'destination',  # Annotated destination field
+#         ).distinct()
+
+#         fees_records = []
+
+#         for data in results:
+#             months_paid = data['months_paid']
+#             print('months_paid', months_paid)
+#             passedout_date = data['student_id__passedout_date']
+            
+#             # Handle cases where months_paid is empty
+#             if not months_paid:
+#                 months_paid_list = []  # Handle empty months_paid case
+#             else:
+#                 try:
+#                     # Remove duplicates and convert months_paid_list to integers
+#                     months_paid_list = list(map(int, set(map(str.strip, months_paid.split(',')))))
+#                 except ValueError as e:
+#                     # Handle cases where the conversion to int fails
+#                     print(f"Error converting months_paid to integers: {e}")
+#                     months_paid_list = []  # Default to empty list if parsing fails
+
+#             # Print debugging information
+#             print('montharray:', montharray)
+#             print('months_paid_list:', months_paid_list)
+
+#             # Calculate months not paid using set difference
+#             unpaid_months = list(set(montharray) - set(months_paid_list))
+#             print('unpaid_months:', unpaid_months)
+
+#             # Convert unpaid_months to strings for joining
+#             unpaid_months_str = ",".join(map(str, unpaid_months))
+#             print('unpaid_months_str:', unpaid_months_str)
+
+#             if unpaid_months_str == "" or (passedout_date and passedout_date < current_date):
+#                 # If all months are paid or student passed out before current date
+#                 continue
+#             else:
+#                 fees_records.append(data)  # Add to result if months are unpaid
+
+#         # Return queryset (fees_records) and a boolean flag indicating no duplicates
+#         return fees_records, False
+    
+# class TransportDefaulterReportAdmin(admin.ModelAdmin):
+#     list_filter = (ClassFilter, YearFilter, BusRouteFilter, DestinationFilter)
+
+#     def has_add_permission(self, request):
+#         return False
+
+#     def has_change_permission(self, request, obj=None):
+#         return False
+
+#     def has_delete_permission(self, request, obj=None):
+#         return False
+    
+#     def changelist_view(self, request, extra_context=None):
+#         bus_route = request.GET.get('bus_route', '')
+#         destination = request.GET.get('destination', '')
+#         class_no = request.GET.get('class_no', '')
+
+#         year_choices = [str(year) for year in range(2024, 2017, -1)]
+#         extra_context = extra_context or {}
+#         extra_context['class_choices'] = CLASS_CHOICES
+#         extra_context['year_choices'] = year_choices
+#         extra_context['bus_route_choices'] = range(1, 21)
+#         extra_context['destination_choices'] = busfees_master.objects.values_list('destination', flat=True).distinct()
+#         extra_context['selected_bus_route'] = bus_route
+#         extra_context['selected_destination'] = destination
+#         extra_context['selected_class_no'] = class_no
+      
+
+#         return super().changelist_view(request, extra_context=extra_context)
+
+#     change_list_template = 'admin/transportdefaulter_change_list.html'
+
+#     def get_year(self, request):
+#         current_month = date.today().month
+#         return date.today().year if current_month >= 4 else date.today().year - 1
+    
+#     def get_search_results(self, request, queryset, search_term):
+#         # year = search_term if search_term else None
+#         year1 = request.GET.get('year', None)
+
+#         year = int(year1) if year1 else self.get_year(request)
+
+#         current_date = datetime.now().date()
+
+#         # Get list of months for the year
+#         montharray = get_months_array(year)
+#         months_str = ",".join(map(str, montharray))
+
+#         # Extract query parameters from the request
+#         busno = request.GET.get('busno', None)
+#         destination = request.GET.get('destination', None)
+#         student_class = request.GET.get('class', None)
+
+#         # Base queryset filtering only on student_fees
+#         query = queryset.filter(
+#             year=year,
+#             bus_fees_paid__gt=0,
+#             student_id__bus_id__isnull=False  # Filtering where student_id's bus_id is not null
+#         )
+
+#         # RawSQL to get the route and destination from busfees_master using the bus_id from student_master
+#         route_subquery = RawSQL(
+#             "(SELECT route FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
+#             []
+#         )
+
+#         destination_subquery = RawSQL(
+#             "(SELECT destination FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
+#             []
+#         )
+
+#         # Annotate the queryset with route and destination using RawSQL
+#         query = query.annotate(
+#             route=route_subquery,
+#             destination=destination_subquery,
+#             months_paid=RawSQL(
+#                 "COALESCE(GROUP_CONCAT(TRIM(fees_period_month) ORDER BY CAST(fees_period_month AS UNSIGNED)), '')", 
+#                 []
+#             )  # Use COALESCE to return an empty string if no values are found
+#         )
+
+#         if busno:
+#             query = query.filter(route=busno)
+
+#         if destination:
+#             query = query.filter(destination=destination)
+
+#         if student_class:
+#             query = query.filter(student_class=student_class)
+
+#         # Filter only students with unpaid months
+#         fees_records = []
+#         for data in query:
+#             months_paid = data.months_paid
+#             passedout_date = data.student_id.passedout_date
+            
+#             # Handle cases where months_paid is empty
+#             if not months_paid:
+#                 months_paid_list = []  # Handle empty months_paid case
+#             else:
+#                 try:
+#                     # Remove duplicates and convert months_paid_list to integers
+#                     months_paid_list = list(map(int, set(map(str.strip, months_paid.split(',')))))
+#                 except ValueError as e:
+#                     # Handle cases where the conversion to int fails
+#                     print(f"Error converting months_paid to integers: {e}")
+#                     months_paid_list = []  # Default to empty list if parsing fails
+
+#             # Calculate months not paid using set difference
+#             unpaid_months = list(set(montharray) - set(months_paid_list))
+
+#             if unpaid_months and (not passedout_date or passedout_date >= current_date):
+#                 fees_records.append(data.student_id.id)  # Keep track of student IDs with unpaid months
+
+#         # Final queryset of students who haven't paid all months
+#         final_query = query.filter(student_id__in=fees_records)
+
+#         # Return the filtered queryset and the duplicate flag (False)
+#         return final_query, False
 
 class TransportDefaulterReportAdmin(admin.ModelAdmin):
+    # Define the fields to display in the admin list
+    list_display = (
+        'student_name', 'admission_no', 'class_no', 'section', 
+        'route', 'destination', 'unpaid_months'
+    )
+    # list_display = (
+    #     'student_name', 'admission_no', 'class_no', 'section', 
+    #     'route', 'destination' 
+    # )
+    
+    # Disable add, change, and delete permissions
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    # Custom method to show the student's name
+    def student_name(self, obj):
+        return obj.student_id.student_name
+
+    # Custom method to show the student's admission number
+    def admission_no(self, obj):
+        return obj.student_id.addmission_no
+
+    # Custom method to show the student's class
+    def class_no(self, obj):
+        return obj.student_class
+
+    # Custom method to show the student's section
+    def section(self, obj):
+        return obj.student_section
+
+    # Custom method to show the route
+    def route(self, obj):
+        return obj.route
+
+    # Custom method to show the destination
+    def destination(self, obj):
+        return obj.destination
+
+    # # Custom method to show unpaid months
+    def unpaid_months(self, obj):
+        # Calculate the unpaid months
+        current_date = datetime.now().date()
+        year = self.get_year()
+        montharray = get_months_array(year)
+
+        months_paid = obj.months_paid
+        passedout_date = obj.student_id.passedout_date
+
+        if not months_paid:
+            months_paid_list = []
+        else:
+            try:
+                # Remove duplicates and convert months_paid_list to integers
+                months_paid_list = list(map(int, set(map(str.strip, months_paid.split(',')))))
+            except ValueError as e:
+                print(f"Error converting months_paid to integers: {e}")
+                months_paid_list = []
+
+        # Calculate unpaid months
+        unpaid_months = list(set(montharray) - set(months_paid_list))
+
+        # Only show unpaid months if student hasn't passed out
+        if unpaid_months and (not passedout_date or passedout_date >= current_date):
+            return ",".join(map(str, unpaid_months))
+        else:
+            return "No unpaid months"
+
+    # Override changelist_view to provide extra context for filters
+    def changelist_view(self, request, extra_context=None):
+        bus_route = request.GET.get('bus_route', '')
+        destination = request.GET.get('destination', '')
+        class_no = request.GET.get('class_no', '')
+        year = request.GET.get('year', None)
+        if year is None:
+            year = self.get_year()
+
+        year_choices = [str(year) for year in range(2024, 2017, -1)]
+        extra_context = extra_context or {}
+        extra_context['class_choices'] = CLASS_CHOICES
+        extra_context['year_choices'] = year_choices
+        extra_context['bus_route_choices'] = range(1, 21)
+        extra_context['destination_choices'] = busfees_master.objects.values_list('destination', flat=True).distinct()
+        extra_context['selected_bus_route'] = bus_route
+        extra_context['selected_destination'] = destination
+        extra_context['selected_class_no'] = class_no
+        extra_context['selected_year'] = year
+       
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+    change_list_template = 'admin/transportdefaulter_change_list.html'
+
+    def get_year(self):
+        current_month = date.today().month
+        return date.today().year if current_month >= 4 else date.today().year - 1
+    
+    # Modify get_search_results to return unique student IDs
     def get_search_results(self, request, queryset, search_term):
-        year = search_term if search_term else None
-
-        # Default year logic
-        if year is None or year == "":
-            current_month = datetime.now().month
-            year = datetime.now().year if current_month >= 4 else datetime.now().year - 1
-
+        year1 = request.GET.get('year', None)
+        year = int(year1) if year1 else self.get_year()
         current_date = datetime.now().date()
 
         # Get list of months for the year
         montharray = get_months_array(year)
-        months_str = ",".join(map(str, montharray))
 
-        # Extract query parameters from the request
         busno = request.GET.get('busno', None)
         destination = request.GET.get('destination', None)
-        student_class = request.GET.get('class', None)
+        student_class = request.GET.get('class_no', None)
+        print('student_class',student_class)
 
-        # Base queryset filtering only on student_fees
         query = queryset.filter(
             year=year,
             bus_fees_paid__gt=0,
-            student_id__bus_id__isnull=False  # Filtering where student_id's bus_id is not null
+            student_id__bus_id__isnull=False
         )
 
-        # RawSQL to get the route and destination from busfees_master using the bus_id from student_master
+        # print('query',query)
+
         route_subquery = RawSQL(
-            "(SELECT route FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
-            []
+            "(SELECT route FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)", []
         )
 
         destination_subquery = RawSQL(
-            "(SELECT destination FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)",
-            []
+            "(SELECT destination FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)", []
         )
 
-        # Annotate the queryset with route and destination using RawSQL
+        # query = query.annotate(
+        #     route=route_subquery,
+        #     destination=destination_subquery,
+        #     months_paid=RawSQL(
+        #         "COALESCE(GROUP_CONCAT(TRIM(fees_period_month) ORDER BY CAST(fees_period_month AS UNSIGNED)), '')", []
+        #     )
+        # )
         query = query.annotate(
-            route=route_subquery,
-            destination=destination_subquery,
+            route=RawSQL(
+                "(SELECT route FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)", []
+            ),
+            destination=RawSQL(
+                "(SELECT destination FROM busfees_master WHERE busfees_master.bus_id = student_master.bus_id)", []
+            ),
+            # Avoid using GROUP_CONCAT in SQL here, as it might aggregate incorrectly
             months_paid=RawSQL(
-                "GROUP_CONCAT(TRIM(fees_period_month) ORDER BY CAST(fees_period_month AS UNSIGNED))", 
-                []
+                "(SELECT GROUP_CONCAT(TRIM(fees_period_month) ORDER BY CAST(fees_period_month AS UNSIGNED)) FROM student_fees WHERE student_fees.student_id = student_master.student_id AND student_fees.year = %s)",
+                [year]
             )
         )
+
+        # print('query after',query)
+        # for obj in query:
+        #     print(f"Student Name: {obj.student_id.student_name}")
+        #     print(f"Admission No: {obj.student_id.addmission_no}")
+        #     print(f"Class No: {obj.student_class}")
+        #     print(f"Section: {obj.student_section}")
+        #     print(f"Route: {obj.route}")
+        #     print(f"Destination: {obj.destination}")
+        #     print(f"Months Paid: {obj.months_paid}")
+        #     print('-' * 40)  # Divider for readability
 
         if busno:
             query = query.filter(route=busno)
@@ -1852,40 +2425,41 @@ class TransportDefaulterReportAdmin(admin.ModelAdmin):
         if student_class:
             query = query.filter(student_class=student_class)
 
-        results = query.values(
-            'student_id',  # Correct field
-            'months_paid',
-            'student_class',
-            'student_id__addmission_no',  # Correctly referencing admission_no through student_id
-            'student_id__admission_date',  # Correctly referencing admission_date through student_id
-            'student_id__passedout_date',  # Correctly referencing passedout_date through student_id
-            'student_id__student_name',  # Correctly referencing student_name through student_id
-            'route',  # Annotated route field
-            'destination',  # Annotated destination field
-        ).distinct()
-
+        # Filter only students with unpaid months
         fees_records = []
+        for data in query:
+            months_paid = data.months_paid
+            passedout_date = data.student_id.passedout_date
 
-        for data in results:
-            months_paid = data['months_paid']
-            passedout_date = data['student_id__passedout_date']
-            
-            # Cleaning months_paid by removing any extra spaces
-            months_paid_list = list(map(str.strip, months_paid.split(',')))
-
-            # Calculate months not paid using set difference
-            unpaid_months = list(set(montharray) - set(months_paid_list))
-            unpaid_months_str = ",".join(unpaid_months)
-
-            if unpaid_months_str == "" or (passedout_date and passedout_date < current_date):
-                # If all months are paid or student passed out before current date
-                continue
+            if not months_paid:
+                months_paid_list = []
             else:
-                fees_records.append(data)  # Add to result if months are unpaid
+                try:
+                    months_paid_list = list(map(int, set(map(str.strip, months_paid.split(',')))))
+                except ValueError:
+                    months_paid_list = []
 
-        return fees_records
+            unpaid_months = list(set(montharray) - set(months_paid_list))
 
-    
+            if unpaid_months and (not passedout_date or passedout_date >= current_date):
+                fees_records.append(data.student_id.student_id)
+
+
+        final_query = query.filter(student_id__in=fees_records).distinct()
+        # print('query',final_query)
+        return final_query, False
+
+
+# from django.db import models
+# from django.db.models import RawSQL
+# from django.contrib import admin
+# from datetime import datetime
+
+# Assuming student_master is the base model
+# class transport_defaulter(student_master):
+#     class Meta:
+#         proxy = True
+
 
 admin.site.register(transport_defaulter, TransportDefaulterReportAdmin)
 

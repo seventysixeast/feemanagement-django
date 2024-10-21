@@ -1,0 +1,48 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+<div class="filters">
+    <form method="GET">
+        <!-- Bus Route Filter -->
+        <label for="bus_route">Bus Route:</label>
+        <select name="bus_route" id="bus_route">
+            <option value="">All</option>
+            {% for route in bus_route_choices %}
+                <option value="{{ route }}" {% if route == selected_bus_route %}selected{% endif %}>{{ route }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- Destination Filter -->
+        <label for="destination">Destination:</label>
+        <select name="destination" id="destination">
+            <option value="">All</option>
+            {% for dest in destination_choices %}
+                <option value="{{ dest }}" {% if dest == selected_destination %}selected{% endif %}>{{ dest }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- Class Filter -->
+        <label for="class_no">Class:</label>
+        <select name="class_no" id="class_no">
+            <option value="">All</option>
+            {% for class in class_choices %}
+                <option value="{{ class.0 }}" {% if class.0 == selected_class_no %}selected{% endif %}>{{ class.1 }}</option>
+            {% endfor %}
+        </select>
+        <label for="year">Year:</label>
+        <select name="year">
+            {% for year in year_choices %}
+                <option value="{{ year }}" {% if request.GET.year == year|stringformat:"s" %}selected{% endif %}>
+                    {{ year }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <!-- Submit Button -->
+        <button type="submit">Filter</button>
+    </form>
+</div>
+
+<!-- Display the default Django admin changelist table -->
+{{ block.super }}
+{% endblock %}
