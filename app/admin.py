@@ -2819,6 +2819,11 @@ class StudentFeesAdminForm(forms.ModelForm):
         required=False, 
         widget=forms.NumberInput(attrs={'class': 'feeschange'})
     )
+    # Hidden field for storing student ID
+    concession_type_id = forms.IntegerField(
+        widget=forms.HiddenInput(attrs={'readonly': 'readonly'}),
+        required=False
+    )
     total_amount = forms.DecimalField(
         label="Total Amount", 
         required=False, 
@@ -3704,7 +3709,9 @@ class StudentFeesAdmin(admin.ModelAdmin):
             # Handle concessions
             if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
                 obj.concession_applied = float(request.POST.get('concession_applied'))
-                obj.concession_type_id = request.POST.get('concession_type')
+                obj.concession_type_id = request.POST.get('concession_type_id')
+                # obj.concession_type_id = request.POST.get('concession_type')
+                
             else:
                 obj.concession_type_id = None
                 obj.concession_applied = None
@@ -3807,7 +3814,8 @@ class StudentFeesAdmin(admin.ModelAdmin):
 
             if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
                 obj.concession_applied = float(request.POST.get('concession_applied'))
-                obj.concession_type_id = request.POST.get('concession_type')
+                obj.concession_type_id = request.POST.get('concession_type_id')
+                # obj.concession_type_id = request.POST.get('concession_type')
             else:
                 obj.concession_type_id = None
                 obj.concession_applied = None
