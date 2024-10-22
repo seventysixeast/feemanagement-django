@@ -49,6 +49,14 @@ from django.http import HttpResponse
 from django.urls import path
 from django.shortcuts import render
 
+from django.db import connection
+import pandas as pd
+from io import BytesIO
+from django.contrib import messages
+from django.shortcuts import redirect
+
+# from .forms import DefaultersReportForm
+
 
 # from .models import transport, BusFeesMaster, BusMaster, StudentClasses
 
@@ -1637,12 +1645,6 @@ class ActivityFeesDefaulterResource(resources.ModelResource):
             'activity_fees', 'year'
         )  # Specify fields for export
 
-        # fields = (
-        #     'student_id__addmission_no', 'student_id__student_name', 
-        #     'student_class', 'fees_for_months', 'activity_fees_paid'
-        # )  # Specify fields for export
-
-
 class DefaultersReportForm(forms.Form):
     CLASS_CHOICES = [
         ('', 'Select Class'),
@@ -1671,17 +1673,27 @@ class DefaultersReportForm(forms.Form):
 class ActivityFeesDefaulterAdmin(ExportMixin, admin.ModelAdmin):
     resource_class = ActivityFeesDefaulterResource
 
-    list_display = ('student_id', 'student_class', 'activity_fees', 'year')
-
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('activity-fees-defaulters/', self.admin_site.admin_view(self.activity_fees_defaulters_view)),
-            path('activity-fees-defaulters/export/', self.admin_site.admin_view(self.export_defaulters_to_csv), name="export_defaulters_csv"),
+            path('activity-fees-defaulters/', self.admin_site.admin_view(self.changelist_view)),
+            path('activity-fees-defaulters/export/', self.admin_site.admin_view(self.export_defaulters_to_excel), name="export_defaulters_csv")
         ]
         return custom_urls + urls
-    
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     def get_months_array(self, year):
+        # Convert year to an integer for arithmetic operations
+        year = int(year)
+
         # Define the start and end of the financial year
         datefrom = f"{year}0401"  # First date of the financial year (April 1st)
         dateto = f"{year + 1}0331"  # Last date of the financial year (March 31st of the next year)
@@ -1730,495 +1742,205 @@ class ActivityFeesDefaulterAdmin(ExportMixin, admin.ModelAdmin):
         return month_array
 
 
-    def changelist_view(self, request, extra_context=None):
-        return self.activity_fees_defaulters_view(request)
+    def export_defaulters_to_excel(self, request):
+        # Retrieve data to export, typically from a session or request
+        defaulters_list = request.session.get('defaulters_list', [])
+        
+        if not defaulters_list:
+            # Handle the case where there is no data to export
+            messages.error(request, "No data available to export.")
+            return redirect('admin:activity_fees_defaulter_changelist')
 
-    def activity_fees_defaulters_view(self, request):
-        form = DefaultersReportForm(request.POST or None)
-        results = None
+        # Define the column headers
+        headers = ['Admission No', 'Student Name', 'Class', 'Section', 'Unpaid Months']
 
-        if request.method == 'POST' and form.is_valid():
-            selected_class = form.cleaned_data.get('student_class', None)
-            selected_year = form.cleaned_data.get('year', None)
+        # Convert defaulters_list to DataFrame for export
+        df = pd.DataFrame(defaulters_list)
 
-            current_date = datetime.today().strftime('%Y-%m-%d')
-            month_array = self.get_months_array(int(selected_year)) if selected_year else []
-            months = ",".join(month_array)
+        # Rename the columns to match the desired headers
+        df.columns = headers
 
-            # Query for unpaid and non-paid students
-            base_query = student_fee.objects.filter(
-                year=selected_year,
-                activity_fees__gt=0
-            ).annotate(
-                months_paid=F('fees_period_month')
-            ).values(
-                'student_id',
-                'student_class',
-                'student_id__addmission_no',
-                'student_id__admission_date',    # Contains date field
-                'student_id__passedout_date',    # Contains date field
-                'student_id__student_name',
-            ).order_by('student_class', 'student_id__addmission_no')
+        # Create a BytesIO stream to hold the Excel data
+        excel_file = BytesIO()
+        with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Defaulters')
 
-            if selected_class:
-                base_query = base_query.filter(student_class=selected_class)
+        # Rewind the buffer
+        excel_file.seek(0)
 
-            unpaid_students_query = base_query.filter(~Q(months_paid=months))
-
-            non_paid_students_query = student_master.objects.filter(
-                ~Q(student_id__in=student_fee.objects.filter(year=selected_year).values('student_id'))
-            ).values(
-                'student_id',
-                'student_name',
-                'addmission_no',
-                'admission_date',  # Contains date field
-                'passedout_date',  # Contains date field
-            )
-
-            from itertools import chain
-            results = list(chain(unpaid_students_query, non_paid_students_query))
-
-            # Convert date fields to strings before saving in the session
-            def convert_dates(result):
-                if 'student_id__admission_date' in result and result['student_id__admission_date']:
-                    result['student_id__admission_date'] = result['student_id__admission_date'].strftime('%Y-%m-%d')
-                if 'student_id__passedout_date' in result and result['student_id__passedout_date']:
-                    result['student_id__passedout_date'] = result['student_id__passedout_date'].strftime('%Y-%m-%d')
-                if 'admission_date' in result and result['admission_date']:
-                    result['admission_date'] = result['admission_date'].strftime('%Y-%m-%d')
-                if 'passedout_date' in result and result['passedout_date']:
-                    result['passedout_date'] = result['passedout_date'].strftime('%Y-%m-%d')
-                return result
-
-            results = [convert_dates(r) for r in results]
-
-            # Store results in session
-            request.session['defaulters_report_results'] = results
-
-        context = dict(
-            self.admin_site.each_context(request),
-            form=form,
-            results=results,
-            title="Activity Fees Defaulters Report",
+        # Create the HTTP response to download the file
+        response = HttpResponse(
+            excel_file.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-        return TemplateResponse(request, "admin/activity_fees_defaulter/change_list.html", context)
-
-    def export_defaulters_to_csv(self, request):
-        # Fetch the results from the session (which were saved during the report generation)
-        results = request.session.get('defaulters_report_results', None)
+        response['Content-Disposition'] = 'attachment; filename=defaulters_report.xlsx'
         
-        if results is None:
-            return HttpResponse("No data available for export", status=400)
-
-        # Ensure `month_array` is retrieved or reconstructed from the session
-        selected_year = 2024 #request.session.get('selected_year', None)
-        if selected_year:
-            month_array = self.get_months_array(int(selected_year))  # Assuming this is already defined elsewhere
-        else:
-            return HttpResponse("No year selected", status=400)
-        
-        # Create CSV response
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="defaulters_report.csv"'
-
-        writer = csv.writer(response)
-        writer.writerow(['Admission No', 'Student Name', 'Class', 'Unpaid Months'])
-
-        # Write the rows from the results stored in the session
-        for result in results:
-            mp = result.get('months_paid', '')
-            unpaid_months = list(set(month_array) - set(mp.split(','))) if mp else month_array
-            writer.writerow([
-                result['student_id__addmission_no'],
-                result['student_id__student_name'],
-                result['student_class'],
-                ",".join(unpaid_months) if unpaid_months else 'All Months Paid'
-            ])
-
         return response
 
-# class ActivityFeesDefaulterAdmin(ExportMixin, admin.ModelAdmin):
+    def changelist_view(self, request, extra_context=None):
 
-#     resource_class = ActivityFeesDefaulterResource  # Assign the resource class for export
+        # Assuming defaulters_list is populated with your required data
+        defaulters_list = []  # Your existing logic for populating this
 
-#     list_display = ('student_id', 'student_class', 'activity_fees', 'year')
+        # Export to Excel
+        if request.POST.get('export_to_excel'):  # Check if export button was pressed
+            df = pd.DataFrame(defaulters_list)  # Convert the list of dictionaries to a DataFrame
 
-#     def get_urls(self):
-#         urls = super().get_urls()
-#         custom_urls = [
-#             path('activity-fees-defaulters/', self.admin_site.admin_view(self.activity_fees_defaulters_view)),
-#         ]
-#         return custom_urls + urls
+            # Create an Excel file in memory
+            excel_file = pd.ExcelWriter('defaulters_report.xlsx', engine='openpyxl')
+            df.to_excel(excel_file, index=False, sheet_name='Defaulters')  # Write DataFrame to the Excel file
 
-#     def changelist_view(self, request, extra_context=None):
-#         """
-#         Override the default changelist view to use the custom defaulters report view.
-#         """
-#         return self.activity_fees_defaulters_view(request)
+            # Save the file
+            excel_file.save()
+            excel_file.close()
 
-#     """ def get_months_array(self, year):
-#         # Logic to generate the months array based on the year, similar to the PHP function get_months_array
-#         start_month = 4  # Assume the financial year starts in April
-#         months_array = [str(month) for month in range(start_month, start_month + 12)]
-#         return months_array """
-    
-#     def get_months_array(self, year):
-#         # Define the start and end of the financial year
-#         datefrom = f"{year}0401"  # First date of the financial year (April 1st)
-#         dateto = f"{year + 1}0331"  # Last date of the financial year (March 31st of the next year)
-
-#         # Convert to actual date format (Y-m-d)
-#         datefrom1 = datetime.strptime(datefrom, "%Y%m%d").date()
-#         dateto1 = datetime.strptime(dateto, "%Y%m%d").date()
-
-#         # Get the current date
-#         currentdate = datetime.now().date()
-
-#         # If the financial year is not over yet, set `dateto1` to today
-#         if currentdate < dateto1:
-#             dateto1 = currentdate
-
-#         # Initialize the month array
-#         month_array = []
-        
-#         # Create a timestamp starting from `datefrom1`
-#         time = datefrom1
-#         to_month = dateto1.month
-
-#         # Iterate for a maximum of 12 months
-#         for i in range(12):
-#             # Get the current month
-#             cur_month = time.month
-            
-#             # Stop if the last month (current month) is reached
-#             if cur_month == to_month:
-#                 break
-
-#             # Add the month number to the array, stripping leading zeroes
-#             month_array.append(str(cur_month).lstrip('0'))
-            
-#             # Move to the next month
-#             time = time + timedelta(days=31)
-#             time = time.replace(day=1)  # Ensure to set the day to the 1st of the next month
-
-#         # If all months have passed, return a full array from 1 to 12
-#         if not month_array:
-#             month_array = [str(i) for i in range(1, 13)]
-
-#         # Sort the month array to ensure the months are in ascending order
-#         month_array.sort(key=int)
-
-#         return month_array
-
-#     def activity_fees_defaulters_view(self, request):
-#         form = DefaultersReportForm(request.POST or None)
-#         results = None
-
-#         if request.method == 'POST' and form.is_valid():
-#             selected_class = form.cleaned_data.get('student_class', None)
-#             selected_year = form.cleaned_data.get('year', None)
-
-#             # Get current date and month array based on the selected year
-#             current_date = datetime.today().strftime('%Y-%m-%d')
-#             month_array = self.get_months_array(int(selected_year)) if selected_year else []
-#             months = ",".join(month_array)
-
-#             # Base query for students who have paid some fees
-#             base_query = student_fee.objects.filter(
-#                 year=selected_year,
-#                 activity_fees__gt=0  # activity_fees > 0
-#             ).annotate(
-#                 months_paid=F('fees_period_month')
-#             ).values(
-#                 'student_id',
-#                 'student_class',
-#                 'student_id__addmission_no',
-#                 'student_id__admission_date',
-#                 'student_id__passedout_date',
-#                 'student_id__student_name',
-#             ).order_by(
-#                 'student_class', 'student_id__addmission_no'
-#             )
-
-#             # Apply class filter if selected
-#             if selected_class:
-#                 base_query = base_query.filter(student_class=selected_class)
-
-#             # Query for students who haven't paid for all months
-#             unpaid_students_query = base_query.filter(~Q(months_paid=months))
-
-#             # Query for students who haven't paid any fees (no record in `student_fee`)
-#             non_paid_students_query = student_master.objects.filter(
-#                 ~Q(student_id__in=student_fee.objects.filter(year=selected_year).values('student_id')),
-#             ).values(
-#                 'student_id',
-#                 'student_name',
-#                 'addmission_no',
-#                 'admission_date',
-#                 'passedout_date',
-#             )
-
-#             # Combine the two querysets
-#             from itertools import chain
-#             results = list(chain(unpaid_students_query, non_paid_students_query))
-
-#         # Pass the form and results to the template for rendering
-#         context = dict(
-#             self.admin_site.each_context(request),
-#             form=form,
-#             results=results,
-#             title="Activity Fees Defaulters Report",
-#         )
-#         return TemplateResponse(request, "admin/activity_fees_defaulter/change_list.html", context)
+            # Send the file to the user
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = 'attachment; filename=defaulters_report.xlsx'
+            response.write(excel_file)
+            return response  # Return the response to download the file
 
 
-#     # def activity_fees_defaulters_view(self, request):
-#     #     form = DefaultersReportForm(request.POST or None)
-#     #     results = None
+        extra_context = extra_context or {}
+        form = DefaultersReportForm(request.POST or None)  # Initialize form with POST data
 
-#     #     if request.method == 'POST' and form.is_valid():
-#     #         selected_class = form.cleaned_data.get('student_class', None)
-#     #         selected_year = form.cleaned_data.get('year', None)
+        results = []
+        if request.method == 'POST' and form.is_valid():
+            selected_class = form.cleaned_data.get('student_class')
+            selected_year = form.cleaned_data.get('year')
 
-#     #         # Get current date and month array based on the selected year
-#     #         current_date = datetime.today().strftime('%Y-%m-%d')
-#     #         month_array = self.get_months_array(int(selected_year)) if selected_year else []
-#     #         months = ",".join(month_array)
+            # print(f"selected_class-----{selected_class}")
+            # print(f"selected_year-----{selected_year}")
 
-#     #         print(f"months -------:{months}")
+            if selected_year is None:
+                current_year = date.today().year
+                selected_year = current_year - 1 if date.today().month < 4 else current_year
 
-#     #         # Create base query for students who have paid
-#     #         base_query = student_fee.objects.filter(
-#     #             year=selected_year,
-#     #             activity_fees__gt=0  # activity_fees > 0
-#     #         ).annotate(
-#     #             months_paid=F('fees_period_month'),  # group_concat equivalent
-#     #         ).values(
-#     #             'student_id',
-#     #             'student_class',
-#     #             'student_id__addmission_no',
-#     #             'student_id__admission_date',
-#     #             'student_id__passedout_date',
-#     #             'student_id__student_name',
-#     #             # 'student_class__section',
-#     #         ).order_by(
-#     #             'student_class', 'student_id__addmission_no'
-#     #         )
+            # Prepare data for queries
+            current_date = date.today()
+            month_array = self.get_months_array(selected_year)
+            months_paid_str = ",".join(month_array)
 
-#     #         # print(f"resubase_query 1-------:{base_query}")
+            # print(f"current_date-----{current_date}")
+            # print(f"month_array-----{month_array}")
+            # print(f"months_paid_str-----{months_paid_str}")
 
+            # class_string = "'nursery', 'pre-nursery', 'kg', '1', '2'"  # Add other classes as needed
+            class_string = 'nursery,pre-nursery,kg,1,2'
 
-#     #         # Apply class filter if selected
-#     #         if selected_class:
-#     #             base_query = base_query.filter(student_class=selected_class)
-#     #             # print(f"base_query 2-------:{base_query}")
+            # Query to fetch students who have paid but not fully
+            query = f"""
+            SELECT student_fees.student_id, 
+                GROUP_CONCAT(TRIM(student_fees.fees_period_month) ORDER BY CAST(student_fees.fees_period_month AS UNSIGNED)) AS months_paid,
+                student_fees.student_class AS class_no,
+                student_master.addmission_no, 
+                student_master.admission_date,
+                student_master.passedout_date, 
+                student_master.student_name, 
+                student_classes.section
+            FROM student_fees
+            LEFT JOIN student_master ON student_fees.student_id = student_master.student_id
+            LEFT JOIN student_classes ON student_fees.student_id = student_classes.student_id 
+                                    AND student_classes.class_no = student_fees.student_class
+            WHERE student_fees.year = %s 
+            AND COALESCE(student_fees.activity_fees, 0) > 0
+            AND FIND_IN_SET(student_fees.student_class, %s)
+            """
+
+            if selected_class:
+                query += f" AND student_fees.student_class = '{selected_class}' "
+
+            query += f"""
+            GROUP BY student_fees.student_id
+            HAVING months_paid != '{months_paid_str}'
+            """
+
+            # Query to fetch students who haven't paid at all
+            query_union = f"""
+            SELECT student_master.student_id, 
+                '' AS months_paid, 
+                student_classes.class_no, 
+                student_master.addmission_no,
+                student_master.admission_date, 
+                student_master.passedout_date, 
+                student_master.student_name, 
+                student_classes.section
+            FROM student_master
+            INNER JOIN student_classes ON student_master.student_id = student_classes.student_id
+            WHERE student_master.student_id NOT IN (
+                SELECT student_id FROM student_fees WHERE year = %s
+            )
+            AND FIND_IN_SET(student_classes.class_no, %s)
+            """
+
+            if selected_class:
+                query_union += f" AND student_classes.class_no = '{selected_class}' "
+
+            query_union += " GROUP BY student_classes.student_id HAVING MAX(student_classes.class_no)"
+
+            # print(f"query-----{query}")
+            # print(f"query_union-----{query_union}")
+
+            # Combine both queries
+            final_query = f"SELECT * FROM ({query} UNION {query_union}) AS combined ORDER BY class_no, section, addmission_no"
 
             
 
-#     #         # Query students who haven't paid for all months
-#     #         unpaid_students_query = base_query.filter(~Q(months_paid=months))
+            # Execute the query using Django's raw SQL execution
+            with connection.cursor() as cursor:
+                # Manually format the query with actual parameter values for logging
+                formatted_query = final_query % (selected_year, class_string, selected_year, class_string)
 
-#     #         print(f"unpaid_students_query 1-------:{unpaid_students_query}")
+                # Print the formatted query to the console
+                # print(f"final_query-----{formatted_query}")
 
-#     #        # Query students who haven't paid at all (no fees record)
-#     #         non_paid_students_query = student_master.objects.filter(
-#     #             ~Q(student_id__in=student_fee.objects.filter(year=selected_year).values('student_id')),
-#     #         ).values(
-#     #             'student_id',  # Correctly reference student_id
-#     #             'student_name',  # Assuming you want to keep this
-#     #             'addmission_no',  # Correctly reference addmission_no
-#     #             'admission_date',  # Correctly reference admission_date
-#     #             'passedout_date',  # Correctly reference passedout_date
-#     #             # 'student_class__section',  # Uncomment if needed and ensure it's referenced correctly
-#     #         )
+                # Execute the query using the parameters
+                cursor.execute(final_query, [selected_year, class_string, selected_year, class_string])
 
-#     #         print(f"non_paid_students_query 1-------:{non_paid_students_query}")
+                # Fetch and print the results
+                query_results = cursor.fetchall()
+                # print(f"query_results-----{query_results}")
 
-#     #         # Combine the two querysets using Django's chain function
-#     #         from itertools import chain
-#     #         results = list(chain(unpaid_students_query, non_paid_students_query))
+            # with connection.cursor() as cursor:
+            #     cursor.execute(final_query, [selected_year, class_string, selected_year, class_string])
+            #     print(f"final_query-----{final_query}")
+            #     query_results = cursor.fetchall()
+            #     print(f"query_results-----{query_results}")
 
-#     #         # print(f"results-------:{results}")
+            # Process results to identify unpaid months and defaulters
+            defaulters_list = []
+            for data in query_results:
+                months_paid = data[1]
+                passedout_date = data[5]
+                months_paid_cleaned = [month.strip() for month in months_paid.split(',') if month]
+                months_unpaid = sorted(list(set(month_array) - set(months_paid_cleaned)), key=lambda x: int(x))
+                # months_unpaid = list(set(month_array) - set(months_paid_cleaned))
 
-#     #         # Handle AJAX request to return the result in JSON format
-#     #         # Handle AJAX request to return the result in JSON format
-#     #         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-#     #             data = []
-#     #             for fee in results:
-#     #                 """ mp = fee['fees_period_month']
-#     #                 passedout_date = fee['student_id__passedout_date']
-#     #                 mp2 = [month.strip() for month in mp.split(',')] if mp else []
-#     #                 unpaid_months = list(set(month_array) - set(mp2))
+                # Only include students who have unpaid months and haven't passed out
+                # if months_unpaid and (not passedout_date or passedout_date >= str(current_date)):
+                if months_unpaid and (not passedout_date or passedout_date >= current_date):
+                    defaulter_record = {
+                        'addmission_no': data[3],
+                        'student_name': data[6],
+                        'class_no': data[2],
+                        'section': data[7],
+                        'unpaid_months': ",".join(months_unpaid)
+                    }
+                    defaulters_list.append(defaulter_record)
 
-#     #                 if not unpaid_months or (passedout_date and passedout_date < current_date):
-#     #                     # Skip the students who have paid all fees or have passed out
-#     #                     continue
+            # Save results to session for later export
+            request.session['defaulters_list'] = defaulters_list
 
-#     #                 data.append({
-#     #                     'admission_no': fee['student_id__addmission_no'],
-#     #                     'student_name': fee['student_id__student_name'],
-#     #                     'student_class': fee['student_class'],
-#     #                     # 'student_section': fee['student_class__section'],
-#     #                     'unpaid_months': ",".join(unpaid_months),
-#     #                 }) """
+            results = defaulters_list
 
+        # Add form and results to extra_context
+        extra_context['form'] = form
+        extra_context['results'] = results
 
-                    
+        return super().changelist_view(request, extra_context=extra_context)
 
-#     #             return JsonResponse({'results': "ok"})
-
-#     #         """ if request.is_ajax():
-#     #             data = []
-#     #             for fee in results:
-#     #                 mp = fee['months_paid']
-#     #                 passedout_date = fee['student_id__passedout_date']
-#     #                 mp2 = [month.strip() for month in mp.split(',')] if mp else []
-#     #                 unpaid_months = list(set(month_array) - set(mp2))
-
-#     #                 if not unpaid_months or (passedout_date and passedout_date < current_date):
-#     #                     # Skip the students who have paid all fees or have passed out
-#     #                     continue
-
-#     #                 data.append({
-#     #                     'admission_no': fee['student_id__addmission_no'],
-#     #                     'student_name': fee['student_id__student_name'],
-#     #                     'student_class': fee['student_class'],
-#     #                     # 'student_section': fee['student_class__section'],
-#     #                     'unpaid_months': ",".join(unpaid_months),
-#     #                 })
-
-#     #             return JsonResponse({'results': data}) """
-
-#     #     # Pass data to the template
-#     #     context = dict(
-#     #         self.admin_site.each_context(request),
-#     #         form=form,
-#     #         results=results,
-#     #         title="Activity Fees Defaulters Report",
-#     #     )
-#     #     return TemplateResponse(request, "admin/activity_fees_defaulter/change_list.html", context)
-
+    change_list_template = 'admin/activity_fees_defaulter/change_list.html'
 
 admin.site.register(activity_fees_defaulter, ActivityFeesDefaulterAdmin)
-
-    # def activity_fees_defaulters_view(self, request):
-    #     form = DefaultersReportForm(request.POST or None)
-    #     results = None
-
-    #     if request.method == 'POST' and form.is_valid():
-    #         selected_class = form.cleaned_data['student_class']
-    #         selected_year = form.cleaned_data['year']
-
-    #         # Query students with unpaid activity fees
-    #         results = student_fee.objects.filter(
-    #             student_class=selected_class,
-    #             year=selected_year,
-    #             activity_fees_paid__isnull=True
-    #         )
-
-    #         # Handle AJAX request
-    #         if request.is_ajax():
-    #             data = []
-    #             for fee in results:
-    #                 data.append({
-    #                     'admission_no': fee.student_id.admission_no,
-    #                     'student_name': fee.student_id.student_name,
-    #                     'student_class': fee.student_class,
-    #                     'student_section': fee.student_section,
-    #                     'fees_for_months': fee.fees_for_months,
-    #                 })
-    #             return JsonResponse({'results': data})
-
-    #     # Use admin_site.each_context(request) to get the correct context
-    #     context = dict(
-    #         self.admin_site.each_context(request),
-    #         form=form,
-    #         results=results,
-    #         title="Activity Fees Defaulters Report",
-    #     )
-    #     return TemplateResponse(request, "admin/activity_fees_defaulter/change_list.html", context)
-
-
-# class ActivityFeesDefaulterAdmin(admin.ModelAdmin):
-#     # list_display = ('student', 'class_no', 'section', 'activity_fees_due', 'last_payment_date', 'is_defaulter')
-#     # list_filter = ('class_no', 'section', 'is_defaulter')
-#     # search_fields = ('student__student_name', 'class_no')
-
-#     def has_add_permission(self, request):
-#         return False  # You may want to disallow adding defaulters manually
-
-#     def has_change_permission(self, request, obj=None):
-#         return False  # Disallow changing defaulters
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False  # Disallow deleting defaulters
-    
-#     def get_urls(self):
-#         urls = super().get_urls()
-#         custom_urls = [
-#             path('activity-fees-defaulters/', self.admin_site.admin_view(self.activity_fees_defaulters_view)),
-#             # path('ajax/get-students/', self.admin_site.admin_view(self.get_students), name='ajax_get_students'),
-#         ]
-#         return custom_urls + urls
-
-#     def activity_fees_defaulters_view(self, request):
-#         form = DefaultersReportForm(request.POST or None)
-        
-#         if request.method == 'POST' and form.is_valid():
-#             selected_class = form.cleaned_data['student_class']
-#             selected_year = form.cleaned_data['year']
-
-#             # Query students with unpaid activity fees
-#             results = student_fee.objects.filter(
-#                 student_class=selected_class,
-#                 year=selected_year,
-#                 activity_fees_paid__isnull=True
-#             )
-
-#             # Handle AJAX request
-#             if request.is_ajax():
-#                 data = []
-#                 for fee in results:
-#                     data.append({
-#                         'admission_no': fee.student_id.admission_no,
-#                         'student_name': fee.student_id.student_name,
-#                         'student_class': fee.student_class,
-#                         'student_section': fee.student_section,
-#                         'fees_for_months': fee.fees_for_months,
-#                     })
-#                 return JsonResponse({'results': data})
-
-#         # Render standard template for non-AJAX requests
-#         context = dict(
-#             self.each_context(request),
-#             form=form,
-#             results=results if not request.is_ajax() else None,
-#             title="Activity Fees Defaulters Report",
-#         )
-#         return TemplateResponse(request, "admin/activity_fees_defaulter/change_list.html", context)
-
-#     """ def activity_fees_defaulters_view(self, request):
-#         form = DefaultersReportForm(request.POST or None)
-#         results = None
-
-#         if request.method == 'POST' and form.is_valid():
-#             selected_class = form.cleaned_data['student_class']
-#             selected_year = form.cleaned_data['year']
-
-#             # Query students with unpaid activity fees
-#             results = student_fee.objects.filter(
-#                 student_class=selected_class,
-#                 year=selected_year,
-#                 activity_fees_paid__isnull=True
-#             )
-
-#         context = dict(
-#             self.each_context(request),
-#             form=form,
-#             results=results,
-#             title="Activity Fees Defaulters Report",
-#         )
-#         return TemplateResponse(request, "admin/activity_fees_defaulter/change_list.html", context) """
-
-
-

@@ -8,32 +8,31 @@
 
   {% if results %}
     <h2>Results</h2>
-    <a href="{% url 'admin:export_defaulters_csv' %}">Export to CSV</a> 
+    
+    <form action="{% url 'admin:export_defaulters_csv' %}" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="default btn">Export Defaulters to Excel</button>
+    </form>
+    
     <table>
       <thead>
         <tr>
           <th>Admission No</th>
           <th>Student Name</th>
           <th>Class</th>
+          <th>Section</th>
           <th>Unpaid Months</th>
         </tr>
       </thead>
       <tbody>
         {% for result in results %}
-          {% if not result.months_paid or result.months_paid != "All Months Paid" %}
-            <tr>
-              <td>{{ result.student_id__addmission_no }}</td>
-              <td>{{ result.student_id__student_name }}</td>
-              <td>{{ result.student_class }}</td>
-              <td>
-                {% if result.months_paid %}
-                  {{ result.months_paid }}
-                {% else %}
-                  All Months Unpaid
-                {% endif %}
-              </td>
-            </tr>
-          {% endif %}
+          <tr>
+            <td>{{ result.addmission_no }}</td>
+            <td>{{ result.student_name }}</td>
+            <td>{{ result.class_no }}</td>
+            <td>{{ result.section }}</td>
+            <td>{{ result.unpaid_months }}</td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>
