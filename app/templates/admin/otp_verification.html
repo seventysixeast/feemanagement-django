@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification</title>
+
+    <!-- jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Updated CSS for centering the form and styling -->
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+
+        .otp-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Full height of the viewport */
+            background-color: #f5f6fa;
+        }
+
+        .verify-otp {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #fff;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            max-width: 400px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .input-group {
+            display: inline-flex;
+            width: auto;
+            margin-bottom: 15px;
+        }
+
+        .otp-field {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 24px;
+            margin: 0 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .resend-link {
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .resend-link:hover {
+            text-decoration: underline;
+        }
+
+        .search-submit {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .search-submit:hover {
+            background-color: #0056b3;
+        }
+
+        h4 {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* Error message styling */
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- OTP Verification Form inside centered box -->
+    <div class="otp-container">
+        <form class="verify-otp" id="verify-otp-form">
+            <h4>Enter OTP <br>
+                <span style="font-size: 12px; font-weight: normal;">Please enter the OTP sent to your mobile.</span>
+            </h4>
+            <div class="input-group">
+                <input type="text" class="otp-field" id="otp-1" maxlength="1">
+                <input type="text" class="otp-field" id="otp-2" maxlength="1">
+                <input type="text" class="otp-field" id="otp-3" maxlength="1">
+                <input type="text" class="otp-field" id="otp-4" maxlength="1">
+            </div>
+            <div>
+                <p>Didn't get a code? <a href="javascript:void(0);" class="resend-link" id="resendLink">Click to resend</a></p>
+            </div>
+            <div>
+                <input type="submit" class="search-submit" value="VERIFY">
+            </div>
+            <div class="error-message" id="otp-error-message">Invalid OTP. Please try again.</div>
+        </form>
+    </div>
+
+    <!-- JavaScript for OTP Verification Logic -->
+    <script>
+        $(document).ready(function () {
+
+            // Handle OTP submission
+            $("#verify-otp-form").submit(function (event) {
+                event.preventDefault();
+
+                // Get the combined OTP from input fields
+                var otp = $("#otp-1").val() + $("#otp-2").val() + $("#otp-3").val() + $("#otp-4").val();
+                
+                // Clear any previous error message
+                $("#otp-error-message").hide();
+
+                // Send OTP to the backend via AJAX request
+                $.ajax({
+                    url: '/otp_verification/',  // The URL to hit your backend method for OTP verification
+                    type: 'POST',
+                    data: {
+                        'otp': otp,  // Pass the OTP in the data payload
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'  // Include CSRF token
+                    },
+                    success: function (response) {
+                        // Handle successful response
+                        if (response.success) {
+                            // Redirect to the school admin dashboard upon successful login
+                            window.location.href = '/school-admin/';
+                        } else {
+                            // Show error message if OTP is invalid
+                            $("#otp-error-message").show();
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        // Handle error response
+                        console.log("Error:", error);
+                        $("#otp-error-message").text("An error occurred. Please try again.").show();
+                    }
+                });
+            });
+
+            // Automatically move cursor to the next input box when a digit is entered
+            function moveToNextInput(currentInput, nextInput) {
+                if (currentInput.value.length === currentInput.maxLength && nextInput) {
+                    nextInput.focus();
+                }
+            }
+
+            // Get references to all OTP input fields
+            const otpFields = document.querySelectorAll(".otp-field");
+
+            // Attach event listeners to each OTP input field
+            otpFields.forEach((currentInput, index) => {
+                const nextInput = otpFields[index + 1];
+
+                // Move to next input on digit input
+                currentInput.addEventListener("input", () => {
+                    moveToNextInput(currentInput, nextInput);
+                });
+
+                // Allow moving back with backspace key
+                currentInput.addEventListener("keydown", (e) => {
+                    if (e.key === "Backspace" && currentInput.value.length === 0 && index > 0) {
+                        otpFields[index - 1].focus();
+                        e.preventDefault();
+                    }
+                });
+            });
+
+            // Resend OTP click handler (optional)
+            $("#resendLink").click(function () {
+                // Logic for resending the OTP can be implemented here
+                alert("OTP resend functionality is not implemented yet.");
+            });
+        });
+    </script>
+
+</body>
+</html>

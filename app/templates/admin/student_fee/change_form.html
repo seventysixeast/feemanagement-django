@@ -1,0 +1,46 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+
+<!-- Ensure the rest of the form fields are rendered -->
+{{ block.super }}
+
+<!-- Student Search Section -->
+<div id="student-search-section">
+    <!-- Assuming your form or search inputs are here for searching students -->
+    {{ form.student_search }}
+</div>
+<!-- Student Search Section -->
+<div id="student-search-section">
+    <span style="margin-right: 5px;">
+        <button id="show-parent-portal" type="button" class="button">Show Parent Portal</button>
+    </span>
+    <span>
+        <button id="pre-button-id" type="button" class="button">Fetch Previous Fees</button>
+    </span>
+
+</div>
+<!-- Insert the table of previous fees here -->
+<div id="fees-data">
+    <h2>Previous Fees Data</h2>
+    <!-- <button onclick="handleStudentSelection(document.getElementById('id_student_id').value)">Fetch Previous
+        Fees</button> -->
+
+    <div id="previous-fees-section">
+        <!-- The fetched table data will be inserted here -->
+    </div>
+</div>
+
+<!-- Selected Student Details Section -->
+<div id="selected-student-details">
+    <!-- Render the selected student's details -->
+    {{ form.selected_student_details }}
+</div>
+
+<!-- Input field for admission number -->
+<!-- <label for="admission_number">Admission Number</label>
+<input type="text" id="admission_number" name="admission_number" placeholder="Enter Admission Number"> -->
+
+<!-- Button to show parent portal -->
+
+{% endblock %}

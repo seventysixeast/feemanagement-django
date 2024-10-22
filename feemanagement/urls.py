@@ -16,9 +16,35 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.contrib import admin
+from django.urls import path
+from app.views import custom_login, otp_verification
+from django.views.generic import RedirectView
+# from app.admin import section1_site, section2_site
+# from app.admin import custom_admin_site  # Import the custom admin site
+# import custom_ad
+
+# urlpatterns = [
+#     # Use the custom admin site
+#     path('admin/', custom_admin_site.urls),
+# ]
+
 
 urlpatterns = [
+    path('school-admin/login/', custom_login, name='custom_login'),
+    # path('otp_verification/', otp_verification, name='otp_verification'),
     path('school-admin/', admin.site.urls),
+    # path('school-admin/login/', custom_login, name='admin_login'),
+    # path('school-admin/', section1_site.urls),
+    # path('section2-admin/', section2_site.urls),
+    # path('school-admin/', custom_admin_site.urls),
     # path('auth/', include('app.urls')),
+    path('fees-section/', include('Fees_Section.urls')),
+    path('reports/', include('Reports.urls')),
+    # path('', include('app.urls')),
+    path('', RedirectView.as_view(url='send-otp/', permanent=True)), 
     path('', include('app.urls')),
+    
 ]
+
+admin.site.login = custom_login

@@ -1,0 +1,119 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <div class="login-container">
+    <div class="login-box">
+      <h1>Admin Login</h1>
+      <p class="form-instructions"> Please fill out the following form with your login credentials:</p>
+      
+      {% if messages %}
+        <div class="message-box">
+          {% for message in messages %}
+            <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      <form method="post" class="form">
+        {% csrf_token %}
+        
+        <div class="input-group">
+          <label for="email">Email <span class="c-red">* </span></label>
+          <input type="email" name="email" class="form-control" required id="email" placeholder="Enter your email">
+        </div>
+        
+        <div class="input-group">
+          <label for="password">Password <span class="c-red">* </span></label>
+          <input type="password" name="password" class="form-control" required id="password" placeholder="Enter your password">
+        </div>
+        
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <style>
+    body {
+      background: #f5f6fa;
+      font-family: 'Roboto', sans-serif;
+      color: #333;
+    }
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #f5f6fa;
+    }
+    .login-box {
+      width: 100%;
+      max-width: 380px;
+      background: #ffffff;
+      padding: 40px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    .form-instructions {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .message-box {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      border: 1px solid #f5c6cb;
+    }
+    .message-box p {
+      margin: 0;
+    }
+    .input-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .input-group label {
+      font-weight: bold;
+      font-size: 14px;
+      color: #555;
+    }
+    .form-control {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      margin-top: 6px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      color: #ffffff;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .btn:hover {
+      background-color: #0056b3;
+    }
+    .c-red {
+      color: #d9534f;
+    }
+    .messagelist .error{
+      display: none;
+    }
+  </style>
+{% endblock %}

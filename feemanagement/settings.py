@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load the .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,13 +24,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7a=vigulfe7j_y#zh57a2td5nc=#$e8%p6#mvu#-4^k^8nih^='
+SECRET_KEY = os.getenv("SECRET_KEY", "your-default-secret-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
-# ALLOWED_HOSTS = ['*']
-ALLOWED_HOSTS = ['127.0.0.1','66.235.194.119','76east.com', 'www.76east.com']
+ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['127.0.0.1','66.235.194.119','76east.com', 'www.76east.com']
 
 CORS_ALLOW_METHODS = ['*']
 CORS_ALLOW_HEADERS = ['*']
@@ -43,7 +47,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app',
     'import_export',
-    'ckeditor'
+    'ckeditor',
+    'Fees_Section',
+    'Reports',
+    # 'bootstrap5'
 ]
 
 AUTHENTICATION_BACKEND=[
@@ -62,10 +69,26 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'feemanagement.urls'
 
+# TEMPLATES = [
+#     {
+#         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+#         'DIRS': [],
+#         'APP_DIRS': True,
+#         'OPTIONS': {
+#             'context_processors': [
+#                 'django.template.context_processors.debug',
+#                 'django.template.context_processors.request',
+#                 'django.contrib.auth.context_processors.auth',
+#                 'django.contrib.messages.context_processors.messages',
+#             ],
+#         },
+#     },
+# ]
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # Add this line
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -77,6 +100,7 @@ TEMPLATES = [
         },
     },
 ]
+
 
 WSGI_APPLICATION = 'feemanagement.wsgi.application'
 
@@ -93,18 +117,33 @@ WSGI_APPLICATION = 'feemanagement.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'shishuniketanmoh_schoolmanagement',
-        'USER':'root',
-        # 'PASSWORD':'Rahul@1234',
-        # 'PASSWORD':'',
-        # 'HOST':'127.0.0.1',
-        # 'NAME': 'schoolmanagement',
+        'HOST':os.getenv("DB_HOST", "localhost"),
+        'NAME': os.getenv("DB_NAME"),
+        'PASSWORD':os.getenv("DB_PASSWORD"),
+        'USER':os.getenv("DB_USER"),
+        'PORT':os.getenv("DB_PORT", "5432")
+        # 'HOST':'66.235.194.119',
+        # 'NAME': 'shishuniketanmoh_schoolmanagement',
+        # 'PASSWORD':'Honda@76east',
         # 'USER':'root',
-        'PASSWORD':'Honda@76east',
-        'HOST':'66.235.194.119',
-        'PORT':'3306'
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'shishuniketanmoh_schoolmanagement',
+#         'USER':'root',
+#         # 'PASSWORD':'Rahul@1234',
+#         # 'PASSWORD':'',
+#         # 'HOST':'127.0.0.1',
+#         # 'NAME': 'schoolmanagement',
+#         # 'USER':'root',
+#         'PASSWORD':'Honda@76east',
+#         'HOST':'66.235.194.119',
+#         'PORT':'3306'
+#     }
+# }
 
 
 # Password validation
@@ -137,13 +176,19 @@ USE_I18N = True
 
 USE_TZ = True
 
+AUTHENTICATION_BACKENDS = [
+    'app.backends.EmailBackend',  # Your custom backend for email authentication
+    'django.contrib.auth.backends.ModelBackend',  # Default backend for username authentication
+]
+
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-# STATIC_URL = 'static/'
-STATIC_URL = '/school-admin/static/'
-MEDIA_URL = '/school-admin/media/'
+STATIC_URL = 'static/'
+# STATIC_URL = '/school-admin/static/'
+# MEDIA_URL = '/school-admin/media/'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_FILES_DIRS = [
@@ -160,3 +205,14 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # URL prefix for accessing media files
 MEDIA_URL = '/media/'
+
+DAB_FIELD_RENDERER = 'django_admin_bootstrapped.renderers.BootstrapFieldRenderer'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.shishuniketanmohali.org.in'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = 'info@shishuniketanmohali.org.in'  # Your SMTP username
+EMAIL_HOST_PASSWORD = 'NeoiQ[eS2.G6'  # Your SMTP password
+DEFAULT_FROM_EMAIL = 'info@shishuniketanmohali.org.in'
+

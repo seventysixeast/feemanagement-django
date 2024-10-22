@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    teacher_master, student_master, student_fee, student_class, specialfee_master,
+    student_master, student_fee, student_class, specialfee_master,
     payment_schedule_master, latefee_master, fees_master, expense,
     concession_master, bus_master, busfees_master, account_head
 )
@@ -15,6 +15,12 @@ from django.db.models.functions import Lower
 from datetime import datetime, timedelta
 from django.utils.dateparse import parse_date
 from django.db.models import Sum, F, Q
+
+import os
+from io import BytesIO
+from django.conf import settings
+from reportlab.pdfgen import canvas
+
 
 def last_payment_record( student_id=None):
     previous_fee = {}
@@ -106,7 +112,7 @@ def fetch_fee_details_for_class( student_id, class_no):
 
     # Fetch the student class information
     student_class1 = student_class.objects.filter(
-        student_id=student, class_no=class_no
+        student_id=student.student_id, class_no=class_no
     ).first()
 
     if not student_class1:
@@ -302,3 +308,186 @@ def get_late_fee_from_db( amount, days_from, days_to, late_fee_type):
 def get_no_charge_late_fee_record():
     # Query to get the first record where latefee_type is 'no charge'
     return latefee_master.objects.filter(latefee_type="no charge").first()
+
+def get_months_array(year):
+        # Format the start and end date for the financial year
+        date_from = datetime(year, 4, 1)  # April 1st of the given year
+        date_to = datetime(year + 1, 3, 31)  # March 31st of the next year
+
+        # Convert the dates into string format if necessary
+        current_date = datetime.now()
+
+        # If the financial year is not over, adjust the end date to today
+        if current_date < date_to:
+            date_to = current_date
+
+        # Create an array for storing the months
+        month_array = []
+
+        # Initialize a timestamp for the start date
+        time = date_from
+
+        # Loop through the months of the financial year
+        while time <= date_to:
+            # Get the current month number and strip leading zeroes
+            cur_month = time.month
+
+            # Append the current month to the array
+            month_array.append(cur_month)
+
+            # Move to the next month
+            time += timedelta(days=32)
+            time = time.replace(day=1)  # Set the day to 1 to handle month transitions
+
+        # Sort the month array in ascending order
+        month_array.sort()
+
+        # If the financial year is over, return an array of all 12 months
+        if current_date >= datetime(year + 1, 3, 31):
+            month_array = list(range(1, 13))
+
+        return month_array
+
+
+
+# def generate_pdf(request, txn_id):
+#     receipt_data = get_fee_receipt_details_common('txn_id', txn_id, is_txn=True)
+#     return generate_pdf_common(receipt_data, txn_id, 'txn_id')
+
+
+def generate_pdf2(request, student_fee_id):
+    receipt_data = get_fee_receipt_details_common('student_fee_id', student_fee_id, is_txn=False)
+    return generate_pdf_common(receipt_data, student_fee_id, 'student_fee_id')
+
+def get_fee_receipt_details_common(identifier_type, identifier_value, is_txn):
+    # Set up the filter depending on whether we are using txn_id or student_fee_id
+    if identifier_type == 'txn_id':
+        filter_params = {'txn_id': identifier_value}
+    elif identifier_type == 'student_fee_id':
+        filter_params = {'student_fee_id': identifier_value}  # 'id' is the Django ORM field name for primary key
+    else:
+        return {}
+
+    # Query the database to get the relevant records
+    fee_receipt_data = student_fee.objects.filter(**filter_params).select_related('student_id').order_by('-student_fee_id')
+
+    # Check if we got any results
+    if not fee_receipt_data.exists():
+        return {}
+
+    # Initialize the variables
+    total_amount_paid = fee_receipt_data.aggregate(Sum('amount_paid'))['amount_paid__sum'] or 0
+    months_paid = ['({}) {}'.format(fee.fees_period_month, fee.year) for fee in fee_receipt_data]
+
+    # Take the first result to populate general student info
+    first_receipt = fee_receipt_data.first()
+    
+    # Construct the receipt details
+    fee_receipt_details = {
+        'addmission_no': first_receipt.student_id.addmission_no,
+        'student_name': first_receipt.student_id.student_name,
+        'father_name': first_receipt.student_id.father_name,
+        'mother_name': first_receipt.student_id.mother_name,
+        'student_id': first_receipt.student_id.student_id,
+        'student_class': first_receipt.student_class,
+        'student_section': first_receipt.student_section,
+        'year': first_receipt.year,
+        'student_fee_id': first_receipt.student_fee_id,
+        'txn_payment_mode': first_receipt.payment_mode,
+        'receipt_number': first_receipt.txn_ref_number if is_txn else first_receipt.student_fee_id,
+        'date_payment': first_receipt.date_payment,
+        'remarks': first_receipt.remarks,
+        'total_amount_paid': total_amount_paid,
+        'months_paid': ', '.join(months_paid)  # Concatenate months and years
+    }
+
+    return fee_receipt_details
+
+def generate_pdf_common(receipt_data, record_id, id_field):
+    """
+    Generates a PDF for the given record ID (either txn_id or student_fee_id) and updates the receipt URL in the database.
+    
+    Args:
+        receipt_data (dict): Data to be included in the PDF.
+        record_id (str/int): ID of the record (either txn_id or student_fee_id).
+        id_field (str): Field name to filter the database records ('txn_id' or 'student_fee_id').
+    
+    Returns:
+        JsonResponse: A response containing the success status and message.
+    """
+    response_data = {
+        'success': False,
+        'message': 'No records found for the given ID'
+    }
+
+    if receipt_data:
+        # Create a new PDF in memory
+        buffer = BytesIO()
+        pdf = canvas.Canvas(buffer)
+
+        # Set PDF meta-data
+        pdf.setTitle('Invoice')
+
+        # Define the content and structure for the PDF
+        pdf.drawString(100, 800, "Shishu Niketan Public School")
+        pdf.drawString(100, 780, "FEE RECEIPT")
+        pdf.drawString(100, 760, f"Year: {receipt_data['year']}")
+        pdf.drawString(100, 740, f"Receipt: {receipt_data['receipt_number']}")
+        pdf.drawString(100, 720, f"Transaction ID: {record_id}")
+        pdf.drawString(100, 700, f"Admission No.: {receipt_data['addmission_no']}")
+        pdf.drawString(100, 680, f"Student Name: {receipt_data['student_name']}")
+        pdf.drawString(100, 660, f"Father's Name: {receipt_data['father_name']}")
+        pdf.drawString(100, 640, f"Mother's Name: {receipt_data['mother_name']}")
+        pdf.drawString(100, 620, f"Class: {receipt_data['student_class']}")
+        pdf.drawString(100, 600, f"Payment Mode: {receipt_data['txn_payment_mode']}")
+        pdf.drawString(100, 580, f"Paid for Session (Months): {receipt_data['months_paid']}")
+        pdf.drawString(100, 560, f"Total Fees Paid: {receipt_data['total_amount_paid']}")
+        pdf.drawString(100, 540, f"Remarks: {receipt_data['remarks']}")
+
+        # Footer
+        pdf.drawString(100, 520, "Copyright © shishuniketanmohali.org.in - All Rights Reserved.")
+
+        # Save the PDF into the buffer
+        pdf.showPage()
+        pdf.save()
+
+        # Move buffer to the beginning
+        buffer.seek(0)
+
+        # Define the folder path where you want to store PDFs
+        pdf_folder = os.path.join(settings.MEDIA_ROOT, 'pdfs')
+
+        # Create the folder if it does not exist
+        if not os.path.exists(pdf_folder):
+            os.makedirs(pdf_folder)
+
+        # File name and path
+        pdf_filename = f'invoice_{record_id}.pdf'
+        pdf_file_path = os.path.join(pdf_folder, pdf_filename)
+
+        # Write PDF data to the file
+        with open(pdf_file_path, 'wb') as f:
+            f.write(buffer.read())
+
+        # Build the file URL (using MEDIA_URL for serving static media)
+        pdf_url = f"{settings.MEDIA_URL}pdfs/{pdf_filename}"
+
+        # Update the `receipt_url` field in the database based on the id_field
+        filter_params = {id_field: record_id}
+        student_fees = student_fee.objects.filter(**filter_params)
+
+        if student_fees.exists():
+            student_fees.update(receipt_url=pdf_url)
+
+            response_data = {
+                'success': True,
+                'receiptUrl': pdf_url,
+                'message': f"Receipt URL updated successfully for {id_field}: {record_id}"
+            }
+        else:
+            response_data = {
+                'success': False,
+                'message': f"No records found for {id_field}: {record_id}"
+            }
+
+    return JsonResponse(response_data)

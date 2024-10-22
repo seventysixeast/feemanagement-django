@@ -55,3 +55,22 @@ fieldset.box h2 {
 .half-width {
     width: 48%; /* Ensure that each half takes up 48% of the width */
 }
+
+fieldset {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 20px;
+    background-color: #f9f9f9;
+}
+
+legend {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #eee;
+    padding: 5px 10px;
+    background-color: #264b5d;
+    /* border: 1px solid #ccc; */
+    width: 100%;
+    border-radius: 5px;
+}
+

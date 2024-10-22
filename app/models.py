@@ -3,8 +3,14 @@ from django.utils import timezone
 from datetime import date
 from django.core.validators import RegexValidator
 
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
+
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 # Validator that allows only digits
 numeric_validator = RegexValidator(r'^\d+$', 'Enter a valid mobile number. Only digits are allowed.')
+
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 # Create your models here.
 
@@ -49,8 +55,10 @@ class busfees_master(models.Model):
             bus_master_instance = bus_master.objects.filter(bus_route=self.route).first()
             return bus_master_instance.bus_attendant if bus_master_instance else None
         except bus_master.DoesNotExist:
-            return None
-  
+            return None    
+        
+        
+
 class bus_master(models.Model):
     BUS_CHOICES = [
       ('', 'Please Select Route'),
@@ -81,7 +89,7 @@ class bus_master(models.Model):
         ('False', 'False'),
     ]
     busdetail_id = models.AutoField(primary_key=True)
-    bus_route = models.IntegerField(null=True, choices=BUS_CHOICES, default='',unique=True)
+    bus_route = models.IntegerField(null=True, choices=BUS_CHOICES, default='', unique=True)
     internal = models.CharField(max_length=10, null=True, choices=INTERNAL_CHOICES)
     bus_driver = models.CharField(max_length=50, null=True)
     bus_conductor = models.CharField(max_length=50, null=True)
@@ -90,11 +98,22 @@ class bus_master(models.Model):
     conductor_phone = models.CharField(max_length=50, null=True)
     attendant_phone = models.CharField(max_length=50, null=True)
 
+    # Override the clean method to prevent uniqueness errors during update
+    def clean(self):
+        if self.bus_route:
+            # Check if a bus with the same route already exists, except for the current record
+            bus_route_exists = bus_master.objects.filter(bus_route=self.bus_route).exclude(busdetail_id=self.busdetail_id).exists()
+            if bus_route_exists:
+                raise ValidationError({
+                    'bus_route': _("Bus master with this bus route already exists.")
+                })
+
     class Meta:
         db_table = 'bus_master'  # Custom table name
 
     def __str__(self):
         return f"BusDetail {self.busdetail_id} - Route {self.bus_route}"
+
   
 class concession_master(models.Model):
   concession_id = models.AutoField(primary_key=True)
@@ -170,8 +189,8 @@ class fees_master(models.Model):
     if not self.security_fees:
       self.security_fees = 0
 
-    # self.clean()
-    # super().save(*args, **kwargs)
+    self.clean()
+    super().save(*args, **kwargs)
 
 class latefee_master(models.Model):
   latefee_id = models.BigAutoField(primary_key=True)
@@ -216,12 +235,24 @@ class payment_schedule_master(models.Model):
       return f"Schedule {self.schedule_id} for {self.fees_for_months}"
 
 class specialfee_master(models.Model):
+  FEE_TYPE_CHOICES = [
+    ('activity_fees', 'Activity Fees'),
+    ('admission_fees', 'Admission Fees'),
+    ('annual_fees', 'Annual Fees'),
+    ('bus_fees', 'Bus Fees'),
+    ('dayboarding_fees', 'Dayboarding Fees'),
+    ('funds_fees', 'Funds Fees'),
+    ('miscellaneous_fees', 'Miscellaneous Fees'),
+    ('sports_fees', 'Sports Fees'),
+    ('tuition_fees', 'Tuition Fees'),
+    ('ignore_prev_outstanding_fees', 'Ignore Previous Outstanding Fees')
+  ]
   student_charge_id = models.AutoField(primary_key=True)
   student_id = models.IntegerField()
   student_class_id = models.IntegerField()
   late_fee_applicable = models.BooleanField(default=False)
-  fee_type = models.CharField(max_length=50, null=True, blank=True)
-  months_applicable_for = models.CharField(max_length=100, null=True, blank=True)
+  fee_type = models.CharField(max_length=50, choices=FEE_TYPE_CHOICES, default='activity_fees')
+  months_applicable_for = models.CharField(max_length=100, null=True)
   year = models.CharField(max_length=4, null=True, blank=True)
   amount = models.IntegerField(default=0)
   status = models.CharField(max_length=50, default='enabled')
@@ -275,9 +306,13 @@ class student_master(models.Model):
     category = models.CharField(max_length=7, choices=CATEGORY_CHOICES, default='general')
     passedout_date = models.DateField(null=True, blank=True)
     remarks = models.CharField(max_length=50, null=True, blank=True)
+    otp = models.CharField(max_length=6, null=True, blank=True)  # Added field for OTP
 
     class Meta:
         db_table = 'student_master'
+        # verbose_name = "Model 1"
+        # verbose_name_plural = "Model 1 Group"
+        # app_label = 'group1' 
         # abstract = True
 
     def __str__(self):
@@ -337,9 +372,28 @@ class student_fee(models.Model):
 
   class Meta:
     db_table = 'student_fees'  # Custom table name
+    # verbose_name = "Model 2"
+    # verbose_name_plural = "Model 2 Group"
+    # app_label = 'group1'
 
   def __str__(self):
       return f"StudentFee {self.student_fee_id} for Student {self.student_id}"
+  
+
+  def get_student_name(self):
+        return self.student_id.student_name  # assuming student_id is a ForeignKey to student_master
+
+  get_student_name.short_description = 'Student Name'  # Set the column name in the admin view
+  
+
+  def get_addmission_no(self):
+      return self.student_id.addmission_no  # Assuming `student_id` is a ForeignKey to student_master
+
+  get_addmission_no.short_description = 'Admission No'  # Set the column name in the admin view
+
+  # def save(self, *args, **kwargs):
+  #       creating = self.pk is None
+  #       super().save(*args, **kwargs)
   
 
 
@@ -378,8 +432,9 @@ class student_class(models.Model):
     ]
 
     student_class_id = models.AutoField(primary_key=True)
-    # student_id = models.IntegerField(null=True)
-    student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='classes',db_column='student_id')
+    student_id = models.IntegerField(null=True)
+    # student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='student_classes')
+    # student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='classes', db_column='student_id')
     # student = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='classes')
     class_no = models.CharField(max_length=50, choices=CLASS_CHOICES,default='')
     section = models.CharField(max_length=50, choices=SECTION,default='')
@@ -393,37 +448,33 @@ class student_class(models.Model):
         return f"Class {self.class_no} Section {self.section}"
 
 # class user(models.Model):
-class teacher_master(models.Model):
-  ROLES_CHOICES = [
-      ('', 'Select Type'),
-      ('admin', 'Admin'),
-      ('superadmin', 'Super Admin'),
-  ]
-  user_id = models.AutoField(primary_key=True)
-  user_name = models.CharField(max_length=200)
-  email = models.EmailField(max_length=200, unique=True)
-  mobile = models.CharField(max_length=15, validators=[numeric_validator])
-  # mobile = models.IntegerField(max_length=15)
+# # class teacher_master(models.Model):
+#   ROLES_CHOICES = [
+#       ('', 'Select Type'),
+#       ('admin', 'Admin'),
+#       ('superadmin', 'Super Admin'),
+#   ]
+#   user_id = models.AutoField(primary_key=True)
+#   user_name = models.CharField(max_length=200)
+#   email = models.EmailField(max_length=200, unique=True)
+#   mobile = models.CharField(max_length=15, validators=[numeric_validator])
+#   # mobile = models.IntegerField(max_length=15)
   
-  # password = models.CharField(max_length=255)
-  role = models.CharField(max_length=50, choices=ROLES_CHOICES,default='')
-  created_at = models.DateTimeField(auto_now_add=True)
-  updated_at = models.DateTimeField(auto_now=True)
-  otp = models.CharField(max_length=255, null=True, blank=True)
-  otp_created_at = models.DateTimeField(null=True, blank=True)
-  otp_verified = models.BooleanField(default=False)
+#   # password = models.CharField(max_length=255)
+#   role = models.CharField(max_length=50, choices=ROLES_CHOICES,default='')
+#   created_at = models.DateTimeField(auto_now_add=True)
+#   updated_at = models.DateTimeField(auto_now=True)
+#   otp = models.CharField(max_length=255, null=True, blank=True)
+#   otp_created_at = models.DateTimeField(null=True, blank=True)
+#   otp_verified = models.BooleanField(default=False)
 
-  class Meta:
-    db_table = 'users'  # Custom table name
+#   class Meta:
+#     db_table = 'users'  # Custom table name
 
-  def __str__(self):
-      return self.user_name
+#   def __str__(self):
+#       return self.user_name
   
 class generate_mobile_number_list(student_master):
   class Meta:
       proxy = True  # Use this model as a proxy for the original model
 
-
-class cheque_status(student_master):
-  class Meta:
-      proxy = True  # Use this model as a proxy for the original model

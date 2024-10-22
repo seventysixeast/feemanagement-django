@@ -35,10 +35,12 @@ document.addEventListener('DOMContentLoaded', function() {
     searchButton.addEventListener('click',async function() {
         const studentName = document.getElementById('id_student_name').value;
         const admissionNo = document.getElementById('id_admission_no').value;
+        const classNo = document.getElementById('id_display_class_no').value;
+        const section = document.getElementById('id_dispaly_section').value;
 
-        if (studentName || admissionNo) {
+        if (studentName || admissionNo || classNo || section) {
             try{
-                const url = '/admin/app/student_class/ajax/load-students/?student_name=' + studentName +'&admission_no='+ admissionNo;
+                const url = '/school-admin/app/student_class/ajax/load-students/?student_name=' + studentName +'&admission_no='+ admissionNo;
                 const response = await fetch(url)
     
                 const data = await response.json();  // Parse JSON from the response
@@ -62,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error:', error);  // Handle errors
             }
         } else {
-            alert('Please enter a student name or admission number to search.');
+            alert('Please enter a student name or admission number or class or section to search.');
         }
     });
 
@@ -71,11 +73,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const selectedStudentId = this.value;
             
             if (selectedStudentId) {
-                fetch(`/admin/app/student_class/ajax/get-student/?student_id=${selectedStudentId}`)
+                fetch(`/school-admin/app/student_class/ajax/get-student/?student_id=${selectedStudentId}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.student_id) {
-                            console.log('++++++ data ++++++++', data);
+                            // console.log('++++++ data ++++++++', data);
                             studentIdField.value = data.student_id;
                             display_student_name.value = data.student_name;
                             display_admission_no.value = data.admission_no;

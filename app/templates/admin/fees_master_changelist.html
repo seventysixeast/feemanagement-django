@@ -1,0 +1,18 @@
+{% extends "admin/change_list.html" %}
+
+{% block search %} 
+<div class="row">
+    <form method="GET">
+        <input type="text" name="search_class_no" value="{{ search_class_no }}" placeholder="Search by Class No." />
+        <input type="text" name="search_annual_fees" value="{{ search_annual_fees }}" placeholder="Search by Annual Fees" />
+        <input type="text" name="search_tuition_fees" value="{{ search_tuition_fees }}" placeholder="Search by Tuition Fees" />
+        <input type="text" name="search_funds_fees" value="{{ search_funds_fees }}" placeholder="Search by Funds Fees" />
+        <input type="text" name="search_sports_fees" value="{{ search_sports_fees }}" placeholder="Search by Sports Fees" />
+        <input type="text" name="search_activity_fees" value="{{ search_activity_fees }}" placeholder="Search by Activity Fees" />
+        <input type="text" name="search_admission_fees" value="{{ search_admission_fees }}" placeholder="Search by Admission Fees" />
+        <input type="text" name="search_dayboarding_fees" value="{{ search_dayboarding_fees }}" placeholder="Search by Dayboarding Fees" />
+        <input type="text" name="search_miscel_fees" value="{{ search_miscel_fees }}" placeholder="Search by Miscellaneous Fees" />
+        <button type="submit" class="button" style="padding: 6px;margin-left: 6px;">Search</button>
+    </form>
+</div>
+{% endblock %}

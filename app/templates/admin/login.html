@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification</title>
+
+    <!-- jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Optional CSS to style the form -->
+    <style>
+        .verify-otp {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .otp-field {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 24px;
+            margin: 0 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .resend-link {
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .resend-link:hover {
+            text-decoration: underline;
+        }
+
+        .search-submit {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .search-submit:hover {
+            background-color: #0056b3;
+        }
+
+        h4 {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- OTP Verification Form -->
+    <form class="search-form verify-otp row center" id="verify-otp-form">
+        {% csrf_token %}
+        <h4>Enter OTP <br>
+            <span style="font-size: 12px; font-weight: normal;">(Check your Mobile or Email)</span>
+        </h4>
+        <div class="input-group" style="display: inline-flex; width: auto;">
+            <input type="text" class="otp-field col-md-3" placeholder="" id="otp-1" maxlength="1">
+            <input type="text" class="otp-field col-md-3" placeholder="" id="otp-2" maxlength="1">
+            <input type="text" class="otp-field col-md-3" placeholder="" id="otp-3" maxlength="1">
+            <input type="text" class="otp-field col-md-3" placeholder="" id="otp-4" maxlength="1">
+            <input type="hidden" name="otp" required>
+        </div>
+        <div style="margin-top: 5px;">
+            <p style="margin: 0px;">Didn't get a code? <a href="javascript:void(0);" class="resend-link"
+                    id="resendLink">Click to resend</a></p>
+        </div>
+        <div>
+            <input type="submit" class="search-submit btn btn-primary" value="VERIFY">
+        </div>
+    </form>
+
+    <!-- JavaScript for OTP Verification Logic -->
+    <script>
+        $(document).ready(function () {
+            // Function to verify OTP
+            function verifyOTP(enteredOTP) {
+                // For now, we assume "1234" as the valid OTP for demonstration purposes
+                const receivedOTP = "1234"; // Replace this with the OTP sent to the user
+
+                if (enteredOTP === receivedOTP) {
+                    alert("OTP verified successfully!");
+                    // Here you can add further action after verification
+                    // Example: redirect the user or show success page
+                } else {
+                    alert("Invalid OTP. Please try again.");
+                }
+            }
+
+            // On form submission, collect the OTP from input fields and verify
+            // $("#verify-otp-form").submit(function (event) {
+            //     event.preventDefault();
+
+            //     // Get the combined OTP from input fields
+            //     var otp = $("#otp-1").val() + $("#otp-2").val() + $("#otp-3").val() + $("#otp-4").val();
+            //     verifyOTP(otp);
+            // });
+            $("#verify-otp-form").submit(function (event) {
+                event.preventDefault();
+
+                // Get the combined OTP from input fields
+                var otp = $("#otp-1").val() + $("#otp-2").val() + $("#otp-3").val() + $("#otp-4").val();
+
+                // Send OTP to the backend via AJAX request
+                $.ajax({
+                    url: '/otp_verification/',  // The URL to hit your backend method for OTP verification
+                    type: 'POST',
+                    data: {
+                        'otp': otp,  // Pass the OTP in the data payload
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'  // Include CSRF token if you're using Django
+                    },
+                    success: function (response) {
+                        // Handle successful response
+                        if (response.success) {
+                            alert("OTP verified successfully!");
+                            // Redirect to another page or take some other action
+                            window.location.href = '/success_page/';  // Redirect to a success page
+                        } else {
+                            alert("Invalid OTP. Please try again.");
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        // Handle error response
+                        console.log("Error:", error);
+                        alert("An error occurred while verifying the OTP. Please try again.");
+                    }
+                });
+            });
+
+            // Automatically move cursor to the next input box when a digit is entered
+            function moveToNextInput(currentInput, nextInput) {
+                if (currentInput.value.length === currentInput.maxLength && nextInput) {
+                    nextInput.focus();
+                }
+            }
+
+            // Get references to all OTP input fields
+            const otpFields = document.querySelectorAll(".otp-field");
+
+            // Attach event listeners to each OTP input field
+            otpFields.forEach((currentInput, index) => {
+                const nextInput = otpFields[index + 1];
+
+                // Move to next input on digit input
+                currentInput.addEventListener("input", () => {
+                    moveToNextInput(currentInput, nextInput);
+                });
+
+                // Allow moving back with backspace key
+                currentInput.addEventListener("keydown", (e) => {
+                    if (e.key === "Backspace" && currentInput.value.length === 0 && index > 0) {
+                        otpFields[index - 1].focus();
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>

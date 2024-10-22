@@ -1,0 +1,59 @@
+{% extends "admin/change_list.html" %}
+{% block search %}
+<div>
+    <h2>Transport Filters</h2>
+    <form id="transport-filters" method="get">
+        <label for="bus_route">Bus Route:</label>
+        <!-- <select id="bus_route" name="bus_route">
+            <option value="">All Routes</option>
+            {% for route in bus_route_filter %}
+                <option value="{{ route }}">{{ route }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="destination">Destination:</label>
+        <select id="destination" name="destination">
+            <option value="">All Destinations</option>
+            {% for destination in destination_filter %}
+                <option value="{{ destination }}">{{ destination }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="class_no">Class:</label>
+        <select id="class_no" name="class_no">
+            <option value="">All Classes</option>
+            {% for class_no in class_filter %}
+                <option value="{{ class_no }}">{{ class_no }}</option>
+            {% endfor %}
+        </select> -->
+
+        <select id="bus_route_filter" name="bus_route">
+            <option value="">Select Bus Route</option>
+            {% for route in bus_route_filter %}
+            <option value="{{ route }}">{{ route }}</option>
+            {% endfor %}
+        </select>
+        
+        <select id="destination_filter" name="destination">
+            <option value="">Select Destination</option>
+            {% for destination in destination_filter %}
+            <option value="{{ destination }}">{{ destination }}</option>
+            {% endfor %}
+        </select>
+        
+        <select id="class_filter" name="class_no">
+            <option value="">Select Class</option>
+            {% for value, label in class_filter %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Apply Filters</button>
+    </form>
+
+    <!-- {% block result_list %}
+    {{ block.super }}
+    {% endblock %} -->
+</div>
+{% endblock %}
+
+  

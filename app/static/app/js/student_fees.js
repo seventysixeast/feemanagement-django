@@ -1,511 +1,614 @@
-document.addEventListener("DOMContentLoaded", function () {
-    // Get the form elements
-    const admissionNoField = document.querySelector('input[name="admission_no"]');
-    const studentNameField = document.querySelector('input[name="student_name"]');
-    const searchButton = document.querySelector('input[name="search_button"]');
-    const feesForMonthsField = document.querySelector('select[name="fees_for_months"]');
-    //const feesForMonthsField = document.getElementById('id_fees_for_months');
-    const feesPeriodMonthField = document.getElementById('id_fees_period_month');
-  
-    let month = '';
-  
-    // Function to create the table structure
-    /* function createTable() {
-      const container = document.querySelector("#previous-fees-record");
-      if (!container) {
-        console.error("Container for table not found");
-        return;
-      }
-  
-      // Create table
-      const table = document.createElement("table");
-      table.id = "feesTable";
-      table.className = "table table-striped";
-  
-      // Create table header
-      const thead = document.createElement("thead");
-      const headerRow = document.createElement("tr");
-      const headers = ["Fees For Months", "Date Payment", "Amount Paid", "Fees Period Month", "Student Class"];
-      headers.forEach(headerText => {
-        const th = document.createElement("th");
-        th.textContent = headerText;
-        headerRow.appendChild(th);
+/* ========================================================================================== */
+
+$(document).ready(function () {
+  // console.log("=========== ssssssss testing DOMContentLoaded =====");
+
+  // Get the form elements
+  const $admissionNoField = $('input[name="admission_no"]');
+  const $studentNameField = $('input[name="student_name"]');
+  const $searchButton = $('input[name="search_button"]');
+  const $classNoField = $('select[name="class_no"]');
+  const $sectionField = $('select[name="section"]');
+
+  const feesPeriodMonthElement = $('select[name="fees_period_month"]'); // Select element for fees_period_month
+  const feesForMonthsElement = $('select[name="fees_for_months"]'); // Select element for fees_for_months
+
+  const $studentDropdown = $("#student-dropdown");
+
+  let month = "";
+  let stuId = "";
+
+  // console.log("admissionNo", $admissionNoField);
+  // console.log("studentName", $studentNameField);
+  // console.log("classNo", $classNoField);
+  // console.log("section", $sectionField);
+
+  // Function to load students based on the search criteria
+  function loadStudents() {
+    const admissionNo = $admissionNoField.val().trim();
+    const studentName = $studentNameField.val().trim();
+    const classNo = $classNoField.val().trim();
+    const section = $sectionField.val().trim();
+
+    console.log("admissionNo", admissionNo);
+    console.log("studentName", studentName);
+    console.log("classNo", classNo);
+    console.log("section", section);
+
+    if (admissionNo || studentName || section || classNo) {
+      const url = new URL(
+        "/school-admin/app/student_fee/ajax/load-students/",
+        window.location.origin
+      );
+      if (admissionNo) url.searchParams.append("admission_no", admissionNo);
+      if (studentName) url.searchParams.append("student_name", studentName);
+      if (classNo) url.searchParams.append("class_no", classNo);
+      if (section) url.searchParams.append("section", section);
+
+      $.ajax({
+        url: url,
+        method: "GET",
+        success: function (data) {
+          console.log("++++++ response +++++++", data);
+
+          // Clear the dropdown
+          $studentDropdown.html('<option value="">Select a Student</option>');
+
+          const students = data.data.split(",");
+
+          console.log("++++++ students +++++++", students);
+
+          students.forEach(function (student) {
+            const [idName, classNo] = student.split(":");
+            console.log("++++++ idName classNo +++++++", idName, classNo);
+            const [id, sname] = idName.split("$");
+            console.log("++++++ id +++++++", id);
+            $studentDropdown.append(
+              $("<option>", {
+                value: id, // Use the student_id for the option value
+                text: `${sname} (${classNo})`, // Display name and class number
+              })
+            );
+          });
+        },
+        error: function (error) {
+          console.error("There was a problem with the fetch operation:", error);
+        },
       });
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-  
-      // Create table body
-      const tbody = document.createElement("tbody");
-      table.appendChild(tbody);
-  
-      // Append the table to the container
-      container.innerHTML = "";  // Clear any existing content
-      container.appendChild(table);
+    } else {
+      console.warn(
+        "Please enter either admission number or student name to search."
+      );
     }
-   */
-    // Function to load students based on the search criteria
-    async function loadStudents() {
-      const admissionNo = admissionNoField.value.trim();
-      const studentName = studentNameField.value.trim();
-  
-      if (admissionNo || studentName) {
-        const url = new URL(
-          "/admin/app/student_fee/ajax/load-students/",
-          window.location.origin
-        );
-        if (admissionNo) url.searchParams.append("admission_no", admissionNo);
-        if (studentName) url.searchParams.append("student_name", studentName);
-  
+  }
+
+  // Call loadStudents function when the search button is clicked
+  $searchButton.on("click", loadStudents);
+
+  if ($studentDropdown.length) {
+    $studentDropdown.on("change", async function () {
+      const selectedId = $(this).val();
+      if (selectedId) {
+        await handleStudentId(selectedId);
+      }
+    });
+  }
+
+  // get the specific student detail
+  async function handleStudentId(studentId) {
+    stuId = studentId;
+
+    try {
+      const response = await fetch(
+        `/school-admin/app/student_fee/ajax/get-student/?student_id=${studentId}`
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
+      const data = await response.json();
+      const details = data.data.split("$");
+      if (details.length >= 7) {
+        $('input[name="display_admission_no"]').val(details[5] || "");
+        $('input[name="display_student_name"]').val(details[2] || "");
+        $('input[name="display_father_name"]').val(details[4] || "");
+        $('input[name="display_student_class"]').val(details[1] || "");
+        $('input[name="display_student_section"]').val(details[3] || "");
+        $('input[name="student_id"]').val(details[0] || "");
+
+        // Extract the year part from the date (e.g., 2024-04-01 -> 2024)
+        const selectedYear = details[6].split("-")[0];
+
+        // Set the year field
+        const $yearField = $('select[name="started_on"]');
+        if ($yearField.length) {
+          $yearField.val(selectedYear); // Pre-select the year
+        }
+
+        // Trigger the request to load previous fees
+        await loadPreviousFees(studentId, false);
+
+        // Trigger the request to calculate fees
+        // await calculateFees(studentId, details[1], month, selectedYear);
+        await feespay();
+
+        // Trigger the request to pay fees (load action_payfees)
+        // await loadPayFees(studentId, month);
+      } else {
+        console.warn("Unexpected data format:", data.data);
+      }
+    } catch (error) {
+      console.error("There was a problem with the fetch operation:", error);
+    }
+  }
+
+  // Function to load previous fees and populate either table or form
+  async function loadPreviousFees(studentId) {
+    try {
+      const response = await fetch(
+        `/school-admin/app/student_fee/ajax/prev-fees/?student_id=${studentId}`
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      const data = await response.json();
+      const fees = data.data.split("&");
+
+      const $feesElement = $("#previous-fees-section"); // jQuery to select the placeholder
+      let tableHTML = `
+      <table class="table table-striped" style="width: 100%; border-collapse: collapse;">
+          <thead>
+              <tr>
+                <th>Class</th>
+                <th>Fees for month</th>
+                <th>Fees paid for month</th>
+                <th>Payment Date</th>
+                <th>Amount Paid</th>
+                <th>Not Paid</th>
+                <th>Remarks</th>
+              </tr>
+          </thead>
+          <tbody>
+      `;
+
+      if (fees && fees.length > 0 && data.data != '') {
+        fees.forEach((fee) => {
+
+
+          console.log("previous fees data ===", fee);
+
+
+          const [fees_for_months, date_payment, amount_paid, fees_period_month, student_class, remarks, cheque_status] =
+            fee.split("$");
+
+          tableHTML += `
+              <tr>
+                  <td>${student_class}</td>
+                  <td>${fees_for_months}</td>
+                  <td>${fees_period_month}</td>
+                  <td>${date_payment}</td>
+                  <td>${amount_paid}</td>
+                  <td>${cheque_status}</td>
+                  <td>${remarks}</td>
+              </tr>`;
+        });
+      } else {
+        tableHTML += `
+          <tr>
+              <td colspan="7" style="text-align: center;">No previous fees found for this student.</td>
+          </tr>`;
+      }
+
+      tableHTML += `</tbody></table>`;
+      $feesElement.html(tableHTML); // Use jQuery to insert the HTML content
+    } catch (error) {
+      console.error("Error loading previous fees:", error);
+    }
+  }
+
+  $(document).ready(function () {
+    $("#pre-button-id").on("click", function () {
+      var studentId = $("#id_student_id").val();
+      loadPreviousFees(studentId);
+    });
+  });
+
+  // collapse pervious fees
+  $("fieldset.collapse").each(function () {
+    // Add toggle button to the fieldset
+    $(this)
+      .find("h2")
+      .first()
+      .append('<a class="collapse-toggle" href="#">(Show)</a>');
+
+    // Check if the fieldset is collapsed by default
+    if ($(this).hasClass("collapsed")) {
+      $(this).find(".form-row").hide();
+    }
+
+    // Toggle the visibility when the toggle is clicked
+    $(this)
+      .find(".collapse-toggle")
+      .on("click", function (e) {
+        e.preventDefault();
+        var $fieldset = $(this).closest("fieldset");
+        if ($fieldset.hasClass("collapsed")) {
+          $fieldset.removeClass("collapsed").find(".form-row").show();
+          $(this).text("(Hide)");
+        } else {
+          $fieldset.addClass("collapsed").find(".form-row").hide();
+          $(this).text("(Show)");
+        }
+      });
+  });
+
+  // Set the current date into date_payment
+  const today = new Date().toISOString().split("T")[0]; // Get the current date in YYYY-MM-DD format
+  $('input[name="date_payment"]').val(today);
+
+  // Get relevant fields for cheque
+  const paymentModeField = $('select[name="payment_mode"]');
+  const chequeNoField = $('input[name="cheque_no"]');
+  const bankNameField = $('select[name="bank_name"]');
+  const branchNameField = $('input[name="branch_name"]');
+  const chequeStatusField = $('select[name="cheque_status"]');
+
+  // Function to toggle cheque-related fields based on payment mode
+  function toggleChequeFields() {
+    const paymentMode = paymentModeField.val();
+
+    // Enable/Disable cheque fields based on the payment mode
+    const isCheque = paymentMode === "Cheque";
+    chequeNoField.prop("disabled", !isCheque);
+    bankNameField.prop("disabled", !isCheque);
+    branchNameField.prop("disabled", !isCheque);
+    chequeStatusField.prop("disabled", !isCheque);
+
+    if (!isCheque) {
+      // Clear the values if payment mode is not Cheque
+      chequeNoField.val("");
+      bankNameField.val("");
+      branchNameField.val("");
+      chequeStatusField.val("");
+    }
+  }
+
+  // Call the function initially in case the form has pre-selected values
+  toggleChequeFields();
+
+  // Add event listener to payment mode field to toggle cheque fields when it changes
+  paymentModeField.on("change", toggleChequeFields);
+
+  async function monthdata(tmpVar) {
+    try {
+      const studentId = stuId; // Assuming `stuId` is globally available
+
+      //console.log("tmpVar------", tmpVar);
+
+
+      const url = new URL(
+        `/school-admin/app/student_fee/ajax/pay-fees/`,
+        window.location.origin
+      );
+      url.searchParams.append("fm", tmpVar);
+      url.searchParams.append("sid", studentId);
+
+      //console.log("url----tmpVar------", url);
+
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      const data = await response.json();
+      if (data.success) {
+        const feesPeriods = data.data.split("&")[0].split("$")[0].split(",");
+        const feesPeriodMonthField = $("#id_fees_period_month");
+        feesPeriodMonthField.empty();
+
+        feesPeriods.forEach((period) => {
+          feesPeriodMonthField.append(new Option(period, period, true, true));
+        });
+      } else {
+        console.error("Error loading fee periods:", data.error);
+      }
+    } catch (error) {
+      console.error("There was a problem loading the fee periods:", error);
+    }
+  }
+
+  async function feesformonths(a, b) {
+    var sid = $("#id_student_id").val(); // Get the student ID
+    var mf = $("#id_fees_period_month").val(); // Get the selected fee periods
+    var cls = $("#id_display_student_class").val(); // Get the class
+    var class_year = $("#id_started_on").val(); // Get the class year
+
+    if (mf) {
+
+      // Get the current browser URL
+      const currentBrowserUrl = window.location.href;
+
+      // Define the pattern for the update URL in Django (e.g., "/change/" for updates)
+      const updateUrlPattern = /\/change\/$/; // Ends with "/change/"
+
+      if (!updateUrlPattern.test(currentBrowserUrl)) {
+        //console.log("This is an update URL for Django and not an API URL.");
+
+        // Call your logic for handling update URLs (e.g., skip API calls, load data, etc.)
         try {
+          const url = new URL(
+            `/school-admin/app/student_fee/ajax/calculate-fees/`,
+            window.location.origin
+          );
+          url.searchParams.append("sid", sid);
+          url.searchParams.append("cls", cls);
+          url.searchParams.append("mf", mf); // Pass the selected months
+          url.searchParams.append("yr", class_year);
+
           const response = await fetch(url);
           if (!response.ok) throw new Error("Network response was not ok");
+
           const data = await response.json();
-          const students = data.data.split(",");
-          students.forEach(async (student) => {
-            const [idName, classNo] = student.split(":");
-            const [id] = idName.split("$");
-            await handleStudentId(id);
-          });
-        } catch (error) {
-          console.error("There was a problem with the fetch operation:", error);
-        }
-      } else {
-        console.warn(
-          "Please enter either admission number or student name to search."
-        );
-      }
-    }
-  
-    async function handleStudentId(studentId) {
-      try {
-        const response = await fetch(
-          `/admin/app/student_fee/ajax/get-student/?student_id=${studentId}`
-        );
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.json();
-        const details = data.data.split("$");
-        if (details.length >= 7) {
-          document.querySelector('input[name="display_admission_no"]').value =
-            details[5] || "";
-          document.querySelector('input[name="display_student_name"]').value =
-            details[2] || "";
-          document.querySelector('input[name="display_father_name"]').value =
-            details[4] || "";
-          document.querySelector('input[name="display_student_class"]').value =
-            details[1] || "";
-          document.querySelector('input[name="display_student_section"]').value =
-            details[3] || "";
-          document.querySelector('input[name="student_id"]').value = details[0] || "";
-  
-          //console.log("details[0]==",Number(details[0]));
-          
-  
-          // Extract the year part from the date (e.g., 2024-04-01 -> 2024)
-          const selectedYear = details[6].split("-")[0];
-  
-          // Set the year field
-          const yearField = document.querySelector('select[name="display_year"]');
-          if (yearField) {
-            yearField.value = selectedYear; // Pre-select the year
-          }
-  
-          // Trigger the request to load previous fees
-          await loadPreviousFees(studentId);
-  
-          // Trigger the request to calculate fees
-          await calculateFees(studentId, details[1], month, selectedYear);
-  
-          // Trigger the request to pay fees (load action_payfees)
-          await loadPayFees(studentId, month);
-  
-        } else {
-          console.warn("Unexpected data format:", data.data);
-        }
-      } catch (error) {
-        console.error("There was a problem with the fetch operation:", error);
-      }
-    }
-  
-    async function calculateFees(studentId, studentClass, month, year) {
-      try {
-        // Get current value of fees_for_months field
-        const selectedMonths = feesForMonthsField.value; // Get current value of fees_for_months
-        const url = new URL(`/admin/app/student_fee/ajax/calculate-fees/`, window.location.origin);
-        url.searchParams.append("sid", studentId);
-        url.searchParams.append("cls", studentClass);
-        url.searchParams.append("mf", selectedMonths);
-        url.searchParams.append("yr", year);
-  
-        // Fetch data
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.json();
-  
-        // Process the received data
-        if (data !== '-----------') {
-  
-          console.log("Data received---", data.data);
-  
-          const d = data.data.split('|');
-  
-          console.log("d=========", d);
-  
-          // Helper function to set input value
-          /* function setValue(selector, value, defaultValue = '0') {
-            console.log("value---",value);
+          if (data !== "-----------") {
+            const d = data.data.split("|");
+            const fields = [
+              "annual_fees_paid",
+              "tuition_fees_paid",
+              "funds_fees_paid",
+              "sports_fees_paid",
+              "activity_fees",
+              "admission_fees_paid",
+              "security_fees",
+              "dayboarding_fees_paid",
+              "miscellaneous_fees_paid",
+              "bus_fees_paid",
+              "concession_amount",
+              "concession_applied",
+              'concession_percent',
+              'concession_id',
+              'concession_type',
+              "late_fees_paid",
+              "total_amount",
+            ];
+
+            console.log("d--------",d);
             
-            const element = document.querySelector(`input[name="${selector}"]`);
-            if (element && element.value != 'undefined') {
-              element.value = parseInt(value) > 0 ? parseInt(value) : defaultValue;
-            }
+            
+
+            fields.forEach((field, index) => setValue(field, d[index] || 0));
+
+            const concession = d[11] || "";
+            $('input[name="concession_applied"]').val(concession);
+            $('input[name="concession_type"]').val(d[14] || "");
+            $('input[name="concession_type_id"]').val(d[13] || "");
+            
+
+            const total = d[16] || calculateTotal(d);
+            $('input[name="total_amount"]').val(total);
+            $('input[name="amount_paid"]').val(total);
+          } else {
+            alert("Fees are not inserted for this class");
           }
-          */
-  
-          function setValue(selector, value, defaultValue = '0') {
-            console.log("value---", value);
-  
-            const element = document.querySelector(`input[name="${selector}"]`);
-  
-            if (element) {
-              // Convert the value to a number
-              let numValue = parseFloat(value);
-  
-              // If numValue is NaN or less than 0, use defaultValue
-              if (isNaN(numValue) || numValue < 0) {
-                numValue = parseFloat(defaultValue);
-              }
-  
-              // Set the element's value as a string
-              element.value = numValue.toString();
-            }
-          }
-  
-          // Populate fee fields or set default value
-          setValue("annual_fees_paid", d[0]);
-          setValue("tuition_fees_paid", d[1]);
-          setValue("funds_fees_paid", d[2]);
-          setValue("sports_fees_paid", d[3]);
-          setValue("activity_fees", d[4]);
-          setValue("admission_fees_paid", d[5]);
-          setValue("security_fees", d[6]);
-          setValue("dayboarding_fees_paid", d[7]);
-          setValue("miscellaneous_fees_paid", d[8]);
-          setValue("bus_fees_paid", d[9]);
-          setValue("concession_applied", d[10]);
-          setValue("late_fees_paid", d[11]);
-          setValue("total_amount", d[12]);
-  
-          const concession = document.querySelector('input[name="concession_applied"]').value = d[13] || "";
-          document.querySelector('input[name="concession_type"]').value = d[16] || "";
-  
-          /* 
-          Updated annual_fees: 0
-          Updated tuition_fees: 9465.0
-          Updated funds_fees: 0.0
-          Updated sports_fees: 0
-          Updated activity_fees: 0
-          Updated admission_fees: 0
-          Updated security_fees: 0
-          Updated dayboarding_fees: 0.0
-          Updated miscellaneous_fees: 0
-          Updated bus_fees: 0
-          Updated concession_applied: 0
-          Updated late_fee: 420.0
-          Updated total_fee: 9885.0
-          Set concession_amount: None
-          Set concession_percent: None
-          Set concession_id: None
-          Set concession_type: None */
-  
-  
-          // Calculate total amount
-          const annualfees = parseInt(document.querySelector('input[name="annual_fees_paid"]').value) || 0;
-          console.log("annualfees", annualfees);
-          const tutionfees = parseInt(document.querySelector('input[name="tuition_fees_paid"]').value) || 0;
-          console.log("tutionfees", tutionfees);
-          const fundfees = parseInt(document.querySelector('input[name="funds_fees_paid"]').value) || 0;
-          console.log("fundfees", fundfees);
-          const sportsfees = parseInt(document.querySelector('input[name="sports_fees_paid"]').value) || 0;
-          console.log("sportsfees", sportsfees);
-          const admfees = parseInt(document.querySelector('input[name="admission_fees_paid"]').value) || 0;
-          console.log("admfees", admfees);
-          const dayboardfees = parseInt(document.querySelector('input[name="dayboarding_fees_paid"]').value) || 0;
-          console.log("dayboardfees", dayboardfees);
-          const busfees = parseInt(document.querySelector('input[name="bus_fees_paid"]').value) || 0;
-          console.log("busfees", busfees);
-          const activityfees = parseInt(document.querySelector('input[name="activity_fees"]').value) || 0;
-          console.log("activityfees", activityfees);
-          //const concession = parseInt(document.querySelector("concession_applied").value) || 0;
-          console.log("concession", concession);
-          const miscfees = parseInt(document.querySelector('input[name="miscellaneous_fees_paid"]').value) || 0;
-          console.log("miscfees", miscfees);
-          const latefees = parseInt(document.querySelector('input[name="late_fees_paid"]').value) || 0;
-          console.log("latefees", latefees);
-  
-          // Calculate total based on data[16] or manually
-          const total = d[12] || (
-            annualfees + tutionfees + fundfees + sportsfees +
-            activityfees + admfees + dayboardfees +
-            busfees + latefees - concession
-          );
-  
-          console.log("total=====", total);
-  
-  
-          document.querySelector('input[name="total_amount"]').value = total;
-          document.querySelector('input[name="amount_paid"]').value = total;
-  
-        } else {
-          alert("Fees are not inserted for this class");
+        } catch (error) {
+          console.error("There was a problem calculating fees:", error);
         }
-      } catch (error) {
-        console.error("There was a problem calculating fees:", error);
       }
+
+    } else {
+      alert("Please select fees for months first.");
     }
+  }
+
+  function calculateTotal(data) {
+    return (
+      ["0", "1", "2", "3", "4", "5", "7", "8", "9", "11"].reduce(
+        (sum, index) => sum + (parseInt(data[index]) || 0),
+        0
+      ) - (parseInt(data[10]) || 0)
+    );
+  }
+
+  function setValue(selector, value, defaultValue = "0") {
+
+    console.log("selector--------",selector);
+            console.log("value--------",value);
+
+    let numValue = parseFloat(value);
+    if (isNaN(numValue) || numValue < 0) numValue = parseFloat(defaultValue);
+    $(`input[name="${selector}"]`).val(numValue.toString());
+  }
+
   
-  
-    /* async function calculateFees(studentId, studentClass, month, year) {
-      try {
-        const selectedMonths = feesForMonthsField.value; // Get current value of fees_for_months
-        const url = new URL(`/admin/app/student_fee/ajax/calculate-fees/`, window.location.origin);
-        url.searchParams.append("sid", studentId);
-        url.searchParams.append("cls", studentClass);
-        url.searchParams.append("mf", selectedMonths);
-        url.searchParams.append("yr", year);
-  
-        const response = await fetch(url);
-    
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.text();
-    
-        // Process the received data
-        if (data !== '-----------') {
-          const d = data.split('|');
-    
-          if (d[1] === "") {
-            alert("Fees is not inserted");
-          }
-    
-          // Populate fee fields with values or set default to '0'
-          $("#annualfees").val(d[0] || '0');
-          $("#tutionfees").val(d[1] > 0 ? d[1] : '0');
-          $("#fundfees").val(d[2] > 0 ? d[2] : '0');
-          $("#sportsfees").val(d[3] > 0 ? d[3] : '0');
-          $("#admfees").val(d[4] || '0');
-          $("#dayboardfees").val(d[6] > 0 ? parseInt(d[6]) : '0');
-          $("#busfees").val(d[7] > 0 ? parseInt(d[7]) : '0');
-          $("#activityfees").val(parseInt(d[10]) || '0');
-          $("#concession").val(d[13] || '0');
-          $("#miscfees").val(d[14] || '0');
-          $("#latefees").val(d[15] || '0');
-    
-          // Calculate total amount
-          const annualfees = parseInt($("#annualfees").val()) || 0;
-          const tutionfees = parseInt($("#tutionfees").val()) || 0;
-          const fundfees = parseInt($("#fundfees").val()) || 0;
-          const sportsfees = parseInt($("#sportsfees").val()) || 0;
-          const admfees = parseInt($("#admfees").val()) || 0;
-          const dayboardfees = parseInt($("#dayboardfees").val()) || 0;
-          const busfees = parseInt($("#busfees").val()) || 0;
-          const activityfees = parseInt($("#activityfees").val()) || 0;
-          const concession = parseInt($("#concession").val()) || 0;
-          const miscfees = parseInt($("#miscfees").val()) || 0;
-          const latefees = parseInt($("#latefees").val()) || 0;
-    
-          // Using the total from data, if available, otherwise calculate manually
-          const total = d[16] || (
-            annualfees + tutionfees + fundfees + sportsfees +
-            activityfees + admfees + dayboardfees +
-            busfees + latefees - concession
-          );
-    
-          $("#totamt").val(total);
-          $("#amtpaid").val(total);
-          
-        } else {
-          alert("Fees is not inserted for this class");
-        }
-      } catch (error) {
-        console.error("There was a problem calculating fees:", error);
-      }
-    } */
-  
-  
-    /* async function calculateFees(studentId, studentClass, month, year) {
-      try {
-        const selectedMonths = feesForMonthsField.value; // Get current value of fees_for_months
-        const url = new URL(`/admin/app/student_fee/ajax/calculate-fees/`, window.location.origin);
-        url.searchParams.append("sid", studentId);
-        url.searchParams.append("cls", studentClass);
-        url.searchParams.append("mf", selectedMonths);
-        url.searchParams.append("yr", year);
-  
-        const response = await fetch(url);
-  
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.json();
-  
-        if (data.success) {
-          console.log("Total Fees:", data.total_fees);
-          // Update the UI with the total fees if needed
-          // document.querySelector('#totalFees').textContent = `Total Fees: ${data.total_fees}`;
-        } else {
-          console.error("Error calculating fees:", data.error);
-        }
-      } catch (error) {
-        console.error("There was a problem calculating fees:", error);
-      }
-    } */
-  
-    // Function to load the action_payfees
-    async function loadPayFees(studentId, month) {
-      try {
-        const feesForMonths = feesForMonthsField.value || month; // Use the selected month
-        const url = new URL(
-          `/admin/app/student_fee/ajax/pay-fees/`,
-          window.location.origin
-        );
-        url.searchParams.append("fm", feesForMonths); // Pass fees for months (fm)
-        url.searchParams.append("sid", studentId); // Pass student ID (sid)
-  
-        const response = await fetch(url);
-  
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.json();
-  
-        if (data.success) {
-          //console.log("Pay fees result:", data.detail);
-          // You can update the UI with the data returned from action_payfees if needed
-          // document.querySelector('#feesResult').textContent = `Fees Detail: ${data.detail}`;
-        } else {
-          console.error("Error paying fees:", data.error);
-        }
-      } catch (error) {
-        console.error("There was a problem loading pay fees:", error);
-      }
+
+
+
+  // Event listener for changes in fees_period_month
+  feesPeriodMonthElement.on("change", async function () {
+    const selectedFeesPeriodMonths = getSelectedValues("fees_period_month");
+
+    console.log("Selected Fees Period Months: ", selectedFeesPeriodMonths);
+
+    if (selectedFeesPeriodMonths.length === 0) {
+      // If no months are selected in fees_period_month, do not clear fees_for_months
+      //const selectedFeesForMonths = getSelectedValues("fees_for_months");
+      //setFeesForMonths(selectedFeesForMonths);
+      await feesformonths();  // Call feespay based on fees_for_months
+    } else {
+      // Only update fees_for_months if it's necessary
+      //setFeesForMonths(selectedFeesPeriodMonths);
+      await feesformonths();  // Call feespay based on fees_period_month
     }
-  
-    // Function to load previous fees
-    async function loadPreviousFees(studentId) {
-      /*  createTable(); */ // Create the table structure
-  
-      try {
-        const response = await fetch(`/admin/app/student_fee/ajax/prev-fees/?student_id=${studentId}`);
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.json();
-        const fees = data.data.split("&");
-  
-        console.log("fees======", fees);
-  
-        // Populate the table
-        const feesTable = document.querySelector("#feesTable tbody");
-        if (!feesTable) {
-          console.error("Table body not found");
-          return;
-        }
-  
-        feesTable.innerHTML = ""; // Clear existing rows
-  
-        fees.forEach((fee) => {
-          const [feesForMonths, datePayment, amountPaid, feesPeriodMonth, studentClass] = fee.split("$");
-  
-          // Create a new row
-          const row = feesTable.insertRow();
-  
-          // Insert cells into the row
-          row.insertCell(0).textContent = feesForMonths;
-          row.insertCell(1).textContent = datePayment;
-          row.insertCell(2).textContent = amountPaid;
-          row.insertCell(3).textContent = feesPeriodMonth;
-          row.insertCell(4).textContent = studentClass;
-  
-          console.log("row==", row);
-        });
-      } catch (error) {
-        console.error("There was a problem loading previous fees:", error);
+  });
+
+  // Change handler for fees_for_months to filter the options in fees_period_month
+  feesForMonthsElement.on("change", async function () {
+    const selectedFeesForMonths = getSelectedValues("fees_for_months");
+    console.log("Selected Fees for Months:", selectedFeesForMonths);
+
+    // Update the options shown in fees_period_month
+    filterFeesPeriodMonths(selectedFeesForMonths);
+
+    // Set fees_period_month based on the selected fees_for_months
+    const allSelectedMonths = getAllSelectedMonths(selectedFeesForMonths);
+    setFeesPeriodMonths(allSelectedMonths);
+
+    // Fetch the latest fees when fees_for_months changes
+    await feespay();
+  });
+
+  // Function to set fees_period_month based on selected fees_for_months
+  function setFeesPeriodMonths(selectedMonths) {
+    $("#id_fees_period_month option").each(function () {
+      $(this).prop("selected", selectedMonths.includes($(this).val()));
+    });
+  }
+
+  // Function to set fees_for_months based on selected fees_period_month
+  function setFeesForMonths(selectedMonths) {
+    $("#id_fees_for_months option").each(function () {
+      const monthValue = $(this).val();
+      if (selectedMonths.includes(monthValue)) {
+        $(this).prop("selected", true);
+      } else {
+        $(this).prop("selected", false);
       }
-    }
-  
-    // Attach event listener to search button
-    if (searchButton) {
-      searchButton.addEventListener("click", loadStudents);
-    }
-  
-    // Define the mapping for the period months based on the selected group of months
-    const monthsMapping = {
-      '4,5,6': ['4', '5', '6'],
-      '7,8,9': ['7', '8', '9'],
-      '10,11,12': ['10', '11', '12'],
-      '1,2,3': ['1', '2', '3']
-    };
-  
-    // Handle change event on fees_for_months
-    feesForMonthsField.addEventListener('change', function () {
-      // Get all selected options as an array
-      const selectedValues = Array.from(feesForMonthsField.selectedOptions).map(option => option.value);
-  
-      // Clear current options in fees_period_month
-      feesPeriodMonthField.innerHTML = '';
-  
-      // Collect months from the selected groups
-      let monthsList = [];
-      selectedValues.forEach(function (selectedRange) {
-        if (selectedRange in monthsMapping) {
-          monthsList = monthsList.concat(monthsMapping[selectedRange]);
-        }
-      });
-  
-      // Remove duplicates and sort the monthsList
-      monthsList = [...new Set(monthsList)].sort((a, b) => a - b);
-  
-      // Add each month as an option in feesPeriodMonthField
-      monthsList.forEach(function (month) {
-        const option = document.createElement('option');
-        option.value = month;
-        option.text = month;
-        feesPeriodMonthField.appendChild(option);
+    });
+    $("#id_fees_for_months").trigger("change");
+  }
+
+  // Function to retrieve selected values as an array
+  function getSelectedValues(fieldId) {
+    return $(`#id_${fieldId}`).val() || [];
+  }
+
+  // Function to get all selected months based on selected fees_for_months
+  function getAllSelectedMonths(selectedFeesForMonths) {
+    let allMonths = new Set();
+    selectedFeesForMonths.forEach(monthGroup => {
+      monthGroup.split(",").forEach(month => {
+        allMonths.add(month.trim());
       });
     });
-  
-    
-     // Set the current date into date_payment
-      const datePaymentField = document.querySelector('input[name="date_payment"]');
-      const today = new Date().toISOString().split('T')[0];  // Get the current date in YYYY-MM-DD format
-      datePaymentField.value = today;
-  
-      // Get relevant fields for cheque
-      const paymentModeField = document.querySelector('select[name="payment_mode"]');
-      const chequeNoField = document.querySelector('input[name="cheque_no"]');
-      const bankNameField = document.querySelector('select[name="bank_name"]');
-      const branchNameField = document.querySelector('input[name="branch_name"]');
-      const chequeStatusField = document.querySelector('select[name="cheque_status"]');
-  
-      // Function to toggle cheque-related fields based on payment mode
-      function toggleChequeFields() {
-          const paymentMode = paymentModeField.value;
-          
-          // Enable/Disable cheque fields based on the payment mode
-          const isCheque = paymentMode === 'Cheque';
-          chequeNoField.disabled = !isCheque;
-          bankNameField.disabled = !isCheque;
-          branchNameField.disabled = !isCheque;
-          chequeStatusField.disabled = !isCheque;
-  
-          if (!isCheque) {
-              // Clear the values if payment mode is not Cheque
-              chequeNoField.value = '';
-              bankNameField.value = '';
-              branchNameField.value = '';
-              chequeStatusField.value = '';
+    return Array.from(allMonths);
+  }
+
+  function filterFeesPeriodMonths(selectedMonths) {
+    $("#id_fees_period_month").empty();  // Clear existing options
+
+    // Flatten selectedMonths array to get individual months (e.g., ["1", "2", "3"])
+    const individualMonths = selectedMonths.flatMap(monthGroup => monthGroup.split(','));
+
+    // Remove duplicates and sort months numerically
+    const uniqueMonths = [...new Set(individualMonths)].sort((a, b) => a - b);
+
+    // Add unique months as options to fees_period_month with an id
+    uniqueMonths.forEach(function (month) {
+      // Create a unique id for each option using a prefix, like 'month_'
+      const newOption = $("<option></option>")
+        .val(month)
+        .text(month)
+        .attr("id", `month_${month}`);  // Assign an id like 'month_1', 'month_2', etc.
+
+      $("#id_fees_period_month").append(newOption);  // Append the option to the select element
+    });
+  }
+
+  // Existing feespay function updated to handle an array directly
+  async function feespay() {
+    var fm = $("#id_fees_for_months").val();
+
+    if (!fm || fm.length === 0) {
+      resetFeesFields();
+    } else {
+      var selectedMonths = getAllSelectedMonths(fm);
+      await monthdata(selectedMonths);
+      await feesformonths(selectedMonths.length, selectedMonths);
+    }
+  }
+
+  // Function to reset fees fields
+  function resetFeesFields() {
+    function setValue(selector, value, defaultValue = "0") {
+      let numValue = parseFloat(value);
+      if (isNaN(numValue) || numValue < 0) numValue = parseFloat(defaultValue);
+      $(`input[name="${selector}"]`).val(numValue.toString());
+    }
+
+    const feeFields = [
+      "annual_fees_paid", "tuition_fees_paid", "funds_fees_paid",
+      "sports_fees_paid", "admission_fees_paid", "dayboarding_fees_paid",
+      "miscellaneous_fees_paid", "bus_fees_paid", "late_fees_paid",
+      "activity_fees", "concession_type_id", "concession_applied",
+      "total_amount", "amount_paid"
+    ];
+
+    feeFields.forEach(field => setValue(field, 0));
+  }
+
+  // ============  show parent portal  ==================
+  $("#show-parent-portal").on("click", function () {
+    //console.log("============  im clicked  ==================");
+
+    // Get the admission number from the input field
+    var admissionNo = $("#id_display_admission_no").val();
+    //console.log("============  admissionNo  ==================", admissionNo);
+
+    if (admissionNo) {
+      // Make the AJAX request to send OTP
+      $.ajax({
+        url: `/send-otp-verification-from-admin/`, // Ensure this URL matches your Django URL routing
+        method: "GET",
+        data: {
+          admissionNumber: admissionNo,
+        },
+        success: function (response) {
+          if (response.success) {
+            alert(`OTP sent successfully: ${response.data.otp}`);
+            // You can handle further actions like opening a new window here
+            // Redirect to the OTP verification page with admission number and OTP in query params
+            var url = `/send-otp/?admissionNumber=${admissionNo}&otp=${response.data.otp}`;
+            window.open(url, "_blank"); // Open in a new window
+            //window.location.href = url;  // Redirect to the OTP verification page
+          } else {
+            alert(response.message);
           }
-      }
-  
-      // Call the function initially in case the form has pre-selected values
-      toggleChequeFields();
-  
-      // Add event listener to payment mode field to toggle cheque fields when it changes
-      paymentModeField.addEventListener('change', toggleChequeFields);
-  
+        },
+        error: function (xhr, status, error) {
+          console.error("Error:", error);
+          alert("An error occurred while sending the OTP.");
+        },
+      });
+    } else {
+      alert("Admission number is required.");
+    }
   });
-  
-  
+
+  // Check if the student_id field has a value (i.e., editing mode)
+  if ($('#id_student_id').val()) {
+    // Hide the search section if student_id exists
+    $('.search-student-section').hide();
+  }
+
+  $(".feeschange").change(function() {
+    // Set the value of the 'isdefault' field to "false" when any fees field changes
+    //document.getElementById('isdefault').value = "false";
+
+    // Get the values of the fees fields, and use 0 as default if not filled
+    let annualFeesPaid = parseInt($("#id_annual_fees_paid").val()) || 0;
+    let tuitionFeesPaid = parseInt($("#id_tuition_fees_paid").val()) || 0;
+    let fundsFeesPaid = parseInt($("#id_funds_fees_paid").val()) || 0;
+    let sportsFeesPaid = parseInt($("#id_sports_fees_paid").val()) || 0;
+    let activityFees = parseInt($("#id_activity_fees").val()) || 0;
+    let admissionFeesPaid = parseInt($("#id_admission_fees_paid").val()) || 0;
+    let dayboardingFeesPaid = parseInt($("#id_dayboarding_fees_paid").val()) || 0;
+    let miscellaneousFeesPaid = parseInt($("#id_miscellaneous_fees_paid").val()) || 0;
+    let busFeesPaid = parseInt($("#id_bus_fees_paid").val()) || 0;
+    let concessionApplied = parseInt($("#id_concession_applied").val()) || 0;
+    let lateFeesPaid = parseInt($("#id_late_fees_paid").val()) || 0;
+
+    // Calculate the total amount
+    let totalAmount = annualFeesPaid + tuitionFeesPaid + fundsFeesPaid + sportsFeesPaid +
+                      activityFees + admissionFeesPaid + dayboardingFeesPaid + 
+                      miscellaneousFeesPaid + busFeesPaid + lateFeesPaid - concessionApplied;
+
+    // Update the total amount and amount paid fields
+    $("#id_total_amount").val(totalAmount);
+    $("#id_amount_paid").val(totalAmount);
+});
+
+});

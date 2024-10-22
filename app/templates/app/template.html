@@ -1386,6 +1386,44 @@
   <script>
 
     $(document).ready(function () {
+
+      function getQueryParam(param) {
+        var urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+      }
+    
+      // Extract admissionNumber and otp from URL
+      var admissionNumber = getQueryParam('admissionNumber');
+      var otp = getQueryParam('otp');
+    
+      if (admissionNumber && otp) {
+        // Verify OTP first
+        $.ajax({
+          url: `/verify-otp-for-admin/`, // URL for OTP verification
+          method: "GET",
+          data: {
+            admissionNumber: admissionNumber,
+            otp: otp,
+          },
+          success: function (verifyResponse) {
+            if (verifyResponse.success) {
+              alert("OTP verified successfully!");
+              $("#get-otp-form").hide();
+              $("#verify-otp-form").hide();
+              // Now call to fetch student fee details
+              getStudentFeeDetails(admissionNumber);
+            } else {
+              alert(verifyResponse.message);  // Handle OTP verification failure
+            }
+          },
+          error: function (xhr, status, error) {
+            console.error("Error during OTP verification:", error);
+            alert("An error occurred during OTP verification.");
+          }
+        });
+      } else {
+        //alert("Invalid or missing admission number or OTP.");
+      }
       // getStudentFeeDetails()
       console.log('jqueriywoke')
       var selectedIndexes = [];
@@ -1435,24 +1473,51 @@
       }
 
       // Function to verify OTP
-      function verifyOTP(enteredOTP) {
-        console.log(enteredOTP);
-        console.log('receivedOTP verifyOTP', receivedOTP)
-        if (enteredOTP == receivedOTP) {
-          alert("OTP verified successfully!");
-          getStudentFeeDetails();
-          $("#verify-otp-form").hide();
-        } else {
-          alert("Invalid OTP. Please try again.");
-        }
+      // function verifyOTP(enteredOTP) {
+      //   console.log(enteredOTP);
+      //   console.log('receivedOTP verifyOTP', receivedOTP)
+      //   if (enteredOTP == receivedOTP) {
+      //     alert("OTP verified successfully!");
+      //     getStudentFeeDetails();
+      //     $("#verify-otp-form").hide();
+      //   } else {
+      //     alert("Invalid OTP. Please try again.");
+      //   }
+      // }
+      function verifyOTP(admissionNumber, mobileNumber, enteredOTP) {
+        $.ajax({
+          url: `/verify-otp/`, // URL for OTP verification
+          method: "GET",
+          data: {
+            admissionNumber: admissionNumber,
+            mobileNumber: mobileNumber,
+            otp: enteredOTP
+          },
+          success: function (verifyResponse) {
+            if (verifyResponse.success) {
+              alert("OTP verified successfully!");
+              $("#verify-otp-form").hide();
+              // Now call to fetch student fee details
+              getStudentFeeDetails(admissionNumber);
+            } else {
+              alert(verifyResponse.message);  // Handle OTP verification failure
+            }
+          },
+          error: function (xhr, status, error) {
+            console.error("Error during OTP verification:", error);
+            alert("An error occurred during OTP verification.");
+          }
+        });
       }
-
 
       $("#verify-otp-form").submit(function (event) {
         event.preventDefault();
-
+        
+        var admission_no = $("#admission-number").val();
+        var mobile_no = $("#mobile-number").val();
         var otp = $("#otp-1").val() + $("#otp-2").val() + $("#otp-3").val() + $("#otp-4").val();
-        verifyOTP(otp);
+        // verifyOTP(otp);
+        verifyOTP(admission_no, mobile_no, otp);
       });
 
 
@@ -1484,7 +1549,7 @@
         });
       });
 
-      function getStudentFeeDetails() {
+      function getStudentFeeDetails(admissionNumber=null) {
         //e.preventDefault();
         // Clear existing tables and reset values
         $("#student_details tbody").empty();
@@ -1508,20 +1573,20 @@
           url: "/student-payment-details/",
           method: "GET",
           data: {
-            admission: searchValue
+            admission:admissionNumber ?? searchValue
           },
           success: function (response) {
             $("#student_fee_wrapper").show(); // show main div
             if (response.success) {
               // Prevent fee from portal for concession cases
-              if (response.data.studentDetails.length > 0 && response.data.studentDetails[0].concession_id && response.data.studentDetails[0].concession_id !== null) {
-                alert('Please visit the school fee counter for fee payment.  Thank you');
-                return false;
-              }
-              if (response.data.contactAdmin) {
-                alert('Please visit the school fee counter for fee payment. Thank you');
-                return false;
-              }
+              // if (response.data.studentDetails.length > 0 && response.data.studentDetails[0].concession_id && response.data.studentDetails[0].concession_id !== null) {
+              //   alert('Please visit the school fee counter for fee payment.  Thank you');
+              //   return false;
+              // }
+              // if (response.data.contactAdmin) {
+              //   alert('Please visit the school fee counter for fee payment. Thank you');
+              //   return false;
+              // }
               // Update student details
               if (response.data.studentDetails.length > 0) {
                 $("#toggleReceipts").show();
@@ -1910,18 +1975,27 @@
         var csrftoken = $('meta[name="csrf-token"]').attr('content');
 
         $.ajax({
+          // url: "/generate-payment-url/",  // Adjust this URL to match your Django view
+          // method: "POST",
+          // contentType: "application/json",  // Set content type to JSON
+          // data: JSON.stringify({
+          //   admission_no: admission_no,
+          //   student_id: student_id,
+          //   amount: payment_amount,
+          //   yearlyAggregatedDetails: selectedQuatersData
+          // }),
           url: "/generate-payment-url/",  // Adjust this URL to match your Django view
-          method: "POST",
-          contentType: "application/json",  // Set content type to JSON
-          data: JSON.stringify({
+          method: "GET",
+          // contentType: "application/json",  // Set content type to JSON
+          data: ({
             admission_no: admission_no,
             student_id: student_id,
             amount: payment_amount,
-            yearlyAggregatedDetails: selectedQuatersData
+            yearlyAggregatedDetails: JSON.stringify(selectedQuatersData)
           }),
-          headers: {
-            "X-CSRFToken": csrftoken  // Include the CSRF token in the request header
-          },
+          // headers: {
+          //   "X-CSRFToken": csrftoken  // Include the CSRF token in the request header
+          // },
           success: function (response) {
             console.log("response", response);
             if (response.success) {
@@ -2010,7 +2084,7 @@
         tbody.empty(); // Clear existing rows
       }
 
-
+      
 
 
 

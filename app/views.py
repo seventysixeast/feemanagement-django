@@ -23,9 +23,9 @@ from decimal import Decimal
 from django.views.decorators.http import require_GET
 
 from .models import (
-    teacher_master, student_master, student_fee, student_class, specialfee_master,
+    student_master, student_fee, student_class, specialfee_master,
     payment_schedule_master, latefee_master, fees_master, expense,
-    concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list, cheque_status
+    concession_master, bus_master, busfees_master, account_head,generate_mobile_number_list
 )
 from app import models
 import time
@@ -55,6 +55,42 @@ from xhtml2pdf import pisa
 from io import BytesIO
 from django.conf import settings
 import os
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login, get_user
+from django.contrib import messages
+# from django.contrib.auth.models import User  # Add this import
+from django.urls import reverse
+from .forms import OTPVerificationForm
+import random  # For generating OTP
+
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth import login
+from django.http import JsonResponse
+from django.conf import settings
+
+
+from django.db.models import OuterRef, Subquery, F
+from django.db.models.functions import ExtractYear
+
+from dotenv import load_dotenv
+
+from django.core.mail import send_mail
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+
+from django.db.models import Q
+
+from django.core.mail import send_mail
+from django.conf import settings
+from django.core.mail import EmailMessage
+# from .models import StudentMaster  # Assuming you have a StudentMaster model
+
+# Load the .env file
+load_dotenv()
+
+User = get_user_model()
 # import datetime
 
 
@@ -112,8 +148,8 @@ def register_view(request):
     if request.method =='POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request,user)
+            # user = form.save()
+            # login(request,user)
             return redirect('dashboard')
     else:
         initial_data = { 'username':'', 'password1':'', 'password2':''}
@@ -125,8 +161,8 @@ def login_view(request):
     if request.method =='POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
-            user = form.get_user()
-            login(request,user)
+            # user = form.get_user()
+            # login(request,user)
             return redirect('dashboard')
     else:
         initial_data = { 'username':'', 'password':''}
@@ -147,13 +183,16 @@ def logout_view(request):
 
 def send_otp_via_textlocal(phone_number, otp):
     # Textlocal API Endpoint and Key
-    api_key = 'aXD7yWIVjJI-KkrnjblxoYAItGfuy6XPW9kO8tUMU6'  # Get your API key from Textlocal dashboard
-    sender = 'SVEDVT'  # Sender ID (approved in your Textlocal account)
-    
+    # api_key = 'aXD7yWIVjJI-KkrnjblxoYAItGfuy6XPW9kO8tUMU6'  # Get your API key from Textlocal dashboard
+    api_key = 'NmE3MDQyNzc2MzMwMzIzNjQxNmY2ZDc1NzE2ZTM0NzE=' 
+    # sender = 'SVEDVT'  # Sender ID (approved in your Textlocal account)
+    sender = 'SHNKTN'
     # Message text
     # message = f'Your OTP is {otp}'
-    message = f'{otp} is your OTP to login your Edvantum account. - 76EAST'
-    
+
+    # message = f'{otp} is your OTP to login your Edvantum account. - 76EAST'
+    # message = f'{otp} is your OTP to login your Shishu Niketan account. - 76EAST'
+    message = f'Your OTP Code is : {otp} -Shishu Suchintan Educational Society'
     # Textlocal API endpoint
     url = 'https://api.textlocal.in/send/'
     numbers = '91' + phone_number
@@ -170,7 +209,6 @@ def send_otp_via_textlocal(phone_number, otp):
     response = requests.post(url, data=data)
     return response.json()
 
-
 def send_otp_verification(request):
     if request.method == 'POST':
         admission_number = request.POST.get('admission_number')
@@ -183,7 +221,14 @@ def send_otp_verification(request):
 
         if admission_number and mobile_number:
             # Check if the student exists in the database
-            student = student_master.objects.filter(addmission_no=admission_number, phone_no=mobile_number).first()
+            # student = student_master.objects.filter(addmission_no=admission_number, phone_no=mobile_number).first()
+
+            student = student_master.objects.filter(
+                addmission_no=admission_number
+            ).filter(
+                Q(phone_no=mobile_number) | Q(mobile_no=mobile_number)
+            ).values('addmission_no', 'phone_no', 'mobile_no', 'email', 'student_name').first()
+
 
             if student:
                 # Generate a random OTP
@@ -191,15 +236,50 @@ def send_otp_verification(request):
                 if mobile_number == '8146558059':
                     otp = '2135'
 
+                # Update OTP in the student record
+                student_master.objects.filter(addmission_no=admission_number).update(otp=otp)
+                # Send OTP via email
+                print('student.email',student['email']) 
+                # if student.email:
+                #     email = student.email
+                if student.get('email'):
+                    email = student['email']
+                    try:
+                        validate_email(email)
+                        email_response = send_email_otp(email, student['student_name'], otp)
+                        # print('email_response',email_response)
+                        if email_response['success']:
+                            response['success'] = True
+                            response['message'] = "OTP sent successfully via email"
+                    except ValidationError:
+                        response['message'] = "Invalid email format"
+
+                # Send OTP via SMS
+                sms_response = send_otp_via_textlocal(mobile_number, otp)
+                # print('sms_response',sms_response)
+                if sms_response['status'] == 'success':
+                    response['success'] = True
+                    response['message'] = "OTP sent successfully via SMS"
+
+                # Send OTP via WhatsApp
+                # whatsapp_response = send_whatsapp_otp(mobile_number, student.student_name, otp)
+                # print('whatsapp_response',whatsapp_response)
+                # if whatsapp_response['success']:
+                #     response['success'] = True
+                #     response['message'] = "OTP sent successfully via WhatsApp"
+
+                if not response['success']:
+                    response['message'] = "Failed to send OTP via email and WhatsApp"
+
                 # Use Textlocal to send the OTP
                 # sms_response = send_otp_via_textlocal(mobile_number, otp)
                 # print('sms_response',sms_response)
 
                 # Check if the SMS was sent successfully
                 # if sms_response['status'] == 'success':
-                response['success'] = True
-                response['message'] = "OTP sent successfully"
-                response['data'] = {'otp': otp}
+                # response['success'] = True
+                # response['message'] = "OTP sent successfully"
+                # response['data'] = {'otp': otp}
                 # else:
                 #     response['message'] = sms_response['errors'][0]['message']
             else:
@@ -209,41 +289,209 @@ def send_otp_verification(request):
     else:
         return render(request, 'app/template.html')
 
+@require_GET
+def send_otp_verification_mobile_app(request):
+    admission_number = request.GET.get('admissionNumber')
+    mobile_number = request.GET.get('mobileNumber')
+    
+    response = {
+        'success': False,
+        'message': "Invalid admission number",
+        'data': []
+    }
+
+    if admission_number and mobile_number:
+        # Check if student exists in the database with the given admission number and phone/mobile number
+        student = student_master.objects.filter(
+            addmission_no=admission_number
+        ).filter(
+            Q(phone_no=mobile_number) | Q(mobile_no=mobile_number)
+        ).values('addmission_no', 'phone_no', 'mobile_no', 'email', 'student_name').first()
+
+        if student:
+            # Generate 4-digit random OTP
+            otp = str(random.randint(1000, 9999))
+            if mobile_number == '8146558059':
+                otp = '2135'  # Fixed OTP for this number
+
+            # Update OTP in the student record
+            student_master.objects.filter(addmission_no=admission_number).update(otp=otp)
+
+            # Send OTP via email
+            if student.get('email'):
+                email = student['email']
+                try:
+                    validate_email(email)
+                    email_response = send_email_otp(email, student['student_name'], otp)
+                    if email_response['success']:
+                        response['success'] = True
+                        response['message'] = "OTP sent successfully via email"
+                except ValidationError:
+                    response['message'] = "Invalid email format"
+
+            # Send OTP via SMS
+            sms_response = send_otp_via_textlocal(mobile_number, otp)
+            # print('sms_response',sms_response)
+            if sms_response['status'] == 'success':
+                response['success'] = True
+                response['message'] = "OTP sent successfully via SMS"
+
+            # Send OTP via WhatsApp
+            # whatsapp_response = send_whatsapp_otp(mobile_number, student['student_name'], otp)
+            # print('whatsapp_response',whatsapp_response)
+            # if whatsapp_response['success']:
+            #     response['success'] = True
+            #     response['message'] = "OTP sent successfully via WhatsApp"
+
+            if not response['success']:
+                response['message'] = "Failed to send OTP via email and WhatsApp"
+        else:
+            response['message'] = "Student not found"
+
+    return JsonResponse(response)
 
 
-# @guest
-# def send_otp_verification(request):
-#     if request.method =='POST':
-#         admission_number = request.POST.get('admission_number')
-#         mobile_number = request.POST.get('mobile_number')
-#         print('admission_number ',admission_number)
-#         print('mobile_number ',mobile_number)
-
-#         response = {
-#             'success': False,
-#             'message': "Invalid admission number",
-#             'data': {}
-#         }
-
-#         if admission_number and mobile_number:
-#             # Query the database for the student
-#             student = student_master.objects.filter(addmission_no=admission_number, phone_no=mobile_number).first()
-            
-#             if student:
-#                 otp = str(random.randint(1000, 9999))
-#                 if mobile_number == '8146558059':
-#                     otp = '2135'
-
-#                 # Assume sending OTP via email/sms is always successful
-#                 response['success'] = True
-#                 response['message'] = "OTP sent successfully via email"
-#                 response['data']['otp'] = otp
-#             else:
-#                 response['message'] = "Student not found"
-#             return JsonResponse(response)
+def send_email_otp(email, student_name, otp):
+    try:
+        message = f'<p>{otp} is your  otp for verification.</p>'
+        from_email = 'info@76east.com'
+        recipient_list = [email]
         
-#     else:
-#         return render(request, 'app/template.html')
+        # send_mail(subject, message, from_email, recipient_list)
+        email_response = send_email(
+            to_email=email,
+            to_name=student_name,
+            subject='OTP Verification',
+            message=message
+        )
+        print(email_response)
+
+        return {'success': True, 'message': 'Email sent successfully'}
+    
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+    
+
+
+
+def send_email(to_email, to_name, subject, message):
+    response = {
+        'success': False,
+        'message': '',
+    }
+
+    try:
+        # Create email message
+        email = EmailMessage(
+            subject=subject,
+            body=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[to_email],
+            reply_to=[settings.DEFAULT_FROM_EMAIL]
+        )
+        
+        email.content_subtype = "html"  # If you want to send HTML email
+        email.send()  # Send the email
+
+        # If the email is sent successfully
+        response['success'] = True
+        response['message'] = "Email sent successfully"
+
+    except Exception as e:
+        # Catch any errors
+        response['message'] = f"Error sending email: {str(e)}"
+
+    return response
+
+    
+
+
+def send_whatsapp_otp(recipient_mobile, recipient_name, otp):
+    response = {
+        'success': False,
+        'message': ''
+    }
+
+    # If you only want to send OTP to a specific number (like in the original code):
+    # if recipient_mobile != "9816659958":
+    #     return response
+
+    access_token = 'EAAuYDYbZBR50BO94hSYjO4NZBBTe2RDzdcRiDaxNHnlHJ3zQAyn4oMzptFB78MXYIvo0ytGWsEc1O2COC1xWNJjfEoglLYXOhKAxzS5IrmTFhQhOrktbuav7Yu9oSDPaZAkdmbKNX5NZAnrUEtNL6QHSnU0T2ZC2MFqWowOa9H9MM0nBPjHBT0KRyEmIFXHTZAfBWrh6d0zrsTeR4ZCfZBRdqfKRdBzcsvLtw793xUAZD'
+    url = 'https://graph.facebook.com/v17.0/117964194735838/messages'
+
+    # Constructing the data payload
+    data = {
+        'messaging_product': 'whatsapp',
+        'to': '91' + recipient_mobile,  # WhatsApp number (with country code)
+        'type': 'template',
+        'template': {
+            'name': 'hello_world',
+            'language': {
+                'code': 'en_US'
+            }
+        }
+    }
+
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+
+    try:
+        # Make the POST request
+        response_body = requests.post(url, headers=headers, data=json.dumps(data))
+        print('response_body',response_body)
+        if response_body.status_code == 200:
+            # Success
+            response['success'] = True
+            response['message'] = "OTP sent successfully via WhatsApp"
+        else:
+            # Handle error response
+            response['message'] = f'Error sending OTP message: HTTP {response_body.status_code}'
+    except requests.exceptions.RequestException as e:
+        # Handle connection errors
+        print('str(e)',str(e))
+        response['message'] = f'Request failed: {str(e)}'
+
+    return response
+
+
+    
+
+def verify_otp(request):
+    # Extract parameters from the request
+    admission_number = request.GET.get('admissionNumber')
+    mobile_number = request.GET.get('mobileNumber')
+    otp = request.GET.get('otp')
+    
+    # Prepare a response structure
+    response = {
+        'success': False,
+        'message': 'Invalid parameters',
+        'data': []
+    }
+
+    # Check if all required parameters are provided
+    if admission_number and mobile_number and otp:
+        # Query the student from the database based on admission number and phone/mobile number
+        student = student_master.objects.filter(
+            addmission_no=admission_number
+        ).filter(
+            Q(phone_no=mobile_number) | Q(mobile_no=mobile_number)
+        ).values('otp').first()
+
+        if student:
+            # Compare the provided OTP with the one in the database
+            if student['otp'] == otp:
+                response['success'] = True
+                response['message'] = 'OTP verified successfully'
+            else:
+                response['message'] = 'Invalid OTP. Please try again.'
+        else:
+            response['message'] = 'Student not found'
+
+    # Return the response as JSON
+    return JsonResponse(response)
 
 
 def get_highest_order_month(month_list):
@@ -270,7 +518,8 @@ def fetch_fee_details_for_class(student_id, class_no):
 
     # Fetch the student class information
     student_class1 = student_class.objects.filter(
-        student_id=student, 
+        # student_id=student, 
+        student_id=student_id, 
         class_no=class_no
     ).first()
 
@@ -389,7 +638,6 @@ def last_payment_record(student_id=None):
         if stfees:
             # Extract necessary fields
             fees_for_months = stfees.fees_for_months
-
             # Calculate sum_total_paid and admission_fees_paid for the same month, student, class, section, and year
             sum_total_paid_result = student_fee.objects.filter(
                 fees_for_months=fees_for_months,
@@ -745,51 +993,35 @@ def action_student_payment_details(request, admission=None):
 
     if admission is not None:
         # Query for student info
-        # student_info = student_master.objects.filter(
-        #     addmission_no=admission
-        # ).order_by('-studentclasses__student_class_id').first() 
-
-        # student_info = student_class.objects.filter(
-        #     student__addmission_no=admission
-        # ).annotate(
-        #     student_id=F('student__student_id'),
-        #     admission_no=F('student__addmission_no'),
-        #     student_name=F('student__student_name'),
-        #     father_name=F('student__father_name'),
-        #     concession_id=F('student__concession_id'),
-        #     session=F('started_on__year')
-        # ).order_by('-student_class_id').first()
-
-        # student_info = student_master.objects.filter(addmission_no=admission).values(
-        #     'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id'
-        # ).annotate(
-        #     class_no=F('classes__class_no'),
-        #     section=F('classes__section'),
-        #     session=F('classes__started_on__year')
-        # ).order_by('-classes__student_class_id').first()
-        student_info = student_master.objects.filter(addmission_no=admission).select_related('classes').values(
-            'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id',
-            'classes__class_no', 'classes__section'
-        ).annotate(
-            session=F('classes__started_on__year')  # Extract year from started_on
-        ).order_by('-classes__student_class_id').first()
-
-        # student_info = StudentMaster.objects.filter(addmission_no=admission_no).select_related('classes').values(
+        # student_info = student_master.objects.filter(addmission_no=admission).select_related('classes').values(
         #     'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id',
         #     'classes__class_no', 'classes__section'
         # ).annotate(
-        #     session=models.F('classes__started_on__year')  # Extract year from started_on
+        #     session=F('classes__started_on__year')  # Extract year from started_on
         # ).order_by('-classes__student_class_id').first()
 
-        # student_info = StudentMaster.objects.filter(addmission_no=admission_no).select_related('classes').annotate(
-        #     session=models.F('classes__started_on__year')  # Extract year from started_on
-        # ).order_by('-classes__student_class_id').first()
+
+
+        # Define the subquery to get related class information from the student_class table
+        class_subquery = student_class.objects.filter(student_id=OuterRef('student_id')).order_by('-student_class_id')
+
+        # Fetch the student information along with class data without using ForeignKey
+        student_info = student_master.objects.filter(addmission_no=admission).annotate(
+            class_no=Subquery(class_subquery.values('class_no')[:1]),  # Fetch class_no from student_class
+            section=Subquery(class_subquery.values('section')[:1]),    # Fetch section from student_class
+            session=ExtractYear(Subquery(class_subquery.values('started_on')[:1]))  # Extract year from started_on
+        ).values(
+            'student_id', 'addmission_no', 'student_name', 'father_name', 'concession_id',
+            'class_no', 'section', 'session'
+        ).first()
+
+
         #$sqlStudentInfo 
 
         if student_info:
             # student_id = student_info.student_id
             student_id = student_info['student_id']
-
+            print('student_id',student_id)
             # Fetch previous fee information (you'll need to define this function)
             previous_fee_info = last_payment_record(student_id)
 
@@ -903,7 +1135,7 @@ def action_student_payment_details(request, admission=None):
                         elif check_outstanding_amount < 0:
                             # Outstanding amount is negative
                             prev_pending_amount = outstanding_amount
-                            contact_admin = True
+                            contactAdmin = True
                             prev_pending_amount = 0
 
                         # Update outstanding amount
@@ -1080,9 +1312,12 @@ def action_student_payment_details(request, admission=None):
                         response = {
                             'message': "No Pending fee found"
                         }
+                
+                if prev_pending_amount > 0:
+                    totalFeesPayable += prev_pending_amount
                     
-                student_info['class_no'] = student_info['classes__class_no']
-                student_info['section'] = student_info['classes__section']
+                # student_info['class_no'] = student_info['classes__class_no']
+                # student_info['section'] = student_info['classes__section']
                 response = {
                     'success': True,
                     'message': "Data retrieved successfully",
@@ -1473,7 +1708,7 @@ def save_school_fee_transaction(student_id, txn_ref_number, quarterly_payment_de
     # Aggregate details by year
     for payment in quarterly_payment_details:
         # year = payment['year']
-        year = payment.get('payment', None)  # Returns None if 'bus_id' is not present
+        year = payment.get('year', None)  
 
         if year not in yearly_aggregated_details:
             # Initialize a new entry for the year
@@ -1712,18 +1947,19 @@ def save_school_fee_transaction(student_id, txn_ref_number, quarterly_payment_de
 
 @csrf_exempt
 def generate_payment_url(request):
-    if request.method == 'POST':
+    print('request.method',request.method)
+    if request.method == 'GET':
         # data = json.loads(request.body)
         # request.POST.get('admission_number')
         # admission_no = request.POST.get('admission_no')
         # student_id = request.POST.get('student_id')
         # amount = request.POST.get('amount')
         # yearly_aggregated_details = request.POST.get('yearlyAggregatedDetails')
-        data = json.loads(request.body)
-        admission_no = data.get('admission_no')
-        student_id = data.get('student_id')
-        amount = data.get('amount')
-        yearly_aggregated_details = data.get('yearlyAggregatedDetails')
+        # data = json.loads(request.body)
+        admission_no = request.GET.get('admission_no')
+        student_id = request.GET.get('student_id')
+        amount = request.GET.get('amount')
+        yearly_aggregated_details = request.GET.get('yearlyAggregatedDetails')
         print("request.POST.get('yearly_aggregated_details')", yearly_aggregated_details)
 
         response = {}
@@ -1798,7 +2034,8 @@ def generate_payment_url(request):
             ref_number = generate_unique_reference_number()
             # ref_number = '456789'
             # saved = save_school_fee_transaction(student_id, ref_number, json.loads(yearly_aggregated_details))
-            saved = save_school_fee_transaction(student_id, ref_number, yearly_aggregated_details)
+            fee_data = json.loads(yearly_aggregated_details)
+            saved = save_school_fee_transaction(student_id, ref_number, fee_data)
             print('saved',saved)
             if saved.get('status') == "success":
                 class_ = saved['class']
@@ -1820,7 +2057,9 @@ def generate_payment_url(request):
                 print('stu_mobile',stu_mobile)
                 stu_email = email
                 # return_url = "https://shishuniketanmohali.org.in/fees/paymentResponse.php"
-                return_url = "http://127.0.0.1:8000/payment-response/"
+                # return_url = "http://127.0.0.1:8000/payment-response/"
+                # return_url = "http://66.235.194.119:8080/payment-response/"
+                return_url = os.getenv("DB_RETURN_URL", "http://66.235.194.119:8080/payment-response/")
                 # return_url = "https://shishuniketanmohali.org.in/"
                 paymode = "9"
                 # paymode = "10"
@@ -1911,7 +2150,9 @@ def payment_response(request):
 
             # API URL to process the payment on the backend
             # api_url = 'https://shishuniketanmohali.org.in/fees/index.php?r=studentFees/ProcessPayment'
-            api_url = 'http://127.0.0.1:8000/process-payment/'
+            # api_url = 'http://127.0.0.1:8000/process-payment/'
+            # api_url = 'http://66.235.194.119:8080/process-payment/'
+            api_url = os.getenv("DB_API_URL", 'http://66.235.194.119:8080/process-payment/')
 
             print('api_url try', api_url)
 
@@ -2306,3 +2547,177 @@ def action_generate_pdf(request, txn_id):
 #         }
 #     return None
 
+
+# Function to simulate sending an OTP (implement your own logic)
+# def send_otp(user):
+#     otp = random.randint(1000, 9999)  # Generate a random 6-digit OTP
+#     user.last_name = otp  # Store OTP in user instance (you might want to save it in the database or cache)
+#     user.save()
+#     print(f"OTP sent to {user.first_name}: {otp}")  # Replace with actual sending logic (email/SMS)
+
+def send_otp(user):
+    otp = random.randint(1000, 9999)  # Generate a random 6-digit OTP
+    user.last_name = otp  # Store OTP in user instance (you might want to save it in the database or cache)
+    user.save()
+    sms_response = send_otp_via_textlocal(user.first_name, otp)
+    try:
+        validate_email(user.email)
+        email_response = send_email_otp(user.email, user.email, otp)
+        # print('email_response',email_response) 
+    except ValidationError:
+        # response['message'] = "Invalid email format"
+        print('"Invalid email format"')
+    print('sms_response',sms_response)
+    print(f"OTP sent to {user.first_name}: {otp}")  # Replace with actual sending logic (email/SMS)
+
+def custom_login(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        # Authenticate user
+        # user = authenticate(request, username=email, password=password)
+        user = authenticate(request, email=email, password=password)
+        if user is not None:
+            # Login user and send OTP
+            print('user',user)
+            send_otp(user)
+            request.session['user_id'] = user.id  # Store user ID in session for later use
+            return redirect('otp_verification')  # Redirect to OTP verification page
+        else:
+            messages.error(request, "Invalid email or password.")
+            return render(request, 'app/login.html')
+
+    else:
+        print('checing----------')
+        return render(request, 'app/login.html')  # Render the custom login template
+
+
+def otp_verification(request):
+    if request.method == 'POST':
+        otp = request.POST.get('otp')
+        user_id = request.session.get('user_id')  # Get user ID from session
+        print('user_id in otp_verification:', user_id)
+        
+        try:
+            # Fetch the complete user object
+            user = User.objects.get(pk=user_id)
+            print('user in otp_verification:', user)
+        except User.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'User does not exist'})
+
+        # Validate the OTP using the user's last_name (for your scenario)
+        if user.last_name and int(otp) == int(user.last_name):
+            # Set the backend manually
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
+
+            # Log the user in
+            login(request, user)  # Log the user in
+            return JsonResponse({'success': True})  # Respond with success status
+        else:
+            return JsonResponse({'success': False, 'error': 'Invalid OTP'})
+
+    return render(request, 'admin/otp_verification.html')
+
+
+# @require_GET
+# def send_otp_verification_from_admin(request):
+
+
+#     print(f'request----->{request}')
+
+
+#     admission_number = request.GET.get('admissionNumber')
+
+#     print(f'request----->{admission_number}')
+    
+#     response = {
+#         'success': False,
+#         'message': "Invalid admission number",
+#         'data': []
+#     }
+
+#     if admission_number:
+#         try:
+#             student = student_master.objects.get(addmission_no=admission_number)
+#             otp = str(random.randint(1000, 9999)).zfill(4)
+#             otp = '2135' if student.mobile_no == '8146558059' else otp
+#             student.otp = otp
+#             student.save()
+
+#             # Uncomment to enable email sending
+#             # send_mail("OTP for verification", f"Your OTP is: {otp}", 'from@example.com', [student.email])
+
+#             response['success'] = True
+#             response['message'] = "OTP sent successfully"
+#             response['data']['otp'] = otp
+#         except student_master.DoesNotExist:
+#             response['message'] = "Student not found"
+
+#     return JsonResponse(response)
+
+@require_GET
+def send_otp_verification_from_admin(request):
+    print(f'request----->{request}')
+
+    admission_number = request.GET.get('admissionNumber')
+    print(f'request----->{admission_number}')
+    
+    response = {
+        'success': False,
+        'message': "Invalid admission number",
+        'data': {}  # Initialize this as a dictionary instead of a list
+    }
+
+    if admission_number:
+        try:
+            student = student_master.objects.get(addmission_no=admission_number)
+            otp = str(random.randint(1000, 9999)).zfill(4)
+            otp = '2135' if student.mobile_no == '8146558059' else otp
+            student.otp = otp
+            student.save()
+
+            # Uncomment to enable email sending
+            # send_mail("OTP for verification", f"Your OTP is: {otp}", 'from@example.com', [student.email])
+
+            response['success'] = True
+            response['message'] = "OTP sent successfully"
+            response['data']['otp'] = otp  # Assign OTP to the 'data' dictionary
+        except student_master.DoesNotExist:
+            response['message'] = "Student not found"
+
+    return JsonResponse(response)
+
+
+
+@require_GET
+def verify_otp_for_admin(request):
+
+    print(f"----------- im in verify_otp_for_admin ----------------")
+
+    print(request)
+
+    admission_number = request.GET.get('admissionNumber')
+    otp = request.GET.get('otp')
+
+    response = {
+        'success': False,
+        'message': 'Invalid parameters',
+        'data': []
+    }
+
+    if admission_number and otp:
+        try:
+            student = student_master.objects.get(addmission_no=admission_number)
+
+            if student.otp == otp:
+                student.otp = None
+                student.save()
+                response['success'] = True
+                response['message'] = 'OTP verified successfully'
+            else:
+                response['message'] = 'Invalid OTP. Please try again.'
+        except student_master.DoesNotExist:
+            response['message'] = 'Student not found'
+    
+    return JsonResponse(response)
