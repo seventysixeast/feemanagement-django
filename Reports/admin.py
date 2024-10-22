@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    transport, tuition_fees_defaulter,admission_report
+    transport, tuition_fees_defaulter,admission_report,collection_report,activity_fees_defaulter
 )
 
 from app.models import (
@@ -38,6 +38,25 @@ from datetime import datetime
 
 from django.db.models import Subquery, OuterRef
 from django.db.models import Exists, OuterRef
+
+from django.db.models import Sum, Max
+from datetime import datetime, timedelta
+from django import forms
+from django.template.response import TemplateResponse
+
+import csv
+from django.http import HttpResponse
+from django.urls import path
+from django.shortcuts import render
+
+from django.db import connection
+import pandas as pd
+from io import BytesIO
+from django.contrib import messages
+from django.shortcuts import redirect
+
+# from .forms import DefaultersReportForm
+
 
 # from .models import transport, BusFeesMaster, BusMaster, StudentClasses
 
@@ -1209,12 +1228,719 @@ class AdmissionReportAdmin(ExportMixin, admin.ModelAdmin):
 # Register the AdmissionReport proxy model with the custom admin
 admin.site.register(admission_report, AdmissionReportAdmin)
 
-
-
-
-
 # admin.site.register(tuition_fees_defaulter, TuitionFeesDefaulterAdmin)
 
 
-# admin.site.register(tuition_fees_defaulter)
 
+
+# class CollectionReportResource(resources.ModelResource):
+#     class Meta:
+#         model = collection_report
+#         # Specify the fields you want to include, or leave it empty for all fields
+#         fields = ('id', 'student_id', 'date_payment', 'total_amount', 'amount_paid', 'remarks', 'added_by', 'added_at', 'edited_by', 'edited_at')
+#         # If you want to set up import/export options, you can define them here.
+
+# class CollectionReportAdmin(ExportMixin, admin.ModelAdmin):
+#     resource_class = CollectionReportResource
+#     list_display = (
+#         'student_class',
+#         'student_section',
+#         'fees_for_months',
+#         'fees_period_month',
+#         'year',
+#         'date_payment',
+#         'concession_applied',
+#         'annual_fees_paid',
+#         'tuition_fees_paid',
+#         'funds_fees_paid',
+#         'admission_fees_paid',
+#         'dayboarding_fees_paid',
+#         'miscellaneous_fees_paid',
+#         'bus_fees_paid',
+#         'activity_fees',
+#         'total_amount',
+#         'amount_paid',
+#         'payment_mode',
+#         'cheq_no',
+#         'txn_id',
+#         'bank_name',
+#         'cheque_status',
+#         'realized_date',
+#         'added_by',
+#         'txn_ref_number',
+#         'branch_name',
+#         'txn_response_code',
+#         'txn_payment_mode',
+#         'added_at',
+#         'edited_by',
+#         'edited_at',
+#         'remarks',
+#         'entry_date',
+#     )
+
+#     def has_add_permission(self, request):
+#         return False
+
+#     def has_change_permission(self, request, obj=None):
+#         return False
+
+#     def has_delete_permission(self, request, obj=None):
+#         return False
+
+#     def changelist_view(self, request, extra_context=None):
+#         """
+#         Custom changelist view to show only the search results.
+#         """
+#         # Extract filters from the request
+#         datefrom = request.GET.get('datefrom')
+#         dateto = request.GET.get('dateto')
+#         paymentType = request.GET.get('paymentType')
+#         deviceType = request.GET.get('deviceType')
+#         radioval = request.GET.get('radioval')
+
+#         # Convert date strings to date objects (if provided)
+#         datefrom1 = datetime.strptime(datefrom, "%Y-%m-%d") if datefrom else None
+#         dateto1 = datetime.strptime(dateto, "%Y-%m-%d") if dateto else None
+
+#         # Base queryset
+#         queryset = student_fee.objects.all()
+
+#         # Apply filters based on GET parameters
+#         if radioval == 'advancedfees':
+#             current_year = datetime.now().year
+#             from_date = f"{current_year - 1}-04-01"
+#             to_date = f"{current_year}-03-31"
+#             queryset = queryset.filter(year=current_year, date_payment__range=[from_date, to_date])
+#         elif radioval == 'customfees':
+#             if datefrom1 and dateto1:
+#                 queryset = queryset.filter(date_payment__range=[datefrom1, dateto1])
+#             else:
+#                 # Default to filtering by the last day if no date range is provided
+#                 yesterday = datetime.now() - timedelta(days=1)
+#                 queryset = queryset.filter(added_at__gte=yesterday, added_at__lt=datetime.now())
+        
+#         if paymentType:
+#             queryset = queryset.filter(payment_mode=paymentType)
+#         if deviceType:
+#             queryset = queryset.filter(request_source=deviceType)
+
+#         # Pass the filtered queryset to the context to display in the template
+#         extra_context = extra_context or {}
+#         # extra_context['cl'] = self.get_changelist_instance(request, queryset=queryset)
+
+#         return super().changelist_view(request, extra_context=extra_context)
+
+#     change_list_template = "admin/collection_report/change_list.html"  # Specify your custom template
+
+
+# admin.site.register(collection_report, CollectionReportAdmin)
+
+
+# class CollectionReportResource(resources.ModelResource):
+#     class Meta:
+#         model = collection_report
+#         fields = ('id', 'student_id', 'date_payment', 'total_amount', 'amount_paid', 'remarks', 'added_by', 'added_at', 'edited_by', 'edited_at')
+
+class CollectionReportAdmin(ExportMixin, admin.ModelAdmin):
+    # resource_class = CollectionReportResource
+    list_display = (
+        'student_class',
+        'student_section',
+        'fees_for_months',
+        'fees_period_month',
+        'year',
+        'date_payment',
+        'concession_applied',
+        'annual_fees_paid',
+        'tuition_fees_paid',
+        'funds_fees_paid',
+        'admission_fees_paid',
+        'dayboarding_fees_paid',
+        'miscellaneous_fees_paid',
+        'bus_fees_paid',
+        'activity_fees',
+        'total_amount',
+        'amount_paid',
+        'payment_mode',
+        'cheq_no',
+        'txn_id',
+        'bank_name',
+        'cheque_status',
+        'realized_date',
+        'added_by',
+        'txn_ref_number',
+        'branch_name',
+        'txn_response_code',
+        'txn_payment_mode',
+        'added_at',
+        'edited_by',
+        'edited_at',
+        'remarks',
+        'entry_date',
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    # def changelist_view(self, request, extra_context=None):
+    #     """
+    #     Custom changelist view to show filtered results or an empty list initially.
+    #     """
+    #     extra_context = extra_context or {}
+        
+    #     # Get filters and search term from the request
+    #     datefrom = request.GET.get('datefrom')
+    #     dateto = request.GET.get('dateto')
+    #     paymentType = request.GET.get('paymentType')
+    #     deviceType = request.GET.get('deviceType')
+    #     radioval = request.GET.get('radioval')
+    #     search_term = request.GET.get('q', '')  # Get search term from the request
+
+    #     # Base queryset is empty to prevent showing the list initially
+    #     queryset = collection_report.objects.none()
+
+    #     # Check if any filters or search terms have been applied
+    #     if datefrom or dateto or paymentType or deviceType or radioval or search_term:
+    #         # Convert date strings to date objects (if provided)
+    #         datefrom1 = datetime.strptime(datefrom, "%Y-%m-%d") if datefrom else None
+    #         dateto1 = datetime.strptime(dateto, "%Y-%m-%d") if dateto else None
+
+    #         # Create the base queryset
+    #         queryset = collection_report.objects.all()
+
+    #         # Apply filters based on GET parameters
+    #         if radioval == 'advancedfees':
+    #             current_year = datetime.now().year
+    #             from_date = f"{current_year - 1}-04-01"
+    #             to_date = f"{current_year}-03-31"
+    #             queryset = queryset.filter(year=current_year, date_payment__range=[from_date, to_date])
+    #         elif radioval == 'customfees':
+    #             if datefrom1 and dateto1:
+    #                 queryset = queryset.filter(date_payment__range=[datefrom1, dateto1])
+    #             else:
+    #                 # Default to filtering by the last day if no date range is provided
+    #                 yesterday = datetime.now() - timedelta(days=1)
+    #                 queryset = queryset.filter(added_at__gte=yesterday, added_at__lt=datetime.now())
+
+    #         if paymentType:
+    #             queryset = queryset.filter(payment_mode=paymentType)
+    #         if deviceType:
+    #             queryset = queryset.filter(request_source=deviceType)
+
+    #         # Search results
+    #         if search_term:
+    #             queryset = queryset.filter(
+    #                 Q(student_id__icontains=search_term) |
+    #                 Q(date_payment__icontains=search_term) |
+    #                 Q(total_amount__icontains=search_term) |
+    #                 Q(remarks__icontains=search_term) |
+    #                 Q(added_by__icontains=search_term) |
+    #                 Q(edited_by__icontains=search_term)
+    #             ).distinct()
+
+    #     # Pass the filtered queryset to the context to display in the template
+    #     extra_context['filtered_queryset'] = queryset
+
+    #     return super().changelist_view(request, extra_context=extra_context)
+
+
+    # def changelist_view(self, request, extra_context=None):
+    #     """
+    #     Custom changelist view to show filtered results or an empty list initially.
+    #     """
+    #     extra_context = extra_context or {}
+        
+    #     # Get filters and search term from the request
+    #     datefrom = request.GET.get('datefrom')
+    #     dateto = request.GET.get('dateto')
+    #     paymentType = request.GET.get('paymentType')
+    #     deviceType = request.GET.get('deviceType')
+    #     radioval = request.GET.get('radioval')
+    #     search_term = request.GET.get('q', '')  # Get search term from the request
+
+    #     # Base queryset is empty to prevent showing the list initially
+    #     queryset = collection_report.objects.none()
+
+    #     # Initialize date variables
+    #     datefrom1 = datetime.strptime(datefrom, "%Y-%m-%d") if datefrom else None
+    #     dateto1 = datetime.strptime(dateto, "%Y-%m-%d") if dateto else None
+    #     current_year = datetime.now().year
+    #     from_date = f"{current_year - 1}-04-01"
+    #     to_date = f"{current_year}-03-31"
+
+    #     # Check if any filters or search terms have been applied
+    #     if datefrom or dateto or paymentType or deviceType or radioval or search_term:
+    #         # Create the base queryset
+    #         queryset = collection_report.objects.all()
+
+    #         # Apply filters based on GET parameters
+    #         if radioval == 'advancedfees':
+    #             queryset = queryset.filter(year=current_year, date_payment__range=[from_date, to_date])
+    #         elif radioval == 'customfees':
+    #             if datefrom1 and dateto1:
+    #                 queryset = queryset.filter(date_payment__range=[datefrom1, dateto1])
+    #             else:
+    #                 # Default to filtering by the last day if no date range is provided
+    #                 yesterday = datetime.now() - timedelta(days=1)
+    #                 queryset = queryset.filter(added_at__gte=yesterday, added_at__lt=datetime.now())
+
+    #         if paymentType:
+    #             queryset = queryset.filter(payment_mode=paymentType)
+    #         if deviceType:
+    #             queryset = queryset.filter(request_source=deviceType)
+
+    #         # Search results
+    #         if search_term:
+    #             queryset = queryset.filter(
+    #                 Q(student_id__icontains=search_term) |
+    #                 Q(date_payment__icontains=search_term) |
+    #                 Q(total_amount__icontains=search_term) |
+    #                 Q(remarks__icontains=search_term) |
+    #                 Q(added_by__icontains=search_term) |
+    #                 Q(edited_by__icontains=search_term)
+    #             ).distinct()
+
+    #     # Pass the filtered queryset to the context to display in the template
+    #     extra_context['filtered_queryset'] = queryset
+
+    #     return super().changelist_view(request, extra_context=extra_context)
+
+
+    def changelist_view(self, request, extra_context=None):
+        """
+        Custom changelist view to show filtered results based on the form submission.
+        """
+        extra_context = extra_context or {}
+
+        # Start with an empty queryset
+        queryset = collection_report.objects.none()  
+
+        # Initialize current year for filter logic
+        current_year = datetime.now().year
+
+        # Create the base queryset if any form filters are present
+        if request.GET:
+            # Create the base queryset from `collection_report` (or the relevant model)
+            queryset = collection_report.objects.all()
+
+            # Check for the fee type radio button
+            if 'feestype' in request.GET:
+                fee_type = request.GET['feestype']
+                if fee_type == 'advancedfees':
+                    queryset = queryset.filter(year=current_year)
+                elif fee_type == 'customfees':
+                    datefrom = request.GET.get('date_from')
+                    dateto = request.GET.get('date_to')
+                    if datefrom and dateto:
+                        # Convert dates to datetime objects
+                        datefrom1 = datetime.strptime(datefrom, "%Y-%m-%d")
+                        dateto1 = datetime.strptime(dateto, "%Y-%m-%d")
+                        queryset = queryset.filter(date_payment__range=[datefrom1, dateto1])
+                    else:
+                        # Default to filtering by the last day if no date range is provided
+                        yesterday = datetime.now() - timedelta(days=1)
+                        queryset = queryset.filter(added_at__gte=yesterday, added_at__lt=datetime.now())
+
+            # Additional filters (if provided in the request)
+            if 'paymentType' in request.GET:
+                paymentType = request.GET['paymentType']
+                if paymentType:
+                    queryset = queryset.filter(payment_mode=paymentType)
+
+            if 'deviceType' in request.GET:
+                deviceType = request.GET['deviceType']
+                if deviceType:
+                    queryset = queryset.filter(request_source=deviceType)
+
+            # Search term filter
+            search_term = request.GET.get('q', '')  # Default to empty string if not present
+            if search_term:
+                queryset = queryset.filter(
+                    Q(student_id__icontains=search_term) |
+                    Q(date_payment__icontains=search_term) |
+                    Q(total_amount__icontains=search_term) |
+                    Q(remarks__icontains=search_term) |
+                    Q(added_by__icontains=search_term) |
+                    Q(edited_by__icontains=search_term)
+                ).distinct()
+
+        # Pass the filtered queryset to the context to display in the template
+        extra_context['filtered_queryset'] = queryset
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def get_search_results(self, request, queryset, search_term):
+        """
+        Filter the queryset based on search parameters from the request.
+        """
+        # Get filters from the request
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        payment_type = request.GET.get('paymentType')
+        device_type = request.GET.get('deviceType')
+        fee_type = request.GET.get('feestype')
+
+        print(f"date_from-date_to-payment_type-fee_type -> {date_from}-{date_to}-{payment_type}-{fee_type}")
+
+        # Convert date strings to date objects
+        date_from = datetime.strptime(date_from, "%Y-%m-%d") if date_from else None
+        date_to = datetime.strptime(date_to, "%Y-%m-%d") if date_to else None
+
+        # Start with the base queryset
+        if fee_type == 'advancedfees':
+            current_year = timezone.now().year
+            from_date = f"{current_year - 1}-04-01"
+            to_date = f"{current_year}-03-31"
+            queryset = queryset.filter(year=current_year, date_payment__range=[from_date, to_date])
+        elif fee_type == 'customfees':
+            if date_from and date_to:
+                queryset = queryset.filter(date_payment__range=[date_from, date_to])
+            else:
+                # Default to filtering by the last day if no date range is provided
+                yesterday = timezone.now() - timedelta(days=1)
+                queryset = queryset.filter(added_at__gte=yesterday, added_at__lt=timezone.now())
+        else:
+            if date_from and date_to:
+                queryset = queryset.filter(date_payment__range=[date_from, date_to])
+            else:
+                # Apply any default filtering logic if necessary
+                queryset = queryset.none()  # Or another default behavior
+
+        # Apply additional filters based on payment type and device type
+        if payment_type:
+            queryset = queryset.filter(payment_mode=payment_type)
+        # if device_type:
+        #     queryset = queryset.filter(request_source=device_type)
+
+        # Apply search term filtering (if necessary)
+        if search_term:
+            queryset = queryset.filter(
+                Q(student_id__icontains=search_term) |
+                Q(date_payment__icontains=search_term) |
+                Q(total_amount__icontains=search_term) |
+                Q(remarks__icontains=search_term) |
+                Q(added_by__icontains=search_term) |
+                Q(edited_by__icontains=search_term)
+            ).distinct()
+
+        return queryset, True
+
+
+    change_list_template = "admin/collection_report/change_list.html"  # Specify your custom template
+
+admin.site.register(collection_report, CollectionReportAdmin)
+
+
+class ActivityFeesDefaulterResource(resources.ModelResource):
+    class Meta:
+        model = student_fee  # Define your model here
+        fields = (
+            'student_id', 'student_class', 
+            'activity_fees', 'year'
+        )  # Specify fields for export
+
+class DefaultersReportForm(forms.Form):
+    CLASS_CHOICES = [
+        ('', 'Select Class'),
+        ('nursery', 'Nursery'),
+        ('LKG', 'LKG'),
+        ('UKG', 'UKG'),
+        ('1', '1st Grade'),
+        ('2', '2nd Grade'),
+        # Add other classes as needed
+    ]
+
+    current_year = datetime.now().year
+    YEAR_CHOICES = [(str(year), str(year)) for year in range(current_year, current_year - 6, -1)]
+
+    student_class = forms.ChoiceField(choices=CLASS_CHOICES, required=True, label="Class", widget=forms.Select(attrs={'id': 'id_student_class'}))
+    year = forms.ChoiceField(choices=YEAR_CHOICES, required=True, label="Year",widget=forms.Select(attrs={'id': 'id_year'}))
+
+    # Search button with jQuery to trigger a student search
+    search_button = forms.CharField(
+        widget=forms.TextInput(attrs={'type': 'submit', 'value': 'Search'}),
+        label='',
+        required=False
+    )
+
+
+class ActivityFeesDefaulterAdmin(ExportMixin, admin.ModelAdmin):
+    resource_class = ActivityFeesDefaulterResource
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('activity-fees-defaulters/', self.admin_site.admin_view(self.changelist_view)),
+            path('activity-fees-defaulters/export/', self.admin_site.admin_view(self.export_defaulters_to_excel), name="export_defaulters_csv")
+        ]
+        return custom_urls + urls
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_months_array(self, year):
+        # Convert year to an integer for arithmetic operations
+        year = int(year)
+
+        # Define the start and end of the financial year
+        datefrom = f"{year}0401"  # First date of the financial year (April 1st)
+        dateto = f"{year + 1}0331"  # Last date of the financial year (March 31st of the next year)
+
+        # Convert to actual date format (Y-m-d)
+        datefrom1 = datetime.strptime(datefrom, "%Y%m%d").date()
+        dateto1 = datetime.strptime(dateto, "%Y%m%d").date()
+
+        # Get the current date
+        currentdate = datetime.now().date()
+
+        # If the financial year is not over yet, set `dateto1` to today
+        if currentdate < dateto1:
+            dateto1 = currentdate
+
+        # Initialize the month array
+        month_array = []
+        
+        # Create a timestamp starting from `datefrom1`
+        time = datefrom1
+        to_month = dateto1.month
+
+        # Iterate for a maximum of 12 months
+        for i in range(12):
+            # Get the current month
+            cur_month = time.month
+            
+            # Stop if the last month (current month) is reached
+            if cur_month == to_month:
+                break
+
+            # Add the month number to the array, stripping leading zeroes
+            month_array.append(str(cur_month).lstrip('0'))
+            
+            # Move to the next month
+            time = time + timedelta(days=31)
+            time = time.replace(day=1)  # Ensure to set the day to the 1st of the next month
+
+        # If all months have passed, return a full array from 1 to 12
+        if not month_array:
+            month_array = [str(i) for i in range(1, 13)]
+
+        # Sort the month array to ensure the months are in ascending order
+        month_array.sort(key=int)
+
+        return month_array
+
+
+    def export_defaulters_to_excel(self, request):
+        # Retrieve data to export, typically from a session or request
+        defaulters_list = request.session.get('defaulters_list', [])
+        
+        if not defaulters_list:
+            # Handle the case where there is no data to export
+            messages.error(request, "No data available to export.")
+            return redirect('admin:activity_fees_defaulter_changelist')
+
+        # Define the column headers
+        headers = ['Admission No', 'Student Name', 'Class', 'Section', 'Unpaid Months']
+
+        # Convert defaulters_list to DataFrame for export
+        df = pd.DataFrame(defaulters_list)
+
+        # Rename the columns to match the desired headers
+        df.columns = headers
+
+        # Create a BytesIO stream to hold the Excel data
+        excel_file = BytesIO()
+        with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Defaulters')
+
+        # Rewind the buffer
+        excel_file.seek(0)
+
+        # Create the HTTP response to download the file
+        response = HttpResponse(
+            excel_file.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename=defaulters_report.xlsx'
+        
+        return response
+
+    def changelist_view(self, request, extra_context=None):
+
+        # Assuming defaulters_list is populated with your required data
+        defaulters_list = []  # Your existing logic for populating this
+
+        # Export to Excel
+        if request.POST.get('export_to_excel'):  # Check if export button was pressed
+            df = pd.DataFrame(defaulters_list)  # Convert the list of dictionaries to a DataFrame
+
+            # Create an Excel file in memory
+            excel_file = pd.ExcelWriter('defaulters_report.xlsx', engine='openpyxl')
+            df.to_excel(excel_file, index=False, sheet_name='Defaulters')  # Write DataFrame to the Excel file
+
+            # Save the file
+            excel_file.save()
+            excel_file.close()
+
+            # Send the file to the user
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = 'attachment; filename=defaulters_report.xlsx'
+            response.write(excel_file)
+            return response  # Return the response to download the file
+
+
+        extra_context = extra_context or {}
+        form = DefaultersReportForm(request.POST or None)  # Initialize form with POST data
+
+        results = []
+        if request.method == 'POST' and form.is_valid():
+            selected_class = form.cleaned_data.get('student_class')
+            selected_year = form.cleaned_data.get('year')
+
+            # print(f"selected_class-----{selected_class}")
+            # print(f"selected_year-----{selected_year}")
+
+            if selected_year is None:
+                current_year = date.today().year
+                selected_year = current_year - 1 if date.today().month < 4 else current_year
+
+            # Prepare data for queries
+            current_date = date.today()
+            month_array = self.get_months_array(selected_year)
+            months_paid_str = ",".join(month_array)
+
+            # print(f"current_date-----{current_date}")
+            # print(f"month_array-----{month_array}")
+            # print(f"months_paid_str-----{months_paid_str}")
+
+            # class_string = "'nursery', 'pre-nursery', 'kg', '1', '2'"  # Add other classes as needed
+            class_string = 'nursery,pre-nursery,kg,1,2'
+
+            # Query to fetch students who have paid but not fully
+            query = f"""
+            SELECT student_fees.student_id, 
+                GROUP_CONCAT(TRIM(student_fees.fees_period_month) ORDER BY CAST(student_fees.fees_period_month AS UNSIGNED)) AS months_paid,
+                student_fees.student_class AS class_no,
+                student_master.addmission_no, 
+                student_master.admission_date,
+                student_master.passedout_date, 
+                student_master.student_name, 
+                student_classes.section
+            FROM student_fees
+            LEFT JOIN student_master ON student_fees.student_id = student_master.student_id
+            LEFT JOIN student_classes ON student_fees.student_id = student_classes.student_id 
+                                    AND student_classes.class_no = student_fees.student_class
+            WHERE student_fees.year = %s 
+            AND COALESCE(student_fees.activity_fees, 0) > 0
+            AND FIND_IN_SET(student_fees.student_class, %s)
+            """
+
+            if selected_class:
+                query += f" AND student_fees.student_class = '{selected_class}' "
+
+            query += f"""
+            GROUP BY student_fees.student_id
+            HAVING months_paid != '{months_paid_str}'
+            """
+
+            # Query to fetch students who haven't paid at all
+            query_union = f"""
+            SELECT student_master.student_id, 
+                '' AS months_paid, 
+                student_classes.class_no, 
+                student_master.addmission_no,
+                student_master.admission_date, 
+                student_master.passedout_date, 
+                student_master.student_name, 
+                student_classes.section
+            FROM student_master
+            INNER JOIN student_classes ON student_master.student_id = student_classes.student_id
+            WHERE student_master.student_id NOT IN (
+                SELECT student_id FROM student_fees WHERE year = %s
+            )
+            AND FIND_IN_SET(student_classes.class_no, %s)
+            """
+
+            if selected_class:
+                query_union += f" AND student_classes.class_no = '{selected_class}' "
+
+            query_union += " GROUP BY student_classes.student_id HAVING MAX(student_classes.class_no)"
+
+            # print(f"query-----{query}")
+            # print(f"query_union-----{query_union}")
+
+            # Combine both queries
+            final_query = f"SELECT * FROM ({query} UNION {query_union}) AS combined ORDER BY class_no, section, addmission_no"
+
+            
+
+            # Execute the query using Django's raw SQL execution
+            with connection.cursor() as cursor:
+                # Manually format the query with actual parameter values for logging
+                formatted_query = final_query % (selected_year, class_string, selected_year, class_string)
+
+                # Print the formatted query to the console
+                # print(f"final_query-----{formatted_query}")
+
+                # Execute the query using the parameters
+                cursor.execute(final_query, [selected_year, class_string, selected_year, class_string])
+
+                # Fetch and print the results
+                query_results = cursor.fetchall()
+                # print(f"query_results-----{query_results}")
+
+            # with connection.cursor() as cursor:
+            #     cursor.execute(final_query, [selected_year, class_string, selected_year, class_string])
+            #     print(f"final_query-----{final_query}")
+            #     query_results = cursor.fetchall()
+            #     print(f"query_results-----{query_results}")
+
+            # Process results to identify unpaid months and defaulters
+            defaulters_list = []
+            for data in query_results:
+                months_paid = data[1]
+                passedout_date = data[5]
+                months_paid_cleaned = [month.strip() for month in months_paid.split(',') if month]
+                months_unpaid = sorted(list(set(month_array) - set(months_paid_cleaned)), key=lambda x: int(x))
+                # months_unpaid = list(set(month_array) - set(months_paid_cleaned))
+
+                # Only include students who have unpaid months and haven't passed out
+                # if months_unpaid and (not passedout_date or passedout_date >= str(current_date)):
+                if months_unpaid and (not passedout_date or passedout_date >= current_date):
+                    defaulter_record = {
+                        'addmission_no': data[3],
+                        'student_name': data[6],
+                        'class_no': data[2],
+                        'section': data[7],
+                        'unpaid_months': ",".join(months_unpaid)
+                    }
+                    defaulters_list.append(defaulter_record)
+
+            # Save results to session for later export
+            request.session['defaulters_list'] = defaulters_list
+
+            results = defaulters_list
+
+        # Add form and results to extra_context
+        extra_context['form'] = form
+        extra_context['results'] = results
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+    change_list_template = 'admin/activity_fees_defaulter/change_list.html'
+
+admin.site.register(activity_fees_defaulter, ActivityFeesDefaulterAdmin)
