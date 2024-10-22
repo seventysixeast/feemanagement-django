@@ -13,6 +13,8 @@ class transport(student_master):
 class tuition_fees_defaulter(student_fee):
   class Meta:
       proxy = True  # Use this model as a proxy for the original model
+      verbose_name = 'Tuition Fees Defaulters'
+      verbose_name_plural = 'Tuition Fees Defaulters'
      
 class admission_report(student_master):
   class Meta:
@@ -33,3 +35,14 @@ class transport_defaulter(student_fee):
 class cheque_deposit(student_fee):
   class Meta:
       proxy = True
+class collection_report(student_fee):
+  class Meta:
+      proxy = True
+      verbose_name = 'Collection'
+      verbose_name_plural = 'Collection'
+
+class activity_fees_defaulter(student_fee):
+  class Meta:
+      proxy = True
+      verbose_name = 'Activity Fees Defaulters'
+      verbose_name_plural = 'Activity Fees Defaulters'

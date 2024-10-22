@@ -326,6 +326,7 @@ class student_fee(models.Model):
   student_fee_id = models.BigAutoField(primary_key=True)
   # student_id = models.IntegerField()
   student_id = models.ForeignKey(student_master, on_delete=models.CASCADE, related_name='fees',db_column='student_id')
+  # student_class = models.ForeignKey(student_class, on_delete=models.CASCADE, related_name='fees')
   student_class = models.CharField(max_length=20)
   student_section = models.CharField(max_length=1, null=True, blank=True)
   fees_for_months = models.CharField(max_length=20)
@@ -348,7 +349,9 @@ class student_fee(models.Model):
   cheq_no = models.CharField(max_length=20, null=True, blank=True)
   bank_name = models.CharField(max_length=30, null=True, blank=True)
   concession_applied = models.FloatField(null=True, blank=True)
-  concession_type_id = models.IntegerField(null=True, blank=True)
+  # concession_type_id = models.IntegerField(null=True, blank=True)
+  concession_type_id = models.ForeignKey(concession_master, on_delete=models.SET_NULL, null=True, blank=True, db_column='concession_type_id')
+
   total_amount = models.FloatField(null=True, blank=True)
   amount_paid = models.FloatField(null=True, blank=True)
   processing_fees_paid = models.FloatField(null=True, blank=True)
