@@ -54,6 +54,8 @@ import pandas as pd
 from io import BytesIO
 from django.contrib import messages
 from django.shortcuts import redirect
+from MySQLdb.cursors import DictCursor
+
 
 # from .forms import DefaultersReportForm
 
@@ -1300,23 +1302,225 @@ class CollectionReportAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
 
+    # def changelist_view(self, request, extra_context=None):
+    #     extra_context = extra_context or {}
+    #     form = CollectionReportForm(request.POST or None)  # Initialize form with POST data
+
+    #     results = []
+    #     if request.method == 'POST' and form.is_valid():
+    #         # selected_class = form.cleaned_data.get('student_class')
+    #         # selected_year = form.cleaned_data.get('year')
+    #         feestype = form.cleaned_data.get['feestype']
+    #         payment_type = form.cleaned_data.get['paymentType']
+    #         device_type = form.cleaned_data.get['deviceType']
+    #         date_from = form.cleaned_data.get['date_from']
+    #         date_to = form.cleaned_data.get['date_to']
+
+
+    #     extra_context['form'] = form  # Add the form to extra_context
+    #     extra_context['results'] = results  # Pass results to the template
+
+    #     return super().changelist_view(request, extra_context=extra_context)
+
     def changelist_view(self, request, extra_context=None):
+        # Assuming defaulters_list is populated with your required data
+        collection_list = []
         extra_context = extra_context or {}
         form = CollectionReportForm(request.POST or None)  # Initialize form with POST data
 
         results = []
+        total_fees = {
+            "amount": 0,
+            "annual_fees": 0,
+            "tuition_fees": 0,
+            "fund_fees": 0,
+            "sports_fees": 0,
+            "activity_fees": 0,
+            "admission_fees": 0,
+            "security_fees": 0,
+            "late_fees": 0,
+            "dayboarding_fees": 0,
+            "bus_fees": 0,
+            "total_fees": 0,
+            "concession": 0
+        }
+
         if request.method == 'POST' and form.is_valid():
-            # selected_class = form.cleaned_data.get('student_class')
-            # selected_year = form.cleaned_data.get('year')
-            feestype = form.cleaned_data.get['feestype']
-            payment_type = form.cleaned_data.get['paymentType']
-            device_type = form.cleaned_data.get['deviceType']
-            date_from = form.cleaned_data.get['date_from']
-            date_to = form.cleaned_data.get['date_to']
+            # Access cleaned_data properly
+            feestype = form.cleaned_data.get('feestype')
+            payment_type = form.cleaned_data.get('paymentType')
+            device_type = form.cleaned_data.get('deviceType')
+            date_from = form.cleaned_data.get('date_from')
+            date_to = form.cleaned_data.get('date_to')
 
+            # Set default values for dates
+            current_year = date.today().year
+            session_start = f"{current_year}-04-01"
+            year = current_year - 1
+            toyear = year + 1
+            from_date = f"{year}-04-01"
+            to_date = f"{toyear}-03-31"
 
-        extra_context['form'] = form  # Add the form to extra_context
-        extra_context['results'] = results  # Pass results to the template
+            q = ""
+            params = []
+
+            # Construct SQL query based on fee type
+            if feestype == 'advancedfees':
+                q = """
+                    SELECT 
+                        sf.*, 
+                        sf.student_class as class_no, 
+                        sf.student_section as section, 
+                        sm.addmission_no, 
+                        sm.student_name, 
+                        con.concession_type 
+                    FROM 
+                        student_fees sf
+                    INNER JOIN 
+                        student_master sm ON sm.student_id = sf.student_id 
+                    LEFT JOIN 
+                        concession_master con ON con.concession_id = sf.concession_type_id 
+                    WHERE 
+                        sf.year = %s 
+                        AND sf.date_payment BETWEEN %s AND %s 
+                """
+                params = [current_year, from_date, to_date]
+
+                if payment_type:
+                    q += " AND sf.payment_mode = %s"
+                    params.append(payment_type)
+
+                if device_type:
+                    q += " AND sf.request_source = %s"
+                    params.append(device_type)
+
+                q += " ORDER BY sf.date_payment DESC, sm.addmission_no;"
+
+            elif feestype == 'customfees':
+                q = """
+                    SELECT sf.*, cls.*, sm.addmission_no, sm.student_name, con.concession_type 
+                    FROM student_fees sf 
+                    LEFT JOIN student_master sm ON sm.student_id = sf.student_id 
+                    LEFT JOIN concession_master con ON con.concession_id = sf.concession_type_id 
+                    LEFT OUTER JOIN (
+                        SELECT * FROM student_classes WHERE (student_id, started_on) IN (
+                            SELECT student_id, MAX(started_on) FROM student_classes GROUP BY student_id
+                        )
+                    ) AS cls ON sm.student_id = cls.student_id 
+                """
+
+                if date_from and date_to:
+                    q += " WHERE sf.date_payment BETWEEN %s AND %s"
+                    params += [date_from, date_to]
+                else:
+                    yesterday = date.today() - timedelta(days=1)
+                    q += " WHERE (sf.added_at >= %s AND sf.added_at < %s)"
+                    params += [yesterday, date.today()]
+
+                if device_type:
+                    q += " AND sf.request_source = %s"
+                    params.append(device_type)
+
+                if payment_type:
+                    q += " AND sf.payment_mode = %s"
+                    params.append(payment_type)
+
+                q += " ORDER BY sf.added_at DESC, sm.addmission_no"
+
+            else:
+                q = """
+                    SELECT a.*, cls.*, sm.addmission_no, sm.student_name, con.concession_type 
+                    FROM student_fees a 
+                    LEFT JOIN student_master sm ON sm.student_id = a.student_id 
+                    LEFT JOIN concession_master con ON con.concession_id = a.concession_type_id 
+                    LEFT OUTER JOIN student_classes AS cls ON sm.student_id = cls.student_id 
+                    WHERE a.date_payment BETWEEN %s AND %s 
+                    AND cls.student_class_id = (SELECT MAX(student_class_id) 
+                                                FROM student_classes 
+                                                WHERE student_id = sm.student_id)
+                """
+                params = [date_from, date_to]
+
+                if payment_type:
+                    q += " AND a.payment_mode = %s"
+                    params.append(payment_type)
+
+                if device_type:
+                    q += " AND a.request_source = %s"
+                    params.append(device_type)
+
+                q += " ORDER BY a.date_payment DESC, sm.addmission_no"
+
+            # Execute the query
+            with connection.cursor() as cursor:
+                cursor.execute(q, params)
+                fee_records = cursor.fetchall()
+                print(f"fee_records==={fee_records}")
+
+            # Process fee records and calculate totals
+            for entry in fee_records:
+
+                # Create a dictionary for each record
+                # Check the length of the tuple to avoid out of range errors
+                if len(entry) >= 49:  # Ensure there are at least 49 elements in the tuple
+                    collection_record = {
+                        'addmission_no': entry[0],           # Admission no
+                        'student_name': entry[48],           # Student Name
+                        'class_no': entry[2],                # Class
+                        'section': entry[3],                 # Section
+                        'fees_for_months': entry[4],         # Fees for months
+                        'fees_period_month': entry[5],       # Fees paid for months
+                        'annual_fees_paid': entry[8],        # Annual fees
+                        'tuition_fees_paid': entry[9],       # Tuition fees
+                        'concession_applied': entry[10],     # Concession applied
+                        'net_tuition_fees': entry[11],       # Net tuition fees
+                        'funds_fees_paid': entry[12],        # Fund fees
+                        'sports_fees_paid': entry[13],       # Sports fees
+                        'activity_fees': entry[14],          # Activity fees
+                        'admission_fees_paid': entry[15],    # Admission fees
+                        'security_paid': entry[16],          # Security fees
+                        'late_fees_paid': entry[17],         # Late fees
+                        'miscellaneous_fees': entry[18],     # Miscellaneous fees
+                        'bus_fees_paid': entry[19],          # Bus fees
+                        'date_payment': entry[20],           # Payment date
+                        'payment_mode': entry[21],           # Payment mode
+                        'cheq_no': entry[22],                # Cheque no.
+                        'bank_name': entry[23],              # Bank name
+                        'concession_type': entry[24],        # Concession type
+                        'Total_amount': entry[25],           # Total amount
+                        'amount_paid': entry[26],            # Amount paid
+                        'cheque_status': entry[28],          # Cheque status
+                        'realized_date': entry[29],          # Realized date
+                        'remarks': entry[31],                # Remarks
+                        'request_source': entry[37],         # User Agent (Request source)
+                    }
+                    collection_list.append(collection_record)
+
+                # Save results to session for later export
+                request.session['collection_list'] = collection_list
+
+                results = collection_list
+
+                # results.append(fee)  # Collect each fee record to be displayed in the template
+
+                # total_fees['amount'] += fee['amount_paid']
+                # total_fees['annual_fees'] += fee['annual_fees_paid']
+                # total_fees['tuition_fees'] += fee['tuition_fees_paid']
+                # total_fees['fund_fees'] += fee['funds_fees_paid']
+                # total_fees['sports_fees'] += fee['sports_fees_paid']
+                # total_fees['activity_fees'] += fee['activity_fees']
+                # total_fees['admission_fees'] += fee['admission_fees_paid']
+                # total_fees['security_fees'] += fee['security_paid']
+                # total_fees['late_fees'] += fee['late_fees_paid']
+                # total_fees['dayboarding_fees'] += fee['dayboarding_fees_paid']
+                # total_fees['bus_fees'] += fee['bus_fees_paid']
+                # total_fees['total_fees'] += fee['Total_amount']
+                # total_fees['concession'] += fee['concession_applied'] if isinstance(fee['concession_applied'], (int, float)) else 0
+
+        # Add form, results, and totals to extra_context
+        extra_context['form'] = form
+        extra_context['results'] = results  # Contains the processed fee records
+        extra_context['total_fees'] = total_fees  # Contains the summary of fees
 
         return super().changelist_view(request, extra_context=extra_context)
 

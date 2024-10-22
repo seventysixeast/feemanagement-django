@@ -1,30 +1,84 @@
-{% extends "admin/base_site.html" %}
-{% block content %}
+{% extends "admin/base_site.html" %} {% block content %}
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-    </form>
+<form method="post">{% csrf_token %} {{ form.as_p }}</form>
 
-    {% if results %}
-    <table>
-        <thead>
-          <tr>
-            <th>Admission No</th>
-            <th>Student Name</th>
-            <th>Class</th>
-            <th>Section</th>
-            <th>Unpaid Months</th>
-          </tr>
-        </thead>
-        <tbody>
-          
-        </tbody>
-      </table>
-    {% else %}
-      <p>No collection found for the selected criteria.</p>
-    {% endif %}
+{% if results %}
+<>
+  <thead>
+    <tr>
+      <th id="th1">Admission no</th>
+      <th id="th1">Student Name</th>
+      <th id="th1">Class</th>
+      <th id="th1">Section</th>
+      <th id="th1">Fees for months</th>
+      <th id="th1">Fees paid for months</th>
+      <th id="th1">Annual fees</th>
+      <th id="th1">Tution fees</th>
+      <th id="th1">Concession applied</th>
+      <th id="th1">Net tution fees</th>
+      <th id="th1">Fund fees</th>
+      <th id="th1">Sports fees</th>
+      <th id="th1">Activity fees</th>
+      <th id="th1">Admission fees</th>
+      <th id="th1">Security fees</th>
+      <th id="th1">Late fees</th>
+      <th id="th1">Miscellaneous fees</th>
+      <th id="th1">Bus fees</th>
+      <th id="th1">Payment date</th>
+      <th id="th1">Payment mode</th>
+      <th id="th1">Cheque no.</th>
+      <th id="th1">Bank name</th>
+      <th id="th1">Concession type</th>
+      <th id="th1">Total amount</th>
+      <th id="th1">Amount paid</th>
+      <th id="th1">Cheque Status</th>
+      <th id="th1">Realized Date</th>
+      <th id="th1">Remarks</th>
+      <th id="th1">User Agent</th>
+      <!-- cheque_status and realized_date added -->
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Loop through results and create a row for each record -->
+    {% for fee in results %}
+    <tr>
+      <td>{{ fee.0 }}</td>  <!-- Admission no -->
+      <td>{{ fee.48 }}</td> <!-- Student Name -->
+      <td>{{ fee.2 }}</td>  <!-- Class -->
+      <td>{{ fee.3 }}</td>  <!-- Section -->
+      <td>{{ fee.4 }}</td>  <!-- Fees for months -->
+      <td>{{ fee.5 }}</td>  <!-- Fees paid for months -->
+      <td>{{ fee.6 }}</td>  <!-- Annual fees -->
+      <td>{{ fee.8 }}</td>  <!-- Tuition fees -->
+      <td>{{ fee.9 }}</td>  <!-- Concession applied -->
+      <td>{{ fee.10 }}</td> <!-- Net tuition fees -->
+      <td>{{ fee.11 }}</td> <!-- Fund fees -->
+      <td>{{ fee.12 }}</td> <!-- Sports fees -->
+      <td>{{ fee.13 }}</td> <!-- Activity fees -->
+      <td>{{ fee.14 }}</td> <!-- Admission fees -->
+      <td>{{ fee.15 }}</td> <!-- Security fees -->
+      <td>{{ fee.16 }}</td> <!-- Late fees -->
+      <td>{{ fee.17 }}</td> <!-- Miscellaneous fees -->
+      <td>{{ fee.18 }}</td> <!-- Bus fees -->
+      <td>{{ fee.19 }}</td> <!-- Payment date -->
+      <td>{{ fee.20 }}</td> <!-- Payment mode -->
+      <td>{{ fee.21 }}</td> <!-- Cheque no. -->
+      <td>{{ fee.22 }}</td> <!-- Bank name -->
+      <td>{{ fee.23 }}</td> <!-- Concession type -->
+      <td>{{ fee.24 }}</td> <!-- Total amount -->
+      <td>{{ fee.25 }}</td> <!-- Amount paid -->
+      <td>{{ fee.26 }}</td> <!-- Cheque Status -->
+      <td>{{ fee.27 }}</td> <!-- Realized Date -->
+      <td>{{ fee.28 }}</td> <!-- Remarks -->
+      <td>{{ fee.35 }}</td> <!-- User Agent -->
+      <td><a href="{{ fee.34 }}">Invoice</a></td> <!-- Invoice Link -->
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No collection found for the selected criteria.</p>
+{% endif %}
 
 <!-- Render the usual admin list view content -->
-{{ block.super }}
-{% endblock %}
+{{ block.super }} {% endblock %}
