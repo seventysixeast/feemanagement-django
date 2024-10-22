@@ -1473,24 +1473,51 @@
       }
 
       // Function to verify OTP
-      function verifyOTP(enteredOTP) {
-        console.log(enteredOTP);
-        console.log('receivedOTP verifyOTP', receivedOTP)
-        if (enteredOTP == receivedOTP) {
-          alert("OTP verified successfully!");
-          getStudentFeeDetails();
-          $("#verify-otp-form").hide();
-        } else {
-          alert("Invalid OTP. Please try again.");
-        }
+      // function verifyOTP(enteredOTP) {
+      //   console.log(enteredOTP);
+      //   console.log('receivedOTP verifyOTP', receivedOTP)
+      //   if (enteredOTP == receivedOTP) {
+      //     alert("OTP verified successfully!");
+      //     getStudentFeeDetails();
+      //     $("#verify-otp-form").hide();
+      //   } else {
+      //     alert("Invalid OTP. Please try again.");
+      //   }
+      // }
+      function verifyOTP(admissionNumber, mobileNumber, enteredOTP) {
+        $.ajax({
+          url: `/verify-otp/`, // URL for OTP verification
+          method: "GET",
+          data: {
+            admissionNumber: admissionNumber,
+            mobileNumber: mobileNumber,
+            otp: enteredOTP
+          },
+          success: function (verifyResponse) {
+            if (verifyResponse.success) {
+              alert("OTP verified successfully!");
+              $("#verify-otp-form").hide();
+              // Now call to fetch student fee details
+              getStudentFeeDetails(admissionNumber);
+            } else {
+              alert(verifyResponse.message);  // Handle OTP verification failure
+            }
+          },
+          error: function (xhr, status, error) {
+            console.error("Error during OTP verification:", error);
+            alert("An error occurred during OTP verification.");
+          }
+        });
       }
-
 
       $("#verify-otp-form").submit(function (event) {
         event.preventDefault();
-
+        
+        var admission_no = $("#admission-number").val();
+        var mobile_no = $("#mobile-number").val();
         var otp = $("#otp-1").val() + $("#otp-2").val() + $("#otp-3").val() + $("#otp-4").val();
-        verifyOTP(otp);
+        // verifyOTP(otp);
+        verifyOTP(admission_no, mobile_no, otp);
       });
 
 
@@ -1552,14 +1579,14 @@
             $("#student_fee_wrapper").show(); // show main div
             if (response.success) {
               // Prevent fee from portal for concession cases
-              if (response.data.studentDetails.length > 0 && response.data.studentDetails[0].concession_id && response.data.studentDetails[0].concession_id !== null) {
-                alert('Please visit the school fee counter for fee payment.  Thank you');
-                return false;
-              }
-              if (response.data.contactAdmin) {
-                alert('Please visit the school fee counter for fee payment. Thank you');
-                return false;
-              }
+              // if (response.data.studentDetails.length > 0 && response.data.studentDetails[0].concession_id && response.data.studentDetails[0].concession_id !== null) {
+              //   alert('Please visit the school fee counter for fee payment.  Thank you');
+              //   return false;
+              // }
+              // if (response.data.contactAdmin) {
+              //   alert('Please visit the school fee counter for fee payment. Thank you');
+              //   return false;
+              // }
               // Update student details
               if (response.data.studentDetails.length > 0) {
                 $("#toggleReceipts").show();

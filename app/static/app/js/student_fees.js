@@ -1,7 +1,7 @@
 /* ========================================================================================== */
 
 $(document).ready(function () {
-  console.log("=========== ssssssss testing DOMContentLoaded =====");
+  // console.log("=========== ssssssss testing DOMContentLoaded =====");
 
   // Get the form elements
   const $admissionNoField = $('input[name="admission_no"]');
@@ -366,11 +366,17 @@ $(document).ready(function () {
               "total_amount",
             ];
 
+            console.log("d--------",d);
+            
+            
+
             fields.forEach((field, index) => setValue(field, d[index] || 0));
 
-            const concession = d[13] || "";
+            const concession = d[11] || "";
             $('input[name="concession_applied"]').val(concession);
             $('input[name="concession_type"]').val(d[14] || "");
+            $('input[name="concession_type_id"]').val(d[13] || "");
+            
 
             const total = d[16] || calculateTotal(d);
             $('input[name="total_amount"]').val(total);
@@ -398,6 +404,10 @@ $(document).ready(function () {
   }
 
   function setValue(selector, value, defaultValue = "0") {
+
+    console.log("selector--------",selector);
+            console.log("value--------",value);
+
     let numValue = parseFloat(value);
     if (isNaN(numValue) || numValue < 0) numValue = parseFloat(defaultValue);
     $(`input[name="${selector}"]`).val(numValue.toString());
