@@ -28,4 +28,8 @@ class final_fees_report(student_fee):
      
 class transport_defaulter(student_fee):
   class Meta:
-      proxy = True  # Use this model as a proxy for the original model
+      proxy = True  # Use this model as a proxy for the original 
+      
+class cheque_deposit(student_fee):
+  class Meta:
+      proxy = True
