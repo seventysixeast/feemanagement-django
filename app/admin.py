@@ -2885,7 +2885,7 @@ class StudentFeesAdminForm(forms.ModelForm):
 
 
             # Fetch and pre-select fees_period_month
-            fees_period_month_value = self.instance.fees_period_month
+            # fees_period_month_value = self.instance.fees_period_month
 
 
             # Split the comma-separated string and strip any extra spaces
@@ -2905,16 +2905,17 @@ class StudentFeesAdminForm(forms.ModelForm):
             # Split the comma-separated string and strip any extra spaces
 
             # Get the current months from fees_for_months
-            fees_for_months_value = self.instance.fees_for_months
-            print(f"selected_months--------:{fees_for_months_value}")
-            # Split the string into a set of months, removing any leading/trailing spaces
-            current_months = set(month.strip() for month in fees_for_months_value.split(','))
-            print(f"current_months--------:{current_months}")
-            # Sort the months and convert them to integers
-            current_months = sorted(current_months, key=int)
-            print(f"current_months 1--------:{current_months}")
-            # Set the initial value for fees_period_month as a list of integers
-            self.fields['fees_period_month'].initial = current_months
+            # # fees_period_month_value = self.instance.fees_period_month
+
+            # print(f"selected_months--------:{fees_period_month_value}")
+            # # Split the string into a set of months, removing any leading/trailing spaces
+            # current_months = set(month.strip() for month in fees_period_month_value.split(', '))
+            # print(f"current_months--------:{current_months}")
+            # # Sort the months and convert them to integers
+            # current_months = sorted(current_months, key=int)
+            # print(f"current_months 1--------:{current_months}")
+            # # Set the initial value for fees_period_month as a list of integers
+            # self.fields['fees_period_month'].initial = current_months
 
 
             # if fees_period_month_value:
