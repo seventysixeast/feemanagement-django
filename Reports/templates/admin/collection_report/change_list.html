@@ -1,57 +1,29 @@
-{% extends "admin/change_list.html" %}
-{% load i18n %}
-
+{% extends "admin/base_site.html" %}
 {% block content %}
-<div class="form-container">
-    <form method="GET" action="">
-        <fieldset>
-            <div>
-                <label for="advancedfees">
-                    <input id="advancedfees" type="radio" class="radiobtns" name="feestype" value="advancedfees">
-                    Advanced fees
-                </label>
-            </div>
-            <div>
-                <label for="totalfees">
-                    <input id="totalfees" type="radio" class="radiobtns" name="feestype" value="totalfees" checked>
-                    Total fees
-                </label>
-            </div>
-            <div>
-                <label for="customfees">
-                    <input id="customfees" type="radio" class="radiobtns" name="feestype" value="customfees">
-                    LastDay fees
-                </label>
-            </div>
-            <div>
-                <label for="paymentType">Payment Type</label>
-                <select id="paymentType" name="paymentType">
-                    <option value="">Payment</option>
-                    <option value="Online">Online</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Cheque">Cheque</option>
-                </select>
-            </div>
-            <div>
-                <label for="deviceType">Device Type</label>
-                <select id="deviceType" name="deviceType">
-                    <option value="">Device</option>
-                    <option value="WEB">WEB</option>
-                    <option value="MOBILE">MOBILE</option>
-                </select>
-            </div>
-            <div>
-                <label for="id_date_from">Date From</label>
-                <input type="date" name="date_from" id="id_date_from" value="{{ date_from|default_if_none:'' }}">
-            </div>
-            <div>
-                <label for="id_date_to">Date To</label>
-                <input type="date" name="date_to" id="id_date_to" value="{{ date_to|default_if_none:'' }}">
-            </div>
-            <button type="submit">Filter</button>
-        </fieldset>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
     </form>
-</div>
+
+    {% if results %}
+    <table>
+        <thead>
+          <tr>
+            <th>Admission No</th>
+            <th>Student Name</th>
+            <th>Class</th>
+            <th>Section</th>
+            <th>Unpaid Months</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+        </tbody>
+      </table>
+    {% else %}
+      <p>No collection found for the selected criteria.</p>
+    {% endif %}
 
 <!-- Render the usual admin list view content -->
 {{ block.super }}
