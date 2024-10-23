@@ -2869,19 +2869,21 @@ class StudentFeesAdminForm(forms.ModelForm):
             student = self.instance.student_id
             
             # Fetch the concession_type_id from the student_fee instance
-            concession_type_id = self.instance.concession_type_id
+            concession = self.instance.concession_type_id
             
-            # If needed, you can set it as the initial value for a form field
-            # self.fields['concession_type_id'].initial = concession_type_id
+            print(f"concession---{concession}",)
 
-            # Get student's concession_type_id and filter concession_master
-            if concession_type_id:
+            # If needed, you can set it as the initial value for a form field
+            # self.fields['concession'].initial = concession
+
+            # Get student's concession and filter concession_master
+            if concession:
                 try:
-                    concession = concession_master.objects.get(concession_id=concession_type_id)
+                    concession = concession_master.objects.get(concession_id=concession.concession_id)
                     # Populate the 'concession_type' field with the filtered concession_type
                     self.fields['concession_type'].initial = concession.concession_type
                 except concession_master.DoesNotExist:
-                    print(f"Concession with ID {student.concession_type_id} does not exist.")
+                    print(f"Concession with ID {student.concession} does not exist.")
 
 
             # Fetch and pre-select fees_period_month
@@ -3790,8 +3792,13 @@ class StudentFeesAdmin(admin.ModelAdmin):
             # Handle concessions
             if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
                 obj.concession_applied = float(request.POST.get('concession_applied'))
-                obj.concession_type_id = request.POST.get('concession_type_id')
-                # obj.concession_type_id = request.POST.get('concession_type')
+                concession_id = request.POST.get('concession_type_id')
+
+                # Get the concession_master instance
+                concession_instance = concession_master.objects.get(concession_id=concession_id)
+
+                # Assign the concession_master instance (not just the ID) to the foreign key field
+                obj.concession_type_id = concession_instance  # Corrected this line
                 
             else:
                 obj.concession_type_id = None
@@ -3893,10 +3900,17 @@ class StudentFeesAdmin(admin.ModelAdmin):
             obj.total_amount = float(request.POST.get('total_amount', 0))
             obj.amount_paid = float(request.POST.get('amount_paid', 0))
 
+            # Handle concessions
             if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
                 obj.concession_applied = float(request.POST.get('concession_applied'))
-                obj.concession_type_id = request.POST.get('concession_type_id')
-                # obj.concession_type_id = request.POST.get('concession_type')
+                concession_id = request.POST.get('concession_type_id')
+
+                # Get the concession_master instance
+                concession_instance = concession_master.objects.get(concession_id=concession_id)
+
+                # Assign the concession_master instance (not just the ID) to the foreign key field
+                obj.concession_type_id = concession_instance  # Corrected this line
+                
             else:
                 obj.concession_type_id = None
                 obj.concession_applied = None

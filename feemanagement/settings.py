@@ -117,15 +117,15 @@ WSGI_APPLICATION = 'feemanagement.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        # 'HOST':os.getenv("DB_HOST", "localhost"),
-        # 'NAME': os.getenv("DB_NAME"),
-        # 'PASSWORD':os.getenv("DB_PASSWORD"),
-        # 'USER':os.getenv("DB_USER"),
+        'HOST':os.getenv("DB_HOST", "localhost"),
+        'NAME': os.getenv("DB_NAME"),
+        'PASSWORD':os.getenv("DB_PASSWORD"),
+        'USER':os.getenv("DB_USER"),
         'PORT':os.getenv("DB_PORT", "5432"),
-        'HOST':'66.235.194.119',
-        'NAME': 'shishuniketanmoh_schoolmanagement',
-        'PASSWORD':'Honda@76east',
-        'USER':'root',
+        # 'HOST':'66.235.194.119',
+        # 'NAME': 'shishuniketanmoh_schoolmanagement',
+        # 'PASSWORD':'Honda@76east',
+        # 'USER':'root',
     }
 }
 
