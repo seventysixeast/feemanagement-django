@@ -56,6 +56,10 @@ from django.contrib import messages
 from django.shortcuts import redirect
 from MySQLdb.cursors import DictCursor
 
+from django.db import connection
+from django.utils.dateparse import parse_date
+import json
+
 
 # from .forms import DefaultersReportForm
 
@@ -1294,237 +1298,284 @@ class CollectionReportForm(forms.Form):
 
 class CollectionReportAdmin(admin.ModelAdmin):
    
+    change_list_template = "admin/collection_report/change_list.html"  # Specify your custom template
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
             path('collection_report/', self.admin_site.admin_view(self.changelist_view)),
+            path('collection_report/export/', self.admin_site.admin_view(self.export_defaulters_to_excel), name="export_collection_report_csv")
            
         ]
         return custom_urls + urls
 
-    # def changelist_view(self, request, extra_context=None):
-    #     extra_context = extra_context or {}
-    #     form = CollectionReportForm(request.POST or None)  # Initialize form with POST data
+    def has_add_permission(self, request):
+        return False
 
-    #     results = []
-    #     if request.method == 'POST' and form.is_valid():
-    #         # selected_class = form.cleaned_data.get('student_class')
-    #         # selected_year = form.cleaned_data.get('year')
-    #         feestype = form.cleaned_data.get['feestype']
-    #         payment_type = form.cleaned_data.get['paymentType']
-    #         device_type = form.cleaned_data.get['deviceType']
-    #         date_from = form.cleaned_data.get['date_from']
-    #         date_to = form.cleaned_data.get['date_to']
+    def has_change_permission(self, request, obj=None):
+        return False
 
+    def has_delete_permission(self, request, obj=None):
+        return False
 
-    #     extra_context['form'] = form  # Add the form to extra_context
-    #     extra_context['results'] = results  # Pass results to the template
+    def export_defaulters_to_excel(self, request):
+        # Retrieve data from session, stored as a JSON string
+        collection_list_str = request.session.get('collection_list', '')
 
-    #     return super().changelist_view(request, extra_context=extra_context)
+        if not collection_list_str:
+            # Handle the case where there is no data to export
+            messages.error(request, "No data available to export.")
+            return redirect('admin:collection_report')
+
+        # Convert the string to a list of dictionaries
+        try:
+            collection_list = json.loads(collection_list_str)
+            print(f"collection_list content after loading JSON: {collection_list}")
+            print(f"collection_list type after loading JSON: {type(collection_list)}")
+        except json.JSONDecodeError as e:
+            messages.error(request, f"Error decoding JSON: {e}")
+            return redirect('admin:collection_report')
+
+        # Define the column headers
+        headers = [
+            "Admission No", "Student Name", "Class", "Section", "Fees for Months", 
+            "Fees Period Months", "Annual Fees Paid", "Tuition Fees Paid", "Concession Applied", 
+            "Net Tuition Fees", "Funds Fees Paid", "Sports Fees Paid", "Activity Fees", 
+            "Admission Fees Paid", "Security Fees Paid", "Late Fees Paid", "Miscellaneous Fees", 
+            "Bus Fees Paid", "Date of Payment", "Payment Mode", "Cheque No.", "Bank Name", 
+            "Concession Type", "Total Amount", "Amount Paid", "Cheque Status", 
+            "Realized Date", "Remarks", "Request Source"
+        ]
+
+        try:
+            # Ensure that collection_list is a list of dictionaries
+            if isinstance(collection_list, list) and all(isinstance(row, dict) for row in collection_list):
+                # Create a DataFrame from the list of dictionaries
+                df = pd.DataFrame(collection_list)
+
+                # Add the calculated columns (Net Tuition Fees and Miscellaneous Fees)
+                df['Net Tuition Fees'] = df['tuition_fees_paid'] - df['concession_applied']
+                df['Miscellaneous Fees'] = (
+                    df['funds_fees_paid'] + df['sports_fees_paid'] + df['activity_fees'] + 
+                    df['late_fees_paid']
+                )
+                
+                # Ensure the DataFrame matches the required headers
+                df = df.reindex(columns=[
+                    'addmission_no', 'student_name', 'class_no', 'section', 'fees_for_months', 
+                    'fees_period_month', 'annual_fees_paid', 'tuition_fees_paid', 'concession_applied',
+                    'Net Tuition Fees', 'funds_fees_paid', 'sports_fees_paid', 'activity_fees',
+                    'admission_fees_paid', 'security_paid', 'late_fees_paid', 'Miscellaneous Fees', 
+                    'bus_fees_paid', 'date_payment', 'payment_mode', 'cheq_no', 'bank_name', 
+                    'concession_type', 'Total_amount', 'amount_paid', 'cheque_status', 
+                    'realized_date', 'remarks', 'request_source'
+                ])
+                
+                # Rename the columns to match the headers you provided
+                df.columns = headers
+            else:
+                print(f"Unexpected collection_list format: {collection_list}")
+                raise ValueError("Unsupported format in collection_list. Must be list of dictionaries.")
+        except Exception as e:
+            # Handle any errors during DataFrame creation or renaming
+            messages.error(request, f"Error during data export: {e}")
+            return redirect('admin:collection_report')
+
+        # Create a BytesIO stream to hold the Excel data
+        excel_file = BytesIO()
+        try:
+            with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Defaulters')
+
+            # Rewind the buffer
+            excel_file.seek(0)
+
+            # Create the HTTP response to download the file
+            response = HttpResponse(
+                excel_file.read(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = 'attachment; filename=collection_report.xlsx'
+            return response
+        except Exception as e:
+            # Handle errors during Excel file generation
+            messages.error(request, f"Error generating Excel file: {e}")
+            return redirect('admin:collection_report')
 
     def changelist_view(self, request, extra_context=None):
-        # Assuming defaulters_list is populated with your required data
-        collection_list = []
-        extra_context = extra_context or {}
-        form = CollectionReportForm(request.POST or None)  # Initialize form with POST data
 
-        results = []
-        total_fees = {
-            "amount": 0,
-            "annual_fees": 0,
-            "tuition_fees": 0,
-            "fund_fees": 0,
-            "sports_fees": 0,
-            "activity_fees": 0,
-            "admission_fees": 0,
-            "security_fees": 0,
-            "late_fees": 0,
-            "dayboarding_fees": 0,
-            "bus_fees": 0,
-            "total_fees": 0,
-            "concession": 0
-        }
+        form = CollectionReportForm(request.POST or None)
+
+        def date_to_string(obj):
+            if isinstance(obj, date):
+                return obj.strftime('%Y-%m-%d')  # You can choose another format if needed
+            raise TypeError(f'Object of type {obj.__class__.__name__} is not JSON serializable')
+
+        # results = None  # Initialize results to None
+        results = []  # Change this to a list to hold dictionaries
 
         if request.method == 'POST' and form.is_valid():
-            # Access cleaned_data properly
+            # Get the cleaned form data
             feestype = form.cleaned_data.get('feestype')
-            payment_type = form.cleaned_data.get('paymentType')
-            device_type = form.cleaned_data.get('deviceType')
+            paymentType = form.cleaned_data.get('paymentType')
+            deviceType = form.cleaned_data.get('deviceType')
             date_from = form.cleaned_data.get('date_from')
             date_to = form.cleaned_data.get('date_to')
 
-            # Set default values for dates
-            current_year = date.today().year
-            session_start = f"{current_year}-04-01"
+            # Initialize query variables
+            feedetails = ""
+            amount = 0
+            totsecfees = 0  # Initialize to 0
+            # Initialize other totals...
+
+            current_year = datetime.now().year
+            session_starts = f"{current_year}-04-01"
+
             year = current_year - 1
             toyear = year + 1
             from_date = f"{year}-04-01"
             to_date = f"{toyear}-03-31"
 
-            q = ""
-            params = []
+            # Check if date_from and date_to are strings before parsing
+            datefrom1 = parse_date(date_from) if isinstance(date_from, str) else None
+            dateto1 = parse_date(date_to) if isinstance(date_to, str) else None
 
-            # Construct SQL query based on fee type
+            query = ""
+
             if feestype == 'advancedfees':
-                q = """
-                    SELECT 
-                        sf.*, 
-                        sf.student_class as class_no, 
-                        sf.student_section as section, 
-                        sm.addmission_no, 
-                        sm.student_name, 
-                        con.concession_type 
-                    FROM 
-                        student_fees sf
-                    INNER JOIN 
-                        student_master sm ON sm.student_id = sf.student_id 
-                    LEFT JOIN 
-                        concession_master con ON con.concession_id = sf.concession_type_id 
-                    WHERE 
-                        sf.year = %s 
-                        AND sf.date_payment BETWEEN %s AND %s 
+                query = f"""
+                    SELECT sf.*, sf.student_class as class_no, sf.student_section as section, 
+                        sm.addmission_no, sm.student_name, con.concession_type, sf.request_source
+                    FROM student_fees sf
+                    INNER JOIN student_master sm ON sm.student_id = sf.student_id 
+                    LEFT JOIN concession_master con ON con.concession_id = sf.concession_type_id
+                    WHERE sf.year = '{current_year}' 
+                    AND sf.date_payment BETWEEN '{from_date}' AND '{to_date}'
                 """
-                params = [current_year, from_date, to_date]
 
-                if payment_type:
-                    q += " AND sf.payment_mode = %s"
-                    params.append(payment_type)
+                if paymentType:
+                    query += f" AND sf.payment_mode = '{paymentType}'"
+                if deviceType:
+                    query += f" AND sf.request_source = '{deviceType}'"
 
-                if device_type:
-                    q += " AND sf.request_source = %s"
-                    params.append(device_type)
-
-                q += " ORDER BY sf.date_payment DESC, sm.addmission_no;"
+                query += " ORDER BY sf.date_payment DESC, sm.addmission_no;"
 
             elif feestype == 'customfees':
-                q = """
-                    SELECT sf.*, cls.*, sm.addmission_no, sm.student_name, con.concession_type 
+                query = f"""
+                    SELECT sf.*, cls.*, sm.addmission_no, sm.student_name, con.concession_type, sf.request_source 
                     FROM student_fees sf 
                     LEFT JOIN student_master sm ON sm.student_id = sf.student_id 
                     LEFT JOIN concession_master con ON con.concession_id = sf.concession_type_id 
                     LEFT OUTER JOIN (
-                        SELECT * FROM student_classes WHERE (student_id, started_on) IN (
-                            SELECT student_id, MAX(started_on) FROM student_classes GROUP BY student_id
+                        SELECT * FROM student_classes 
+                        WHERE (student_id, started_on) IN (
+                            SELECT student_id, MAX(started_on) 
+                            FROM student_classes 
+                            GROUP BY student_id
                         )
-                    ) AS cls ON sm.student_id = cls.student_id 
+                    ) AS cls ON sm.student_id = cls.student_id
                 """
 
-                if date_from and date_to:
-                    q += " WHERE sf.date_payment BETWEEN %s AND %s"
-                    params += [date_from, date_to]
+                if datefrom1 and dateto1:
+                    query += f" WHERE sf.date_payment BETWEEN '{datefrom1}' AND '{dateto1}'"
                 else:
-                    yesterday = date.today() - timedelta(days=1)
-                    q += " WHERE (sf.added_at >= %s AND sf.added_at < %s)"
-                    params += [yesterday, date.today()]
+                    query += " WHERE sf.added_at >= CURDATE() - INTERVAL 1 DAY AND sf.added_at < CURDATE()"
 
-                if device_type:
-                    q += " AND sf.request_source = %s"
-                    params.append(device_type)
+                if deviceType:
+                    query += f" AND sf.request_source = '{deviceType}'"
+                if paymentType:
+                    query += f" AND sf.payment_mode = '{paymentType}'"
 
-                if payment_type:
-                    q += " AND sf.payment_mode = %s"
-                    params.append(payment_type)
-
-                q += " ORDER BY sf.added_at DESC, sm.addmission_no"
+                query += " ORDER BY sf.added_at DESC, sm.addmission_no;"
 
             else:
-                q = """
-                    SELECT a.*, cls.*, sm.addmission_no, sm.student_name, con.concession_type 
+                query = f"""
+                    SELECT a.*, cls.*, sm.addmission_no, sm.student_name, con.concession_type, a.request_source 
                     FROM student_fees a 
                     LEFT JOIN student_master sm ON sm.student_id = a.student_id 
                     LEFT JOIN concession_master con ON con.concession_id = a.concession_type_id 
-                    LEFT OUTER JOIN student_classes AS cls ON sm.student_id = cls.student_id 
-                    WHERE a.date_payment BETWEEN %s AND %s 
-                    AND cls.student_class_id = (SELECT MAX(student_class_id) 
-                                                FROM student_classes 
-                                                WHERE student_id = sm.student_id)
+                    LEFT OUTER JOIN student_classes cls ON sm.student_id = cls.student_id 
+                    WHERE a.date_payment BETWEEN '{datefrom1}' AND '{dateto1}'
+                    AND cls.student_class_id = (
+                        SELECT MAX(student_class_id) 
+                        FROM student_classes 
+                        WHERE student_id = sm.student_id
+                    )
                 """
-                params = [date_from, date_to]
 
-                if payment_type:
-                    q += " AND a.payment_mode = %s"
-                    params.append(payment_type)
+                if paymentType:
+                    query += f" AND a.payment_mode = '{paymentType}'"
+                if deviceType:
+                    query += f" AND a.request_source = '{deviceType}'"
 
-                if device_type:
-                    q += " AND a.request_source = %s"
-                    params.append(device_type)
+                query += " ORDER BY a.date_payment DESC, sm.addmission_no;"
+            
+            amount = 0
+            totsecfees = 0  # Initialize to 0
 
-                q += " ORDER BY a.date_payment DESC, sm.addmission_no"
-
-            # Execute the query
+            # Execute the query and process the results
             with connection.cursor() as cursor:
-                cursor.execute(q, params)
-                fee_records = cursor.fetchall()
-                print(f"fee_records==={fee_records}")
+                cursor.execute(query)
+                result = cursor.fetchall()
 
-            # Process fee records and calculate totals
-            for entry in fee_records:
+                # Create a mapping of column names to their indices
+                column_names = [col[0] for col in cursor.description]
 
-                # Create a dictionary for each record
-                # Check the length of the tuple to avoid out of range errors
-                if len(entry) >= 49:  # Ensure there are at least 49 elements in the tuple
-                    collection_record = {
-                        'addmission_no': entry[0],           # Admission no
-                        'student_name': entry[48],           # Student Name
-                        'class_no': entry[2],                # Class
-                        'section': entry[3],                 # Section
-                        'fees_for_months': entry[4],         # Fees for months
-                        'fees_period_month': entry[5],       # Fees paid for months
-                        'annual_fees_paid': entry[8],        # Annual fees
-                        'tuition_fees_paid': entry[9],       # Tuition fees
-                        'concession_applied': entry[10],     # Concession applied
-                        'net_tuition_fees': entry[11],       # Net tuition fees
-                        'funds_fees_paid': entry[12],        # Fund fees
-                        'sports_fees_paid': entry[13],       # Sports fees
-                        'activity_fees': entry[14],          # Activity fees
-                        'admission_fees_paid': entry[15],    # Admission fees
-                        'security_paid': entry[16],          # Security fees
-                        'late_fees_paid': entry[17],         # Late fees
-                        'miscellaneous_fees': entry[18],     # Miscellaneous fees
-                        'bus_fees_paid': entry[19],          # Bus fees
-                        'date_payment': entry[20],           # Payment date
-                        'payment_mode': entry[21],           # Payment mode
-                        'cheq_no': entry[22],                # Cheque no.
-                        'bank_name': entry[23],              # Bank name
-                        'concession_type': entry[24],        # Concession type
-                        'Total_amount': entry[25],           # Total amount
-                        'amount_paid': entry[26],            # Amount paid
-                        'cheque_status': entry[28],          # Cheque status
-                        'realized_date': entry[29],          # Realized date
-                        'remarks': entry[31],                # Remarks
-                        'request_source': entry[37],         # User Agent (Request source)
+                for row in result:
+                    fee_record = {
+                        'addmission_no': row[column_names.index('addmission_no')],
+                        'student_name': row[column_names.index('student_name')],
+                        'class_no': row[column_names.index('class_no')],
+                        'section': row[column_names.index('section')],
+                        'fees_for_months': row[column_names.index('fees_for_months')],
+                        'fees_period_month': row[column_names.index('fees_period_month')],
+                        'annual_fees_paid': row[column_names.index('annual_fees_paid')],
+                        'tuition_fees_paid': row[column_names.index('tuition_fees_paid')],
+                        'concession_applied': row[column_names.index('concession_applied')],
+                        # 'net_tuition_fees': row[column_names.index('net_tuition_fees')],
+                        'funds_fees_paid': row[column_names.index('funds_fees_paid')],
+                        'sports_fees_paid': row[column_names.index('sports_fees_paid')],
+                        'activity_fees': row[column_names.index('activity_fees')],
+                        'admission_fees_paid': row[column_names.index('admission_fees_paid')],
+                        'security_paid': row[column_names.index('security_paid')],
+                        'late_fees_paid': row[column_names.index('late_fees_paid')],
+                        # 'miscellaneous_fees': row[column_names.index('miscellaneous_fees')],
+                        'bus_fees_paid': row[column_names.index('bus_fees_paid')],
+                        'date_payment': row[column_names.index('date_payment')],
+                        'payment_mode': row[column_names.index('payment_mode')],
+                        'cheq_no': row[column_names.index('cheq_no')],
+                        'bank_name': row[column_names.index('bank_name')],
+                        'concession_type': row[column_names.index('concession_type')],
+                        'Total_amount': row[column_names.index('Total_amount')],
+                        'amount_paid': row[column_names.index('amount_paid')],
+                        'cheque_status': row[column_names.index('cheque_status')],
+                        'realized_date': row[column_names.index('realized_date')],
+                        'remarks': row[column_names.index('remarks')],
+                        'request_source': row[column_names.index('request_source')]
                     }
-                    collection_list.append(collection_record)
 
-                # Save results to session for later export
-                request.session['collection_list'] = collection_list
+                    results.append(fee_record)  # Add the fee record to the list
+                    amount += row[column_names.index('amount_paid')] or 0  # Handle None for amount as well
 
-                results = collection_list
+        # Ensure any date objects in the result are converted to strings
+        for result in results:
+            if 'date_payment' in result and isinstance(result['date_payment'], date):
+                result['date_payment'] = result['date_payment'].strftime('%Y-%m-%d')
+            if 'realized_date' in result and isinstance(result['realized_date'], date):
+                result['realized_date'] = result['realized_date'].strftime('%Y-%m-%d')
 
-                # results.append(fee)  # Collect each fee record to be displayed in the template
+        # Now save the results to the session using json.dumps with the date_to_string function
+        request.session['collection_list'] = json.dumps(results, default=date_to_string)
 
-                # total_fees['amount'] += fee['amount_paid']
-                # total_fees['annual_fees'] += fee['annual_fees_paid']
-                # total_fees['tuition_fees'] += fee['tuition_fees_paid']
-                # total_fees['fund_fees'] += fee['funds_fees_paid']
-                # total_fees['sports_fees'] += fee['sports_fees_paid']
-                # total_fees['activity_fees'] += fee['activity_fees']
-                # total_fees['admission_fees'] += fee['admission_fees_paid']
-                # total_fees['security_fees'] += fee['security_paid']
-                # total_fees['late_fees'] += fee['late_fees_paid']
-                # total_fees['dayboarding_fees'] += fee['dayboarding_fees_paid']
-                # total_fees['bus_fees'] += fee['bus_fees_paid']
-                # total_fees['total_fees'] += fee['Total_amount']
-                # total_fees['concession'] += fee['concession_applied'] if isinstance(fee['concession_applied'], (int, float)) else 0
+        # Prepare context to pass to the template
+        context = extra_context or {}
+        context.update({
+            'form': form,
+            'results': results,  # Pass the list of dictionaries to the template
+        })
 
-        # Add form, results, and totals to extra_context
-        extra_context['form'] = form
-        extra_context['results'] = results  # Contains the processed fee records
-        extra_context['total_fees'] = total_fees  # Contains the summary of fees
-
-        return super().changelist_view(request, extra_context=extra_context)
-
-    change_list_template = "admin/collection_report/change_list.html"  # Specify your custom template
+        # Render the custom template with the form and results
+        return super().changelist_view(request, extra_context=context)
 
 admin.site.register(collection_report, CollectionReportAdmin)
 
@@ -1552,13 +1603,12 @@ class DefaultersReportForm(forms.Form):
         required=False
     )
 
-
 class ActivityFeesDefaulterAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('activity-fees-defaulters/', self.admin_site.admin_view(self.changelist_view)),
+            path('activity-fees-defaulters/', self.admin_site.admin_view(self.changelist_view),name='activity_fees_defaulter_changelist'),
             path('activity-fees-defaulters/export/', self.admin_site.admin_view(self.export_defaulters_to_excel), name="export_defaulters_csv")
         ]
         return custom_urls + urls
@@ -1660,30 +1710,6 @@ class ActivityFeesDefaulterAdmin(admin.ModelAdmin):
         return response
 
     def changelist_view(self, request, extra_context=None):
-
-        # Assuming defaulters_list is populated with your required data
-        defaulters_list = []  # Your existing logic for populating this
-
-        # Export to Excel
-        if request.POST.get('export_to_excel'):  # Check if export button was pressed
-            df = pd.DataFrame(defaulters_list)  # Convert the list of dictionaries to a DataFrame
-
-            # Create an Excel file in memory
-            excel_file = pd.ExcelWriter('defaulters_report.xlsx', engine='openpyxl')
-            df.to_excel(excel_file, index=False, sheet_name='Defaulters')  # Write DataFrame to the Excel file
-
-            # Save the file
-            excel_file.save()
-            excel_file.close()
-
-            # Send the file to the user
-            response = HttpResponse(
-                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-            response['Content-Disposition'] = 'attachment; filename=defaulters_report.xlsx'
-            response.write(excel_file)
-            return response  # Return the response to download the file
-
 
         extra_context = extra_context or {}
         form = DefaultersReportForm(request.POST or None)  # Initialize form with POST data
