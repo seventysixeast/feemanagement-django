@@ -64,7 +64,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 # from multiselectfield import MultiSelectField
-
+from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.utils.translation import gettext_lazy as _
@@ -199,6 +199,21 @@ Month_CHOICES = [
     ('12', '12')
 ]
 
+# Define a list of months
+FEE_MONTHS_CHOICES = [
+    ('1', 'January'),
+    ('2', 'February'),
+    ('3', 'March'),
+    ('4', 'April'),
+    ('5', 'May'),
+    ('6', 'June'),
+    ('7', 'July'),
+    ('8', 'August'),
+    ('9', 'September'),
+    ('10', 'October'),
+    ('11', 'November'),
+    ('12', 'December'),
+]
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
@@ -827,7 +842,28 @@ class FeesMasterAdmin(admin.ModelAdmin):
 # class BusFeesMaster(admin.ModelAdmin):
 #     list_display = ("bus_id", "route", "destination", "bus_fees", "fee_not_applicable_in_months")
 #     search_fields = ['route']
-    
+
+# Define the form for selecting multiple months
+class FeeNotApplicableForm(forms.Form):
+    fee_not_applicable_in_months = forms.MultipleChoiceField(
+        choices=FEE_MONTHS_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        label="Select months where fees are not applicable",
+    )
+
+# View to handle form display and submission
+def fee_not_applicable_in_months_view(request):
+    if request.method == 'POST':
+        form = FeeNotApplicableForm(request.POST)
+        if form.is_valid():
+            # Get selected months
+            selected_months = form.cleaned_data['fee_not_applicable_in_months']
+            return HttpResponse(f"Selected months: {', '.join(selected_months)}")
+    else:
+        form = FeeNotApplicableForm()
+
+    return render(request, 'fee_not_applicable_in_months.html', {'form': form})
+
 
 class BusFeesMasterResource(resources.ModelResource):
     # Custom fields for Bus Driver and Bus Attendant
@@ -870,6 +906,92 @@ class BusFeesMaster(ExportMixin, admin.ModelAdmin):
     list_display = ( "route", "destination", "bus_fees", "get_bus_driver", "get_bus_attendant")
     search_fields = ['route']
     resource_class = BusFeesMasterResource
+
+    # Override changelist_view to add the button above the list
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['fee_not_applicable_button'] = format_html(
+            '<a class="button" href="{}" style="margin-right: 10px;">Set Fee Not Applicable Months</a>',
+            reverse('admin:set_fee_not_applicable_in_months')
+        )
+        return super().changelist_view(request, extra_context=extra_context)
+
+    # Define the custom view to handle the month selection logic
+    # Define the custom view to handle the month selection logic
+    def set_fee_not_applicable_in_months(self, request):
+        # Retrieve the current value from the database
+        current_value = busfees_master.objects.first()  # Adjust if necessary
+        
+        # Initialize form
+        if request.method == 'POST':
+            form = FeeNotApplicableForm(request.POST)
+            if form.is_valid():
+                selected_months = form.cleaned_data['fee_not_applicable_in_months']
+                # Update all records with the selected months
+                fee_not_applicable_in_months = ','.join(selected_months)
+                busfees_master.objects.all().update(fee_not_applicable_in_months=fee_not_applicable_in_months)
+                self.message_user(request, "No Months Applicable updated successfully.")
+                return redirect('admin:app_busfeesmaster_changelist')  # Adjust the URL as needed
+        else:
+            # If not a POST request, prefill the form with current values
+            initial_months = []
+            if current_value and current_value.fee_not_applicable_in_months:
+                initial_months = current_value.fee_not_applicable_in_months.split(',')
+            form = FeeNotApplicableForm(initial={'fee_not_applicable_in_months': initial_months})
+
+        return render(request, 'admin/fee_not_applicable_in_months.html', {'form': form})
+
+    # Define the custom URL for setting the fee not applicable months
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                'set-fee-not-applicable-in-months/',
+                self.admin_site.admin_view(self.set_fee_not_applicable_in_months),
+                name='set_fee_not_applicable_in_months',
+            ),
+        ]
+        return custom_urls + urls
+    # # Add the button to go to the fee not applicable months selection page
+    # def fee_not_applicable_button(self, obj):
+    #     return format_html(
+    #         '<a class="button" href="{}">Set Fee Not Applicable Months</a>',
+    #         reverse('admin:set_fee_not_applicable_in_months', args=[obj.pk])
+    #     )
+    
+    # fee_not_applicable_button.short_description = 'Fee Not Applicable in Months'
+
+    # # Define the view to handle the month selection and saving
+    # def set_fee_not_applicable_in_months(self, request, busfees_master_id):
+    #     busfees_master_instance = self.get_object(request, busfees_master_id)
+        
+    #     if request.method == 'POST':
+    #         form = FeeNotApplicableForm(request.POST)
+    #         if form.is_valid():
+    #             selected_months = form.cleaned_data['fee_not_applicable_in_months']
+    #             busfees_master_instance.fee_not_applicable_in_months = ",".join(selected_months)
+    #             busfees_master_instance.save()
+
+    #             self.message_user(request, "Fee not applicable months updated successfully.")
+    #             return HttpResponseRedirect(reverse('admin:app_busfeesmaster_changelist'))
+    #     else:
+    #         form = FeeNotApplicableForm(initial={
+    #             'fee_not_applicable_in_months': busfees_master_instance.fee_not_applicable_in_months.split(',')
+    #         })
+
+    #     return render(request, 'admin/fee_not_applicable_in_months.html', {'form': form, 'busfees_master': busfees_master_instance})
+
+    # # Define the custom admin URL for the new view
+    # def get_urls(self):
+    #     urls = super().get_urls()
+    #     custom_urls = [
+    #         path(
+    #             '<int:busfees_master_id>/set-fee-not-applicable-in-months/',
+    #             self.admin_site.admin_view(self.set_fee_not_applicable_in_months),
+    #             name='set_fee_not_applicable_in_months',
+    #         ),
+    #     ]
+    #     return custom_urls + urls
 
     # Override delete_queryset to handle delete errors during confirmation
     def delete_queryset(self, request, queryset):
