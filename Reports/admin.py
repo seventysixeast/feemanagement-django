@@ -1141,7 +1141,7 @@ admin.site.register(admission_report, AdmissionReportAdmin)
     #     return obj.total_annual_fees  # Access the annotated field directly
 
 
-from rest_framework import serializers  # Importing serializers for the MoneySerializer
+# from rest_framework import serializers  # Importing serializers for the MoneySerializer
 
 # Serializer for handling data representation (useful for APIs or exporting data)
 # class MoneySerializer(serializers.ModelSerializer):
