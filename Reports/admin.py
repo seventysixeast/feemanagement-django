@@ -58,6 +58,26 @@ from io import BytesIO
 from django.contrib import messages
 from django.shortcuts import redirect
 
+
+from datetime import date
+from django.utils.html import format_html
+from django.db.models import Sum, F, Value, CharField, IntegerField
+from django.db.models.functions import Concat, Coalesce
+from collections import defaultdict
+
+
+from django.urls import path
+from django.db import connection
+from django.http import HttpResponse
+from django.contrib import admin, messages
+from io import BytesIO
+import pandas as pd
+from datetime import datetime
+
+from openpyxl import Workbook
+
+from django.utils import timezone
+
 # from .forms import DefaultersReportForm
 
 
@@ -1855,345 +1875,213 @@ class TransportDefaulterReportAdmin(ExportMixin, admin.ModelAdmin):
 
 admin.site.register(transport_defaulter, TransportDefaulterReportAdmin)
 
-
-# class chequedepositreportAdmin(admin.ModelAdmin):
-
-#     def get_search_results(self, request, queryset, search_term):
-#         # Parse date range from user inputs
-#         datefrom = request.GET.get('datefrom')
-#         dateto = request.GET.get('dateto')
-
-#         # Convert dates if they exist
-#         if datefrom:
-#             datefrom1 = datefrom  # Expecting date format: 'Y-m-d'
-#         if dateto:
-#             dateto1 = dateto
-
-#         # Current year and session start (April 1st of the current year)
-#         current_year = date.today().year
-#         session_start = f"{current_year}-04-01"
-
-#         # Filter queryset for cheque payments that are open and between the date range
-#         queryset = queryset.filter(
-#             payment_mode='cheque',
-#             cheque_status='open',
-#             date_payment__range=[datefrom1, dateto1]
-#         ).values(
-#             'bank_name', 'branch_name', 'cheq_no'
-#         ).annotate(
-#             amount_paid=Sum('amount_paid'),
-#             student_name=Concat('student__student_name', output_field=CharField()),
-#             mobile_no=F('student__mobile_no'),
-#             admission_no=Concat('student__admission_no', output_field=CharField()),
-#             student_class=Concat('student_class', output_field=CharField()),
-#             student_section=Concat('student_section', output_field=CharField())
-#         )
-
-#         total_amount = 0
-#         for chq in queryset:
-#             total_amount += chq['amount_paid']
-
-#         return queryset, total_amount
     
-# from datetime import date
-# from django.db.models import Sum, F
-# from django.db.models.functions import Concat
-# from django.db.models import CharField
 
-# class chequedepositreportAdmin(admin.ModelAdmin):
-
-#     def get_search_results(self, request, queryset, search_term):
-#         # Parse date range from user inputs
-#         datefrom = request.GET.get('datefrom')
-#         dateto = request.GET.get('dateto')
-
-#         # Set default values for date range if not provided
-#         if datefrom:
-#             datefrom1 = datefrom  # Expecting date format: 'Y-m-d'
-#         else:
-#             datefrom1 = '2024-04-01'  # Default start date (adjust as needed)
-
-#         if dateto:
-#             dateto1 = dateto
-#         else:
-#             dateto1 = date.today().strftime('%Y-%m-%d')  # Default end date is today
-
-#         # Current year and session start (April 1st of the current year)
-#         current_year = date.today().year
-#         session_start = f"{current_year}-04-01"
-
-#         # Filter queryset for cheque payments that are open and between the date range
-#         queryset = queryset.filter(
-#             payment_mode='cheque',
-#             cheque_status='open',
-#             date_payment__range=[datefrom1, dateto1]
-#         ).values(
-#             'bank_name', 'branch_name', 'cheq_no'
-#         ).annotate(
-#             amount_paid=Sum('amount_paid'),
-#             student_name=Concat('student_id__student_name', output_field=CharField()),
-#             mobile_no=F('student_id__mobile_no'),
-#             admission_no=Concat('student_id__admission_no', output_field=CharField()),
-#             student_class=Concat('student_class', output_field=CharField()),
-#             student_section=Concat('student_section', output_field=CharField())
-#         )
-
-#         total_amount = 0
-#         for chq in queryset:
-#             total_amount += chq['amount_paid']
-
-#         return queryset, total_amount
-
-
-# from django.db.models import Sum, F
-# from django.db.models import CharField
-
-# class chequedepositreportAdmin(admin.ModelAdmin):
-
-#     def get_search_results(self, request, queryset, search_term):
-#         # Parse date range from user inputs
-#         datefrom = request.GET.get('datefrom')
-#         dateto = request.GET.get('dateto')
-
-#         # Set default values for date range if not provided
-#         if datefrom:
-#             datefrom1 = datefrom  # Expecting date format: 'Y-m-d'
-#         else:
-#             datefrom1 = '2024-04-01'  # Default start date (adjust as needed)
-
-#         if dateto:
-#             dateto1 = dateto
-#         else:
-#             dateto1 = date.today().strftime('%Y-%m-%d')  # Default end date is today
-
-#         # Current year and session start (April 1st of the current year)
-#         current_year = date.today().year
-#         session_start = f"{current_year}-04-01"
-
-#         # Filter queryset for cheque payments that are open and between the date range
-#         queryset = queryset.filter(
-#             payment_mode='cheque',
-#             cheque_status='open',
-#             date_payment__range=[datefrom1, dateto1]
-#         ).values(
-#             'bank_name', 'branch_name', 'cheq_no'
-#         ).annotate(
-#             amount_paid=Sum('amount_paid'),
-#             student_name=F('student_id__student_name'),  # Fetch student name without Concat
-#             mobile_no=F('student_id__mobile_no'),
-#             admission_no=F('student_id__addmission_no'),
-#             student_class=F('student_class'),
-#             student_section=F('student_section')
-#         )
-
-#         total_amount = 0
-#         for chq in queryset:
-#             print("chq['amount_paid']",chq['amount_paid'])
-#             total_amount += int(chq['amount_paid'])
-
-#         return queryset, total_amount
-    
-from datetime import date
-from django.utils.html import format_html
-# from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import Sum, F, Value, CharField, IntegerField
-from django.db.models.functions import Concat, Coalesce
-from collections import defaultdict
 
 
 class chequedepositreportAdmin(admin.ModelAdmin):
 
-    list_display = (
-        'student_name','admission_no','student_class','student_section','phone_no','bank_name', 'branch_name', 'cheq_no','total_collection'
-    )
-    list_filter = ( DateFromFilter, DateToFilter)
-     # Add your list display fields here
-    # list_display = ('bank_name', 'branch_name', 'cheq_no', 'student_name', 'mobile_no', 'admission_no', 'student_class', 'student_section', 'cheque_status', 'amount_paid')
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+    change_list_template = "admin/chequedepositreport_change_list.html"
     
-    # Specify which fields to link to change views
-    # list_display_links = ('student_class',)
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('cheque-deposit/', self.admin_site.admin_view(self.changelist_view)),
+            path('cheque-deposit/export/', self.admin_site.admin_view(self.export_cheque_deposits_to_excel), name="export_cheque_deposits_excel"),
+        ]
+        return custom_urls + urls
+   
 
-    # Add other relevant configurations
-    # list_filter = ('bank_name', 'branch_name', 'cheque_status')
-    # search_fields = ('student__student_name', 'student__mobile_no', 'cheq_no')
-    change_list_template = "admin/chequedepositreport_change_list.html"  # Custom template for the change list
+    def export_cheque_deposits_to_excel(seld, request):
+        # datefrom = request.GET.get('datefrom')
+        # dateto = request.GET.get('dateto')
+        datefrom = request.session.get('datefrom',None)
+        dateto = request.session.get('dateto',None)
+        # Memory limit (optional in Python, memory-efficient libraries can be used)
+        # Not necessary in Python but large datasets might require optimization
 
-    # def get_search_results(self, request, queryset, search_term):
-    #     # Parse date range from user inputs
-    #     datefrom = request.GET.get('datefrom')
-    #     dateto = request.GET.get('dateto')
+        bankarray = ['Bank', 'Cash', 'Online']
+        datefrom1 = datetime.strptime(datefrom, "%Y-%m-%d").date()
+        dateto1 = datetime.strptime(dateto, "%Y-%m-%d").date()
+        date = datetime.now().year
+        sessionstarts = f"{date}-04-01"
 
-    #     # Set default values for date range if not provided
-    #     if datefrom:
-    #         datefrom1 = datefrom  # Expecting date format: 'Y-m-d'
-    #     else:
-    #         datefrom1 = '2024-04-01'  # Default start date (adjust as needed)
+        # Create a new Excel workbook
+        workbook = Workbook()
+        sheet_index = 0
 
-    #     if dateto:
-    #         dateto1 = dateto
-    #     else:
-    #         dateto1 = date.today().strftime('%Y-%m-%d')  # Default end date is today
+        for bank in bankarray:
+            total_amount = 0
+            if bank == 'Cash':
+                query = student_fee.objects.filter(
+                    payment_mode='Cash',
+                    date_payment__range=[datefrom1, dateto1]
+                ).select_related('student_id')
+            elif bank == 'Online':
+                query = student_fee.objects.filter(
+                    payment_mode='online',
+                    date_payment__range=[datefrom1, dateto1]
+                ).select_related('student_id')
+            else:
+                query = student_fee.objects.filter(
+                    payment_mode='cheque',
+                    cheque_status='open',
+                    date_payment__range=[datefrom1, dateto1]
+                ).select_related('student_id')
 
-    #     # Filter queryset for cheque payments that are open and between the date range
-    #     # queryset = queryset.filter(
-    #     #     payment_mode='cheque',
-    #     #     cheque_status='open',
-    #     #     date_payment__range=[datefrom1, dateto1]
-    #     # ).values(
-    #     #     'bank_name', 'branch_name', 'cheq_no'
-    #     # ).annotate(
-    #     #     # Safely aggregate numeric values, using Coalesce to handle nulls if necessary
-    #     #     # amount_paid=Coalesce(Sum('amount_paid'), 0),
-    #     #     amount_paid=Sum('amount_paid'),
-    #     #     student_name=F('student_id__student_name'),
-    #     #     mobile_no=F('student_id__mobile_no'),
-    #     #     admission_no=F('student_id__addmission_no'),
-    #     #     student_class=F('student_class'),
-    #     #     student_section=F('student_section')
-    #     # )
+            if query.exists():
+                # Create a new sheet for each bank type
+                if sheet_index == 0:
+                    sheet = workbook.active
+                    sheet.title = bank
+                    # sheet = workbook.create_sheet(title=bank)
+                else:
+                    sheet = workbook.create_sheet(title=bank)
+                sheet_index += 1
 
-    #     queryset = queryset.filter(
-    #         payment_mode='cheque',
-    #         cheque_status='open',
-    #         date_payment__range=[datefrom1, dateto1]
-    #     ).values(
-    #         'bank_name', 'branch_name', 'cheq_no'
-    #     ).annotate(
-    #         # Concatenate distinct student names
-    #         student_names=ArrayAgg(
-    #             F('student_id__student_name'), distinct=True, ordering=F('student_id__student_name').asc()
-    #         ),
-    #         # Aggregating and concatenating admission numbers
-    #         admission_no=ArrayAgg(
-    #             F('student_id__addmission_no'), distinct=True, ordering=F('student_id__addmission_no').asc()
-    #         ),
-    #         # Concatenate class and section without duplicates
-    #         student_class=ArrayAgg(
-    #             F('student_class'), distinct=True, ordering=F('student_class').asc()
-    #         ),
-    #         student_section=ArrayAgg(
-    #             F('student_section'), distinct=True, ordering=F('student_section').asc()
-    #         ),
-    #         # Safely aggregate numeric values, using Coalesce to handle nulls if necessary
-    #         amount_paid=Sum('amount_paid'),
-    #         mobile_no=F('student_id__mobile_no')
-    #     )
+                # Set headers and school information
+                sheet['C1'] = 'Shishu Niketan Public School, Sector 66, Mohali'
+                sheet['C2'] = 'ICICI, Phase – 7, Mohali Account No. 632205010090'
+                sheet['C3'] = 'Tel: 9815094449'
+                sheet['E3'] = f'Date: {datetime.now().strftime("%d-%m-%Y")}'
+                sheet['G3'] = f'Date of Entry: {datefrom1.strftime("%Y-%m-%d")}'
 
-    #     # Calculate total amount
-    #     # total_amount = queryset.aggregate(total=Coalesce(Sum('amount_paid'), 0))['total']
-    #     total_amount = 0
-    #     for chq in queryset:
-    #         # print("chq['amount_paid']",chq['amount_paid'])
-    #         total_amount += int(chq['amount_paid'])
+                # Set column headers
+                headers = ['SrNo', 'Name', 'Admission Number(s)', 'Class', 'Section', 'Phone Number', 'Bank', 'Branch', 'Cheque No', 'Cheque Status', 'Amount']
+                for col_num, header in enumerate(headers, 1):
+                    sheet.cell(row=5, column=col_num).value = header
 
-    #     # Returning queryset and total amount for further rendering
-    #     return queryset, total_amount
+                # Fill in data
+                row_num = 6
+                for index, fee in enumerate(query, 1):
+                    student = fee.student_id
+                    phone_no = student.phone_no if student.phone_no else student.mobile_no
 
-    def get_search_results(self, request, queryset, search_term):
-        # Parse date range from user inputs
-        datefrom = request.GET.get('datefrom')
-        dateto = request.GET.get('dateto')
+                    sheet.cell(row=row_num, column=1).value = index
+                    sheet.cell(row=row_num, column=2).value = student.student_name
+                    sheet.cell(row=row_num, column=3).value = student.addmission_no
+                    sheet.cell(row=row_num, column=4).value = fee.student_class
+                    sheet.cell(row=row_num, column=5).value = fee.student_section
+                    sheet.cell(row=row_num, column=6).value = phone_no
+                    sheet.cell(row=row_num, column=7).value = fee.bank_name
+                    sheet.cell(row=row_num, column=8).value = fee.branch_name
+                    sheet.cell(row=row_num, column=9).value = fee.cheq_no
+                    sheet.cell(row=row_num, column=10).value = fee.cheque_status
+                    sheet.cell(row=row_num, column=11).value = fee.amount_paid
+                    total_amount += fee.amount_paid if fee.amount_paid else 0
+                    row_num += 1
 
-        # Set default values for date range if not provided
-        if datefrom:
-            datefrom1 = datefrom  # Expecting date format: 'Y-m-d'
-        else:
-            datefrom1 = '2024-04-01'  # Default start date (adjust as needed)
+                # Add total row
+                sheet.cell(row=row_num, column=1).value = 'Total'
+                sheet.cell(row=row_num, column=11).value = total_amount
+                print('bank',bank)
+                print('sheet_index',sheet_index)
 
-        if dateto:
-            dateto1 = dateto
-        else:
-            dateto1 = date.today().strftime('%Y-%m-%d')  # Default end date is today
+        # Create a response for the Excel file download
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="Cheque_Deposit_Status_Report.xlsx"'
 
-        # Filter queryset for cheque payments that are open and between the date range
-        queryset = queryset.filter(
-            payment_mode='cheque',
-            cheque_status='open',
-            date_payment__range=[datefrom1, dateto1]
-        ).values(
-            'bank_name', 'branch_name', 'cheq_no'
-        ).annotate(
-            # Concatenate admission numbers and student names
-            # admission_no=F('student_id__addmission_no'),
-            # student_name=F('student_id__student_name'),
-            admission_no=Concat(F('student_id__addmission_no'), output_field=CharField()),
-            student_name=Concat(F('student_id__student_name'), output_field=CharField()),
-            mobile_no=F('student_id__mobile_no'),
-            student_class=F('student_class'),
-            student_section=F('student_section'),
-            # amount_paid=Sum('amount_paid')
-            amount_paid=Sum(F('amount_paid'), output_field=IntegerField())
-        ).order_by('bank_name', 'branch_name', 'cheq_no')
-
-        # Grouping using the same cheque number, bank, and branch, while concatenating student names
-        queryset = queryset.annotate(
-            student_names=Concat(
-                F('student_name'),
-                Value(', '),
-                output_field=CharField()
-            ),
-            admission_nos=Concat(
-                F('admission_no'),
-                Value(', '),
-                output_field=CharField()
-            )
-        )
-
-        total_amount = queryset.aggregate(total_amount=Sum('amount_paid', output_field=IntegerField()))['total_amount']
-
-        return queryset, total_amount
-    
+        # Save the workbook to the response
+        workbook.save(response)
+        return response
 
     def changelist_view(self, request, extra_context=None):
-        # Call the parent method to get the default changelist view
-        queryset, total_amount = self.get_search_results(request, self.model.objects.all(), search_term='')
-
-        # context = {
-        #     'cl': self.get_changelist(request)(self.model, self.admin_site),
-        #     'total_amount': total_amount,
-        # }
         extra_context = extra_context or {}
-        # Store the request object in the instance
-        
-        # Get the filter values from GET parameters
-        date_from = request.GET.get('date_from', '')
-        date_to = request.GET.get('date_to', timezone.now().strftime('%Y-%m-%d'))
+        cheque_details = []
+        total_amount = 0
 
-        # Pass filter values to the template to retain them
-        extra_context['date_from'] = date_from
-        extra_context['date_to'] = date_to
+        # Retrieve date filters from the POST data
+        if request.method == 'POST':
+            datefrom = request.POST.get('datefrom')
+            dateto = request.POST.get('dateto')
+            print('datefrom',datefrom)
+            print('dateto',dateto)
+            # Validate and parse dates
+            try:
+                datefrom = datetime.strptime(datefrom, "%Y-%m-%d").date() if datefrom else None
+                dateto = datetime.strptime(dateto, "%Y-%m-%d").date() if dateto else None
+            except ValueError:
+                datefrom, dateto = None, None
+
+            # Set defaults if dates are missing
+            if not datefrom:
+                datefrom = datetime.now().replace(month=4, day=1).date()  # Start of fiscal year
+            if not dateto:
+                dateto = datetime.now().date()
+                
+
+            print(f'Date From: {datefrom}, Date To: {dateto}')
+
+            # Construct and execute the SQL query
+            query = f"""
+                SELECT sf.cheq_no, sf.bank_name, sf.branch_name, sf.cheque_status, 
+                    SUM(sf.amount_paid) as amount_paid, 
+                    GROUP_CONCAT(DISTINCT sm.student_name) as student_name, 
+                    sm.mobile_no,
+                    GROUP_CONCAT(DISTINCT sm.addmission_no) as addmission_no, 
+                    GROUP_CONCAT(DISTINCT sf.student_class) as student_class, 
+                    GROUP_CONCAT(DISTINCT sf.student_section) as student_section 
+                FROM student_fees sf 
+                LEFT JOIN student_master sm ON sm.student_id = sf.student_id 
+                WHERE sf.payment_mode='cheque' 
+                AND sf.cheque_status='open' 
+                AND sf.date_payment BETWEEN '{datefrom}' AND '{dateto}'
+                GROUP BY sf.bank_name, sf.branch_name, sf.cheq_no
+            """
+            params = [datefrom, dateto]
+
+            print(f'Query: {query}')
+            print(f'Params: {params}')
+
+            # Execute the query
+            with connection.cursor() as cursor:
+                # cursor.execute(query, params)
+                cursor.execute(query)
+                query_results = cursor.fetchall()
+
+            # print(f'Query Results: {query_results}')
+
+            # Process the query results
+            for row in query_results:
+                cheque_details.append({
+                    'student_name': row[5],
+                    'admission_no': row[7],
+                    'student_class': row[8],
+                    'student_section': row[9],
+                    'mobile_no': row[6],  # Corrected the mobile number index
+                    'bank_name': row[1],
+                    'branch_name': row[2],
+                    'cheq_no': row[0],
+                    'cheque_status': row[3],
+                    'amount_paid': row[4],
+                })
+                total_amount += row[4]  # Sum up the total amount paid
+
+            # print('cheque_details',cheque_details)
+            # Store the results in the session
+            datefrom_str = datefrom.isoformat()  # Converts to 'YYYY-MM-DD' string
+            dateto_str = dateto.isoformat()  
+            request.session['datefrom'] = datefrom_str
+            request.session['dateto'] = dateto_str
+
+        # Add the cheque details and total amount to the context
+        extra_context['cheque_details'] = cheque_details
         extra_context['total_amount'] = total_amount
+        extra_context['today_date'] = datetime.now().strftime("%Y-%m-%d")
+
         return super().changelist_view(request, extra_context=extra_context)
-
-    def total_collection(self, obj):
-        # return format_html('<strong>{}</strong>', obj.amount_paid)
-        return obj.amount_paid
-
-    total_collection.short_description = 'Total Collection'
-
-    def student_name(self, obj):
-        # return format_html('<strong>{}</strong>', obj.amount_paid)
-        print('Full object:', obj.__dict__)
-        return obj.student_id.student_name
-    
-    def admission_no(self, obj):
-        # return format_html('<strong>{}</strong>', obj.amount_paid)
-        return obj.student_id.addmission_no
-    
-    def phone_no(self, obj):
-        # return format_html('<strong>{}</strong>', obj.amount_paid)
-        return obj.student_id.mobile_no
-
 
 admin.site.register(cheque_deposit, chequedepositreportAdmin)
 
 
-
-
-
-
-
-# admin.site.register(tuition_fees_defaulter, TuitionFeesDefaulterAdmin)
 
 
 

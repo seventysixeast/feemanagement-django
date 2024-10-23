@@ -1,20 +1,83 @@
 {% extends "admin/change_list.html" %}
+{% load i18n %}
 
 {% block content %}
-<div class="admin-date-filters">
-    <form method="get">
-        <label for="datefrom">From:</label>
-        <input type="date" name="datefrom" id="datefrom" value="{{ request.GET.datefrom }}">
-        
-        <label for="dateto">To:</label>
-        <input type="date" name="dateto" id="dateto" value="{{ request.GET.dateto }}">
-        
-        <button type="submit">Search</button>
+<div class="report-container">
+    <div class="school-header" style="text-align: center; margin-bottom: 20px;">
+        <h3>Shishu Niketan Public School</h3>
+        <p>Sector – 66, Mohali</p>
+        <p>ICICI, Phase – 7, Mohali Account No. 632205010090</p>
+        <div style="display: flex; justify-content: space-between;">
+            <p>Tel: 9815094449</p>
+            <p>Date: {{ today_date }}</p>
+        </div>
+    </div>
+    <h2>Cheque Deposit Report</h2>
+
+    <!-- Filter Form -->
+    <form method="post">
+        {% csrf_token %}
+        <label for="datefrom">Date from: </label>
+        <input type="date" name="datefrom" value="{{ request.POST.datefrom|default_if_none:'' }}">
+        <label for="dateto">Date to: </label>
+        <input type="date" name="dateto" value="{{ request.POST.dateto|default_if_none:today_date  }}">
+        <button type="submit" value="Search">Search</button>
     </form>
+    <!-- Export button -->
+    <form method="get" action="{% url 'admin:export_cheque_deposits_excel' %}" style="margin-top: 1rem;margin-left: 23.2rem;">
+        <button type="submit">Export to Excel</button>
+    </form>
+
+    <!-- Table of cheque details -->
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Sr No.</th>
+                <th>Student Name</th>
+                <th>Admission No</th>
+                <th>Class</th>
+                <th>Section</th>
+                <th>Mobile No</th>
+                <th>Bank</th>
+                <th>Branch</th>
+                <th>Cheque No</th>
+                <th>Cheque Status</th>
+                <th>Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cheque in cheque_details %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ cheque.student_name }}</td>
+                <td>{{ cheque.admission_no }}</td>
+                <td>{{ cheque.student_class }}</td>
+                <td>{{ cheque.student_section }}</td>
+                <td>{{ cheque.mobile_no }}</td>
+                <td>{{ cheque.bank_name }}</td>
+                <td>{{ cheque.branch_name }}</td>
+                <td>{{ cheque.cheq_no }}</td>
+                <td>{{ cheque.cheque_status }}</td>
+                <td>{{ cheque.amount_paid }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="2" style="text-align:right;"><strong>Total Collection</strong></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td><strong>{{ total_amount }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    
 </div>
-
-<h2>Total Collection: {{ total_amount }}</h2>
-
-{{ block.super }}
-
 {% endblock %}
