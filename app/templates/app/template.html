@@ -1520,6 +1520,15 @@
         verifyOTP(admission_no, mobile_no, otp);
       });
 
+      $("#resendLink").on("click", function (event) {
+        event.preventDefault();
+        // Trigger the form submission
+        $("#get-otp-form").submit();
+
+        // Show a success alert
+        alert("OTP Resent Successfully!");
+		  });
+
 
       // Function to automatically move cursor to the next input box
       function moveToNextInput(currentInput, nextInput) {
@@ -1593,6 +1602,7 @@
 
                 // Update student details
                 var studentDetails = response.data.studentDetails[0];
+                console.log('studentDetails',studentDetails)
                 //$(".student-admission-no").text(studentDetails.addmission_no);
                 //$(".student-name").text(studentDetails.student_name);
                 //$(".father-name").text(studentDetails.father_name);
@@ -1610,7 +1620,7 @@
 							</tr>
 							<tr>
 								<td style="padding-left: 40px; font-weight: bold;">Father Name:</td>
-								<td>${studentDetails.father_name}</td>
+								<td>${studentDetails.father_name ?  studentDetails.father_name : ""}</td>
 								<td style="padding-left: 40px; font-weight: bold;">Class</td>
 								<td>${studentDetails.class_no} - ${studentDetails.section}</td>
 							</tr>

@@ -1,0 +1,66 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+    <div class="form-inline">
+        <form method="get">
+            <div class="form-group">
+                <label for="reporttype">Report Type:</label>
+                <select name="reporttype" id="reporttype" class="form-control">
+                    {% for report in report_types %}
+                        <option value="{{ report|slugify }}" {% if report == reporttype %}selected{% endif %}>{{ report }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="year">Year:</label>
+                <select name="year" id="year" class="form-control">
+                    {% for y in years %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Filter</button>
+        </form>
+    </div>
+
+    <h3>Final Fees Report for {{ year }}</h3>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Student Class</th>
+                <th>Total Annual Fees</th>
+                <th>Total Tuition Fees</th>
+                <th>Total Funds Fees</th>
+                <th>Total Sports Fees</th>
+                <th>Total Activity Fees</th>
+                <th>Total Admission Fees</th>
+                <th>Total Security Fees</th>
+                <th>Total Late Fees</th>
+                <th>Total Dayboarding Fees</th>
+                <th>Total Bus Fees</th>
+                <th>Total Amount</th>
+                <th>Total Amount Paid</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for obj in cl.result_list %}
+            <tr>
+                <td>{{ obj.student_class }}</td>
+                <td>{{ obj.total_annual_fees }}</td>
+                <td>{{ obj.total_tuition_fees }}</td>
+                <td>{{ obj.total_funds_fees }}</td>
+                <td>{{ obj.total_sports_fees }}</td>
+                <td>{{ obj.total_activity_fees }}</td>
+                <td>{{ obj.total_admission_fees }}</td>
+                <td>{{ obj.total_security_fees }}</td>
+                <td>{{ obj.total_late_fees }}</td>
+                <td>{{ obj.total_dayboarding_fees }}</td>
+                <td>{{ obj.total_bus_fees }}</td>
+                <td>{{ obj.total_fees_amount }}</td>
+                <td>{{ obj.total_amount_paid }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
