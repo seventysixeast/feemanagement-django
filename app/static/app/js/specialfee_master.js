@@ -70,48 +70,96 @@ document.addEventListener('DOMContentLoaded', function() {
         ['12', 'December']
     ];
 
-    const MONTHS_APPL_CHOICES = [
-        ['', 'Please Select Months'],
-        ['4,5,6', '4,5,6'],
-        ['10,11,12', '10,11,12'],
-        ['1,2,3', '1,2,3'],
-        ['8', '8'],
-        ['9', '9']
-    ];
+    // Function to populate months_applicable_for based on data from the server
+    function populateMonthsDropdown() {
+        const feeType = feeTypeField.value;
+        console.log('+++++++ feeType 123 ++++++++', feeType);
 
-    // Function to update the choices based on the selected fee type
+        fetch(`/school-admin/app/specialfee_master/ajax/get-payment-schedules/?feeType=${feeType}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('+++++++ data ++++++++', data);
+
+            // Clear the current options
+            monthsApplicableForField.innerHTML = '';
+
+            // Add a placeholder option
+            const placeholder = document.createElement('option');
+            placeholder.value = "";
+            placeholder.textContent = "Please Select";
+            monthsApplicableForField.appendChild(placeholder);
+
+            // Populate dropdown with the payment schedule data
+            data.forEach(schedule => {
+                const option = document.createElement('option');
+                option.value = schedule.fees_for_months;
+                option.textContent = `${schedule.fees_for_months}`;  // Customize based on your model fields
+                monthsApplicableForField.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error fetching payment schedules:', error));
+    }
+
+    // Function to update the dropdown choices based on the selected fee type
     function updateMonthsApplicableChoices() {
         const feeType = feeTypeField.value;
-
-        // Clear the current options
-        monthsApplicableForField.innerHTML = '';
+        console.log("++++++ feeType ++++++++++", feeType);
 
         if (feeType === 'bus_fees') {
-            // Use MONTHS choices
-            console.log('+++++ BUS FEES +++++++');
+            monthsApplicableForField.innerHTML = '';
+            // Fetch the payment schedule data only for bus_fees
+            // populateMonthsDropdown();
             MONTHS.forEach(choice => {
                 const option = new Option(choice[1], choice[0]);
                 monthsApplicableForField.add(option);
             });
             monthsApplicableForField.removeAttribute('disabled');
-            // monthsApplicableForField.setAttribute('required', 'required');
         } else if (feeType === 'ignore_prev_outstanding_fees') {
-            console.log('+++++ ignore_prev_outstanding_fees +++++++');
-            // Disable the field and set its value to null
+            // Disable the field for ignore_prev_outstanding_fees
             monthsApplicableForField.setAttribute('disabled', 'disabled');
             monthsApplicableForField.value = null;
-            // monthsApplicableForField.removeAttribute('required');
         } else {
-            // Use MONTHS_APPL_CHOICES choices
-            console.log('+++++ Except BUS FEES +++++++');
-            MONTHS_APPL_CHOICES.forEach(choice => {
-                const option = new Option(choice[1], choice[0]);
-                monthsApplicableForField.add(option);
-            });
+            // Fetch the payment schedule data for other fee types
+            populateMonthsDropdown(feeType);
             monthsApplicableForField.removeAttribute('disabled');
-            // monthsApplicableForField.setAttribute('required', 'required');
         }
     }
+
+
+
+    // // Function to update the choices based on the selected fee type
+    // function updateMonthsApplicableChoices() {
+    //     const feeType = feeTypeField.value;
+
+    //     // Clear the current options
+    //     monthsApplicableForField.innerHTML = '';
+
+    //     if (feeType === 'bus_fees') {
+    //         // Use MONTHS choices
+    //         console.log('+++++ BUS FEES +++++++');
+    //         MONTHS.forEach(choice => {
+    //             const option = new Option(choice[1], choice[0]);
+    //             monthsApplicableForField.add(option);
+    //         });
+    //         monthsApplicableForField.removeAttribute('disabled');
+    //         // monthsApplicableForField.setAttribute('required', 'required');
+    //     } else if (feeType === 'ignore_prev_outstanding_fees') {
+    //         console.log('+++++ ignore_prev_outstanding_fees +++++++');
+    //         // Disable the field and set its value to null
+    //         monthsApplicableForField.setAttribute('disabled', 'disabled');
+    //         monthsApplicableForField.value = null;
+    //         // monthsApplicableForField.removeAttribute('required');
+    //     } else {
+    //         // Use MONTHS_APPL_CHOICES choices
+    //         console.log('+++++ Except BUS FEES +++++++');
+    //         MONTHS_APPL_CHOICES.forEach(choice => {
+    //             const option = new Option(choice[1], choice[0]);
+    //             monthsApplicableForField.add(option);
+    //         });
+    //         monthsApplicableForField.removeAttribute('disabled');
+    //         // monthsApplicableForField.setAttribute('required', 'required');
+    //     }
+    // }
 
     // Initialize the choices on page load
     updateMonthsApplicableChoices();

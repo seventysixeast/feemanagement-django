@@ -1,0 +1,106 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+
+<form method="POST" action="." enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <div class="form-row">
+        {{ adminform.form.schedule_list }}
+    </div>
+    
+    <div class="form-row field-fees_for_months">
+        <div>
+            <div class="flex-container">
+                <label class="required" for="id_fees_for_months">Fees for months:</label>
+                <select id="id_fees_for_months_select" multiple name="month-select" class="form-control">
+                    {% for value, label in adminform.form.available_choices %}
+                        <option value="{{ value }}" 
+                            {% if value and value in adminform.form.initial.fees_for_months %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <!-- This hidden input will store the selected values in a comma-separated string -->
+                <input type="hidden" id="id_fees_for_months" name="fees_for_months" value="{{ adminform.form.initial.fees_for_months }}">
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-row field-pay_in_month">
+        <div>
+            <div class="flex-container">
+                <label class="required" for="id_pay_in_month">Pay In Month *:</label>
+                {{ adminform.form.pay_in_month }}
+            </div>
+        </div>
+    </div>
+
+    <div class="form-row field-payment_date">
+        <div>
+            <div class="flex-container">
+                <label class="required" for="id_payment_date">Payment Date *:</label>
+                {{ adminform.form.payment_date }}
+            </div>
+        </div>
+    </div>
+
+    <div class="submit-row">
+        <!-- Save button -->
+        <input type="submit" value="Save" class="default" name="_save">
+    
+        <!-- Save and add another button -->
+        <input type="submit" value="Save and add another" name="_addanother">
+    
+        <!-- Save and continue editing button -->
+        <input type="submit" value="Save and continue editing" name="_continue">
+    
+        <!-- Delete button (only visible in edit mode) -->
+        {% if object_id %}
+            <a href="{% url 'admin:app_payment_schedule_master_delete' object_id %}" class="deletelink">Delete</a>
+        {% endif %}
+    </div>
+
+</form>
+
+    
+    
+
+
+  <script type="text/javascript">
+    
+    document.addEventListener("DOMContentLoaded", function() {
+        const selectElement = document.getElementById('id_fees_for_months_select');
+        const hiddenInput = document.getElementById('id_fees_for_months');
+
+        // Function to update the hidden input based on the selected values in the multi-select
+        function updateHiddenInput() {
+            const selectedOptions = Array.from(selectElement.selectedOptions);
+            const selectedValues = selectedOptions.map(option => option.value);
+            console.log('selectedValues',selectedValues)
+            hiddenInput.value = selectedValues.join(',');
+        }
+
+        // Add event listener to update the hidden input when the selection changes
+        selectElement.addEventListener('change', updateHiddenInput);
+
+        // Initialize hidden input value based on pre-selected options
+        updateHiddenInput();
+        const saveButton = document.querySelector('input[name="_save"]');
+        const deleteButton = document.querySelector('a.deletelink');
+
+        saveButton.addEventListener('click', function() {
+            console.log('Save button clicked');
+        });
+
+        if (deleteButton) {
+            deleteButton.addEventListener('click', function(event) {
+                event.preventDefault();
+                console.log('Delete link clicked');
+                window.location.href = this.href;  // Continue to the delete URL
+            });
+        }
+    });
+  </script>
+
+{% endblock %}

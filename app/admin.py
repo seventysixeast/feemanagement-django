@@ -2355,12 +2355,29 @@ class SpecialFeeMasterAdmin(admin.ModelAdmin):
         return student_class_instance.section if student_class_instance else None
     get_section.short_description = 'Section'
 
+    # def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
+    #     extra_context = extra_context or {}
+    #     extra_context['form_template'] = 'admin/specialfee_changeform.html'  # Ensure this path is correct
+    #     return super().changeform_view(request, object_id, form_url, extra_context)
+    
+    # change_form_template = 'admin/specialfee_changeform.html'
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
             path('ajax/get-students/', self.admin_site.admin_view(self.get_students), name='ajax_get_students'),
+            path('ajax/get-payment-schedules/', self.admin_site.admin_view(self.get_payment_schedules), name='get_payment_schedules'),
         ]
         return custom_urls + urls
+
+    def get_payment_schedules(self, request):
+        feeType = request.GET.get('feeType', '')
+        print("+++++++++ get_payment_schedules +++ feeType ++++++++++", feeType)
+        # Fetch payment schedules
+        schedules = payment_schedule_master.objects.all().values('schedule_id', 'fees_for_months')  # Adjust fields as per your model
+        schedule_list = list(schedules)
+        
+        return JsonResponse(schedule_list, safe=False)
 
     def get_students(self, request):
         class_no = request.GET.get('class_no', '')
