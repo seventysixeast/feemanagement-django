@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'ckeditor',
     'Fees_Section',
     'Reports',
+    # 'django_extensions',
     # 'bootstrap5'
 ]
 

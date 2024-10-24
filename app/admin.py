@@ -852,17 +852,17 @@ class FeeNotApplicableForm(forms.Form):
     )
 
 # View to handle form display and submission
-def fee_not_applicable_in_months_view(request):
-    if request.method == 'POST':
-        form = FeeNotApplicableForm(request.POST)
-        if form.is_valid():
-            # Get selected months
-            selected_months = form.cleaned_data['fee_not_applicable_in_months']
-            return HttpResponse(f"Selected months: {', '.join(selected_months)}")
-    else:
-        form = FeeNotApplicableForm()
+# def fee_not_applicable_in_months_view(request):
+#     if request.method == 'POST':
+#         form = FeeNotApplicableForm(request.POST)
+#         if form.is_valid():
+#             # Get selected months
+#             selected_months = form.cleaned_data['fee_not_applicable_in_months']
+#             return HttpResponse(f"Selected months: {', '.join(selected_months)}")
+#     else:
+#         form = FeeNotApplicableForm()
 
-    return render(request, 'fee_not_applicable_in_months.html', {'form': form})
+#     return render(request, 'fee_not_applicable_in_months.html', {'form': form})
 
 
 class BusFeesMasterResource(resources.ModelResource):
@@ -902,6 +902,10 @@ class BusFeesMasterForm(forms.ModelForm):
 
 
 class BusFeesMaster(ExportMixin, admin.ModelAdmin):
+
+     # Specify your custom template for the changelist
+    change_list_template = 'admin/busfees_master/change_list.html'
+
     form = BusFeesMasterForm
     list_display = ( "route", "destination", "bus_fees", "get_bus_driver", "get_bus_attendant")
     search_fields = ['route']
@@ -916,32 +920,32 @@ class BusFeesMaster(ExportMixin, admin.ModelAdmin):
         )
         return super().changelist_view(request, extra_context=extra_context)
 
-    # Define the custom view to handle the month selection logic
-    # Define the custom view to handle the month selection logic
     def set_fee_not_applicable_in_months(self, request):
-        # Retrieve the current value from the database
         current_value = busfees_master.objects.first()  # Adjust if necessary
         
-        # Initialize form
         if request.method == 'POST':
             form = FeeNotApplicableForm(request.POST)
             if form.is_valid():
                 selected_months = form.cleaned_data['fee_not_applicable_in_months']
-                # Update all records with the selected months
                 fee_not_applicable_in_months = ','.join(selected_months)
                 busfees_master.objects.all().update(fee_not_applicable_in_months=fee_not_applicable_in_months)
                 self.message_user(request, "No Months Applicable updated successfully.")
-                return redirect('admin:app_busfeesmaster_changelist')  # Adjust the URL as needed
+                return redirect(reverse('admin:app_busfees_master_changelist'))  # Adjust the URL as needed
         else:
-            # If not a POST request, prefill the form with current values
             initial_months = []
             if current_value and current_value.fee_not_applicable_in_months:
                 initial_months = current_value.fee_not_applicable_in_months.split(',')
             form = FeeNotApplicableForm(initial={'fee_not_applicable_in_months': initial_months})
 
-        return render(request, 'admin/fee_not_applicable_in_months.html', {'form': form})
+        # Use the admin template to keep the sidebar visible
+        context = {
+            'form': form,
+            'opts': self.model._meta,
+            'is_popup': False,
+            'title': "Set Fee Not Applicable Months",
+        }
+        return render(request, 'admin/fee_not_applicable_in_months.html', context)
 
-    # Define the custom URL for setting the fee not applicable months
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
