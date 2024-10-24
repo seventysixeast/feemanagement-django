@@ -64,7 +64,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 # from multiselectfield import MultiSelectField
-
+from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.utils.translation import gettext_lazy as _
@@ -199,6 +199,21 @@ Month_CHOICES = [
     ('12', '12')
 ]
 
+# Define a list of months
+FEE_MONTHS_CHOICESFEES_NOT_APPLICABLE = [
+    ('1', 'January'),
+    ('2', 'February'),
+    ('3', 'March'),
+    ('4', 'April'),
+    ('5', 'May'),
+    ('6', 'June'),
+    ('7', 'July'),
+    ('8', 'August'),
+    ('9', 'September'),
+    ('10', 'October'),
+    ('11', 'November'),
+    ('12', 'December'),
+]
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
@@ -842,7 +857,28 @@ class FeesMasterAdmin(admin.ModelAdmin):
 # class BusFeesMaster(admin.ModelAdmin):
 #     list_display = ("bus_id", "route", "destination", "bus_fees", "fee_not_applicable_in_months")
 #     search_fields = ['route']
-    
+
+# Define the form for selecting multiple months
+class FeeNotApplicableForm(forms.Form):
+    fee_not_applicable_in_months = forms.MultipleChoiceField(
+        choices=FEE_MONTHS_CHOICESFEES_NOT_APPLICABLE,
+        widget=forms.CheckboxSelectMultiple,
+        label="Select months where fees are not applicable",
+    )
+
+# View to handle form display and submission
+# def fee_not_applicable_in_months_view(request):
+#     if request.method == 'POST':
+#         form = FeeNotApplicableForm(request.POST)
+#         if form.is_valid():
+#             # Get selected months
+#             selected_months = form.cleaned_data['fee_not_applicable_in_months']
+#             return HttpResponse(f"Selected months: {', '.join(selected_months)}")
+#     else:
+#         form = FeeNotApplicableForm()
+
+#     return render(request, 'fee_not_applicable_in_months.html', {'form': form})
+
 
 class BusFeesMasterResource(resources.ModelResource):
     # Custom fields for Bus Driver and Bus Attendant
@@ -881,10 +917,100 @@ class BusFeesMasterForm(forms.ModelForm):
 
 
 class BusFeesMaster(ExportMixin, admin.ModelAdmin):
+
+     # Specify your custom template for the changelist
+    change_list_template = 'admin/busfees_master/change_list.html'
+
     form = BusFeesMasterForm
     list_display = ( "route", "destination", "bus_fees", "get_bus_driver", "get_bus_attendant")
     search_fields = ['route']
     resource_class = BusFeesMasterResource
+
+    # Override changelist_view to add the button above the list
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['fee_not_applicable_button'] = format_html(
+            '<a class="button" href="{}" style="margin-right: 10px;">Set Fee Not Applicable Months</a>',
+            reverse('admin:set_fee_not_applicable_in_months')
+        )
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def set_fee_not_applicable_in_months(self, request):
+        current_value = busfees_master.objects.first()  # Adjust if necessary
+        
+        if request.method == 'POST':
+            form = FeeNotApplicableForm(request.POST)
+            if form.is_valid():
+                selected_months = form.cleaned_data['fee_not_applicable_in_months']
+                fee_not_applicable_in_months = ','.join(selected_months)
+                busfees_master.objects.all().update(fee_not_applicable_in_months=fee_not_applicable_in_months)
+                self.message_user(request, "No Months Applicable updated successfully.")
+                return redirect(reverse('admin:app_busfees_master_changelist'))  # Adjust the URL as needed
+        else:
+            initial_months = []
+            if current_value and current_value.fee_not_applicable_in_months:
+                initial_months = current_value.fee_not_applicable_in_months.split(',')
+            form = FeeNotApplicableForm(initial={'fee_not_applicable_in_months': initial_months})
+
+        # Use the admin template to keep the sidebar visible
+        context = {
+            'form': form,
+            'opts': self.model._meta,
+            'is_popup': False,
+            'title': "Set Fee Not Applicable Months",
+        }
+        return render(request, 'admin/fee_not_applicable_in_months.html', context)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                'set-fee-not-applicable-in-months/',
+                self.admin_site.admin_view(self.set_fee_not_applicable_in_months),
+                name='set_fee_not_applicable_in_months',
+            ),
+        ]
+        return custom_urls + urls
+    # # Add the button to go to the fee not applicable months selection page
+    # def fee_not_applicable_button(self, obj):
+    #     return format_html(
+    #         '<a class="button" href="{}">Set Fee Not Applicable Months</a>',
+    #         reverse('admin:set_fee_not_applicable_in_months', args=[obj.pk])
+    #     )
+    
+    # fee_not_applicable_button.short_description = 'Fee Not Applicable in Months'
+
+    # # Define the view to handle the month selection and saving
+    # def set_fee_not_applicable_in_months(self, request, busfees_master_id):
+    #     busfees_master_instance = self.get_object(request, busfees_master_id)
+        
+    #     if request.method == 'POST':
+    #         form = FeeNotApplicableForm(request.POST)
+    #         if form.is_valid():
+    #             selected_months = form.cleaned_data['fee_not_applicable_in_months']
+    #             busfees_master_instance.fee_not_applicable_in_months = ",".join(selected_months)
+    #             busfees_master_instance.save()
+
+    #             self.message_user(request, "Fee not applicable months updated successfully.")
+    #             return HttpResponseRedirect(reverse('admin:app_busfeesmaster_changelist'))
+    #     else:
+    #         form = FeeNotApplicableForm(initial={
+    #             'fee_not_applicable_in_months': busfees_master_instance.fee_not_applicable_in_months.split(',')
+    #         })
+
+    #     return render(request, 'admin/fee_not_applicable_in_months.html', {'form': form, 'busfees_master': busfees_master_instance})
+
+    # # Define the custom admin URL for the new view
+    # def get_urls(self):
+    #     urls = super().get_urls()
+    #     custom_urls = [
+    #         path(
+    #             '<int:busfees_master_id>/set-fee-not-applicable-in-months/',
+    #             self.admin_site.admin_view(self.set_fee_not_applicable_in_months),
+    #             name='set_fee_not_applicable_in_months',
+    #         ),
+    #     ]
+    #     return custom_urls + urls
 
     # Override delete_queryset to handle delete errors during confirmation
     def delete_queryset(self, request, queryset):
@@ -2904,19 +3030,21 @@ class StudentFeesAdminForm(forms.ModelForm):
             student = self.instance.student_id
             
             # Fetch the concession_type_id from the student_fee instance
-            concession_type_id = self.instance.concession_type_id
+            concession = self.instance.concession_type_id
             
-            # If needed, you can set it as the initial value for a form field
-            # self.fields['concession_type_id'].initial = concession_type_id
+            print(f"concession---{concession}",)
 
-            # Get student's concession_type_id and filter concession_master
-            if concession_type_id:
+            # If needed, you can set it as the initial value for a form field
+            # self.fields['concession'].initial = concession
+
+            # Get student's concession and filter concession_master
+            if concession:
                 try:
-                    concession = concession_master.objects.get(concession_id=concession_type_id)
+                    concession = concession_master.objects.get(concession_id=concession.concession_id)
                     # Populate the 'concession_type' field with the filtered concession_type
                     self.fields['concession_type'].initial = concession.concession_type
                 except concession_master.DoesNotExist:
-                    print(f"Concession with ID {student.concession_type_id} does not exist.")
+                    print(f"Concession with ID {student.concession} does not exist.")
 
 
             # Fetch and pre-select fees_period_month
@@ -3825,8 +3953,13 @@ class StudentFeesAdmin(admin.ModelAdmin):
             # Handle concessions
             if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
                 obj.concession_applied = float(request.POST.get('concession_applied'))
-                obj.concession_type_id = request.POST.get('concession_type_id')
-                # obj.concession_type_id = request.POST.get('concession_type')
+                concession_id = request.POST.get('concession_type_id')
+
+                # Get the concession_master instance
+                concession_instance = concession_master.objects.get(concession_id=concession_id)
+
+                # Assign the concession_master instance (not just the ID) to the foreign key field
+                obj.concession_type_id = concession_instance  # Corrected this line
                 
             else:
                 obj.concession_type_id = None
@@ -3928,10 +4061,17 @@ class StudentFeesAdmin(admin.ModelAdmin):
             obj.total_amount = float(request.POST.get('total_amount', 0))
             obj.amount_paid = float(request.POST.get('amount_paid', 0))
 
+            # Handle concessions
             if request.POST.get('concession_applied') and float(request.POST.get('concession_applied')) > 0:
                 obj.concession_applied = float(request.POST.get('concession_applied'))
-                obj.concession_type_id = request.POST.get('concession_type_id')
-                # obj.concession_type_id = request.POST.get('concession_type')
+                concession_id = request.POST.get('concession_type_id')
+
+                # Get the concession_master instance
+                concession_instance = concession_master.objects.get(concession_id=concession_id)
+
+                # Assign the concession_master instance (not just the ID) to the foreign key field
+                obj.concession_type_id = concession_instance  # Corrected this line
+                
             else:
                 obj.concession_type_id = None
                 obj.concession_applied = None

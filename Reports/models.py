@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 from app.models import (
-    student_master, student_fee
+    student_master, student_fee,student_class
 )
 
 
@@ -46,3 +46,10 @@ class activity_fees_defaulter(student_fee):
       proxy = True
       verbose_name = 'Activity Fees Defaulters'
       verbose_name_plural = 'Activity Fees Defaulters'
+
+
+class expected_fee_register(student_class):
+  class Meta:
+      proxy = True
+      verbose_name = 'Expected Fee Register'
+      verbose_name_plural = 'Expected Fee Register'

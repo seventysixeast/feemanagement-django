@@ -1,58 +1,95 @@
-{% extends "admin/change_list.html" %}
-{% load i18n %}
-
+{% extends "admin/base_site.html" %} 
 {% block content %}
-<div class="form-container">
-    <form method="GET" action="">
-        <fieldset>
-            <div>
-                <label for="advancedfees">
-                    <input id="advancedfees" type="radio" class="radiobtns" name="feestype" value="advancedfees">
-                    Advanced fees
-                </label>
-            </div>
-            <div>
-                <label for="totalfees">
-                    <input id="totalfees" type="radio" class="radiobtns" name="feestype" value="totalfees" checked>
-                    Total fees
-                </label>
-            </div>
-            <div>
-                <label for="customfees">
-                    <input id="customfees" type="radio" class="radiobtns" name="feestype" value="customfees">
-                    LastDay fees
-                </label>
-            </div>
-            <div>
-                <label for="paymentType">Payment Type</label>
-                <select id="paymentType" name="paymentType">
-                    <option value="">Payment</option>
-                    <option value="Online">Online</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Cheque">Cheque</option>
-                </select>
-            </div>
-            <div>
-                <label for="deviceType">Device Type</label>
-                <select id="deviceType" name="deviceType">
-                    <option value="">Device</option>
-                    <option value="WEB">WEB</option>
-                    <option value="MOBILE">MOBILE</option>
-                </select>
-            </div>
-            <div>
-                <label for="id_date_from">Date From</label>
-                <input type="date" name="date_from" id="id_date_from" value="{{ date_from|default_if_none:'' }}">
-            </div>
-            <div>
-                <label for="id_date_to">Date To</label>
-                <input type="date" name="date_to" id="id_date_to" value="{{ date_to|default_if_none:'' }}">
-            </div>
-            <button type="submit">Filter</button>
-        </fieldset>
+
+<form method="post" class="form-horizontal">
+    {% csrf_token %} 
+    {{ form.as_p }}
+</form>
+
+{% if results %}
+    <h2>Results</h2>
+
+    <form action="{% url 'admin:export_collection_report_csv' %}" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="default btn">Export to Excel</button>
     </form>
-</div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Admission No</th>
+                    <th>Student Name</th>
+                    <th>Class</th>
+                    <th>Section</th>
+                    <th>Fees for Months</th>
+                    <th>Fees Period Months</th>
+                    <th>Annual Fees Paid</th>
+                    <th>Tuition Fees Paid</th>
+                    <th>Concession Applied</th>
+                    <th>Net Tuition Fees</th>
+                    <th>Funds Fees Paid</th>
+                    <th>Sports Fees Paid</th>
+                    <th>Activity Fees</th>
+                    <th>Admission Fees Paid</th>
+                    <th>Security Fees Paid</th>
+                    <th>Late Fees Paid</th>
+                    <th>Miscellaneous Fees</th>
+                    <th>Bus Fees Paid</th>
+                    <th>Date of Payment</th>
+                    <th>Payment Mode</th>
+                    <th>Cheque No.</th>
+                    <th>Bank Name</th>
+                    <th>Concession Type</th>
+                    <th>Total Amount</th>
+                    <th>Amount Paid</th>
+                    <th>Cheque Status</th>
+                    <th>Realized Date</th>
+                    <th>Remarks</th>
+                    <th>Request Source</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fee in results %}
+                <tr>
+                    <td>{{ fee.addmission_no }}</td>
+                    <td>{{ fee.student_name }}</td>
+                    <td>{{ fee.class_no }}</td>
+                    <td>{{ fee.section }}</td>
+                    <td>{{ fee.fees_for_months }}</td>
+                    <td>{{ fee.fees_period_month }}</td>
+                    <td>{{ fee.annual_fees_paid }}</td>
+                    <td>{{ fee.tuition_fees_paid }}</td>
+                    <td>{{ fee.concession_applied }}</td>
+                    <td>{{ fee.net_tuition_fees }}</td>
+                    <td>{{ fee.funds_fees_paid }}</td>
+                    <td>{{ fee.sports_fees_paid }}</td>
+                    <td>{{ fee.activity_fees }}</td>
+                    <td>{{ fee.admission_fees_paid }}</td>
+                    <td>{{ fee.security_paid }}</td>
+                    <td>{{ fee.late_fees_paid }}</td>
+                    <td>{{ fee.miscellaneous_fees }}</td>
+                    <td>{{ fee.bus_fees_paid }}</td>
+                    <td>{{ fee.date_payment }}</td>
+                    <td>{{ fee.payment_mode }}</td>
+                    <td>{{ fee.cheq_no }}</td>
+                    <td>{{ fee.bank_name }}</td>
+                    <td>{{ fee.concession_type }}</td>
+                    <td>{{ fee.Total_amount }}</td>
+                    <td>{{ fee.amount_paid }}</td>
+                    <td>{{ fee.cheque_status }}</td>
+                    <td>{{ fee.realized_date }}</td>
+                    <td>{{ fee.remarks }}</td>
+                    <td>{{ fee.request_source }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <p>No collection found for the selected criteria.</p>
+{% endif %}
 
 <!-- Render the usual admin list view content -->
-{{ block.super }}
+{{ block.super }} 
 {% endblock %}
