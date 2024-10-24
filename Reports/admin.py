@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    transport, tuition_fees_defaulter,admission_report, final_fees_report, transport_defaulter, cheque_deposit, collection_report,activity_fees_defaulter
+    transport, tuition_fees_defaulter,admission_report, final_fees_report, transport_defaulter, cheque_deposit, collection_report,activity_fees_defaulter,expected_fee_register
 )
 
 from app.models import (
@@ -86,6 +86,12 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 import json
 from decimal import Decimal
+
+
+from django.contrib import admin
+from django.http import HttpResponse
+import openpyxl
+
 
 # from .forms import DefaultersReportForm
 
@@ -2417,3 +2423,141 @@ class ActivityFeesDefaulterAdmin(admin.ModelAdmin):
     change_list_template = 'admin/activity_fees_defaulter/change_list.html'
 
 admin.site.register(activity_fees_defaulter, ActivityFeesDefaulterAdmin)
+
+
+
+class ExpectedFeeRegisterForm(forms.Form):
+    
+    current_year = datetime.now().year
+    # Prepend a "Select Year" option to the year choices
+    YEAR_CHOICES = [('', 'Select Year')] + [(str(year), str(year)) for year in range(current_year, current_year - 11, -1)]
+
+    year = forms.ChoiceField(choices=YEAR_CHOICES, required=True, label="Year",widget=forms.Select(attrs={'id': 'id_year'}))
+
+    # Search button with jQuery to trigger a student search
+    search_button = forms.CharField(
+        widget=forms.TextInput(attrs={'type': 'submit', 'value': 'Export to excel'}),
+        label='',
+        required=False
+    )
+
+class ExpectedFeeRegisterAdmin(admin.ModelAdmin):
+    change_list_template = 'admin/expected_fee_register/change_list.html'
+
+    def get_form(self, request):
+        """ Return the form that will be rendered in the changelist view. """
+        return ExpectedFeeRegisterForm()
+
+    def changelist_view(self, request, extra_context=None):
+        form = self.get_form(request)
+
+        # Check if form was submitted and is valid
+        if request.method == 'POST':
+            form = ExpectedFeeRegisterForm(request.POST)
+            if form.is_valid():
+                # Fetch the selected year from the form
+                year = form.cleaned_data['year']
+                
+                # Instead of showing the search results, generate the Excel file
+                return self.action_expected_fee_excel(year)
+
+        # Display form as normal if no form submission occurred
+        extra_context = extra_context or {}
+        extra_context['form'] = form
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+    
+    def action_expected_fee_excel(request, year=None):
+        # Initialize Excel file
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Expected Fees Register"
+
+        # Excel metadata
+        wb.create_sheet(title=f"summary{year}")
+        
+        # Define year range
+        to_year = int(year) + 1
+        from_date = f"{year}-04-01"
+        to_date = f"{to_year}-03-31"
+        
+        # First Query - Summary of Fees
+        summary_sql = """
+            SELECT sc.class_no, sc.section, COUNT(DISTINCT sc.student_id) as count_students, 
+                SUM(fm.annual_fees), SUM(fm.tuition_fees), SUM(fm.funds_fees),
+                SUM(fm.sports_fees), SUM(fm.activity_fees), SUM(fm.admission_fees), 
+                SUM(fm.security_fees), SUM(fm.dayboarding_fees),
+                (SUM(fm.annual_fees) + SUM(fm.tuition_fees) + SUM(fm.funds_fees) + 
+                SUM(fm.sports_fees) + SUM(fm.activity_fees) + SUM(fm.admission_fees) +
+                SUM(fm.security_fees) + SUM(fm.dayboarding_fees)) AS total
+            FROM student_classes sc
+            LEFT JOIN fees_master fm ON fm.class_no = sc.class_no
+            WHERE sc.started_on >= %s AND (sc.ended_on IS NULL OR sc.ended_on <= %s)
+            AND fm.valid_from >= %s AND (fm.valid_to IS NULL OR fm.valid_to <= %s)
+            GROUP BY sc.class_no, sc.section
+            ORDER BY sc.class_no, sc.section ASC
+        """
+        
+        # Execute SQL and fetch data
+        with connection.cursor() as cursor:
+            cursor.execute(summary_sql, [from_date, to_date, from_date, to_date])
+            summary_data = cursor.fetchall()
+        
+        # Excel Header
+        headers = ['Class', 'Section', 'Total Students', 'Annual', 'Tuition', 'Funds', 
+                'Sports', 'Activity', 'Admission', 'Security', 'Dayboarding', 'Total']
+        ws.append(headers)
+        
+        # Write data to Excel
+        total_students = total_annual_fees = total_tuition_fees = total_funds_fees = 0
+        total_sports_fees = total_activity_fees = total_admission_fees = total_security_fees = 0
+        total_dayboarding_fees = total_fees = 0
+        
+        for row in summary_data:
+            class_no, section, count_students, annual_fees, tuition_fees, funds_fees, \
+            sports_fees, activity_fees, admission_fees, security_fees, dayboarding_fees, total = row
+            
+            annual_fees *= 12
+            tuition_fees *= 12
+            funds_fees *= 12
+            sports_fees *= 12
+            activity_fees *= 12
+            admission_fees *= 12
+            security_fees *= 12
+            dayboarding_fees *= 12
+            total = annual_fees + tuition_fees + funds_fees + sports_fees + \
+                    activity_fees + admission_fees + security_fees + dayboarding_fees
+            
+            # Append row data to Excel
+            ws.append([class_no, section, count_students, annual_fees, tuition_fees, 
+                    funds_fees, sports_fees, activity_fees, admission_fees, 
+                    security_fees, dayboarding_fees, total])
+            
+            # Accumulate totals
+            total_students += count_students
+            total_annual_fees += annual_fees
+            total_tuition_fees += tuition_fees
+            total_funds_fees += funds_fees
+            total_sports_fees += sports_fees
+            total_activity_fees += activity_fees
+            total_admission_fees += admission_fees
+            total_security_fees += security_fees
+            total_dayboarding_fees += dayboarding_fees
+            total_fees += total
+        
+        # Add Totals row
+        ws.append(['Total', '', total_students, total_annual_fees, total_tuition_fees, 
+                total_funds_fees, total_sports_fees, total_activity_fees, total_admission_fees,
+                total_security_fees, total_dayboarding_fees, total_fees])
+
+        # Set HTTP response
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="Expected_Fees_{year}.xlsx"'
+        
+        # Save workbook to response
+        wb.save(response)
+        return response
+
+
+admin.site.register(expected_fee_register, ExpectedFeeRegisterAdmin)
