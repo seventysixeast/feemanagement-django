@@ -120,7 +120,7 @@ class concession_master(models.Model):
   concession_type = models.CharField(max_length=100)
   concession_persent = models.CharField(max_length=100)
   concession_amount = models.BigIntegerField(null=True, blank=True)
-  is_april_checked = models.BooleanField(default=False)
+  is_april_checked = models.BooleanField(default=False, verbose_name="April Concession")
 
   class Meta:
     db_table = 'concession_master'  # Custom table name

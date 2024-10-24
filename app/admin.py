@@ -421,7 +421,7 @@ class SectionFilter(admin.SimpleListFilter):
 
 class StudentMasterAdmin(admin.ModelAdmin):
     form = StudentMasterForm
-    list_display = ('student_id', 'student_name', 'get_class_no', 'get_section', 'addmission_no', 'father_name', 'mother_name', 'gender', 'birth_date', 'category', 'status', 'admission_date', 'passedout_date')
+    list_display = ('addmission_no', 'get_class_no', 'get_section', 'student_name', 'category', 'get_conc_type', 'get_route', 'get_destination', 'father_name', 'mother_name', 'mobile_no', 'phone_no', 'address', 'city', 'admission_date', 'status', 'passedout_date')
     # search_fields = ('student_name', 'addmission_no', 'aadhaar_no', 'email', 'city', 'birth_date')
 
     # Add custom filters to the list filter
@@ -476,6 +476,21 @@ class StudentMasterAdmin(admin.ModelAdmin):
 
     # Customize the changelist template to include custom search fields
     change_list_template = 'admin/student_master_changelist.html'
+
+    def get_conc_type(self, obj):
+        concession_type_instance = concession_master.objects.filter(concession_id=obj.concession_id).order_by('-concession_id').first()
+        return concession_type_instance.concession_type if concession_type_instance else None
+    get_conc_type.short_description = 'Concession Type'
+
+    def get_route(self, obj):
+        busfees_master_instance = busfees_master.objects.filter(bus_id=obj.bus_id).order_by('-bus_id').first()
+        return busfees_master_instance.route if busfees_master_instance else None
+    get_route.short_description = 'Route'
+
+    def get_destination(self, obj):
+        busfees_master_instance = busfees_master.objects.filter(bus_id=obj.bus_id).order_by('-bus_id').first()
+        return busfees_master_instance.destination if busfees_master_instance else None
+    get_destination.short_description = 'Destination'
 
     def get_class_no(self, obj):
         search_class_no = self._request.GET.get('search_class_no', None)
@@ -762,7 +777,7 @@ class MiscellaneousFeesFilter(admin.SimpleListFilter):
 
 class FeesMasterAdmin(admin.ModelAdmin):
     form = FeesMasterForm
-    list_display = ("fees_id", "class_no", "annual_fees", "tuition_fees", "funds_fees", "sports_fees", "activity_fees", "admission_fees", "dayboarding_fees", "miscellaneous_fees", "valid_from", "valid_to")
+    list_display = ("class_no", "annual_fees", "tuition_fees", "funds_fees", "sports_fees", "activity_fees", "admission_fees", "dayboarding_fees", "miscellaneous_fees", "valid_from", "valid_to")
     list_filter = (ClassNoFilter, AnnualFeesFilter, TuitionFeesFilter, FundsFeesFilter, SportsFeesFilter, ActivityFeesFilter, AdmissionFeesFilter, DayboardingFeesFilter, MiscellaneousFeesFilter)
 
     def get_search_results(self, request, queryset, search_term):
@@ -953,7 +968,7 @@ class BusMasterResource(resources.ModelResource):
 
 class BusMaster(ExportMixin, admin.ModelAdmin):
     resource_class = BusMasterResource
-    list_display = ("bus_route", "bus_driver", "bus_conductor", "bus_attendant", "driver_phone", "conductor_phone", "attendant_phone")
+    list_display = ("bus_route", "bus_driver", "bus_conductor", "bus_attendant", "driver_phone", "conductor_phone", "attendant_phone", "internal")
     search_fields = ("bus_route", "bus_driver", "bus_conductor", "bus_attendant", "driver_phone", "conductor_phone", "attendant_phone")
 
     # Override delete_queryset to handle delete errors during confirmation
@@ -1020,7 +1035,7 @@ class ConcessionMasterForm(forms.ModelForm):
         fields = '__all__'
 
 class ConcessionMasterAdmin(admin.ModelAdmin):
-    list_display = ("concession_id", "concession_type", "concession_persent", "concession_amount", "is_april_checked")
+    list_display = ("concession_type", "concession_persent", "concession_amount", "is_april_checked")
     form = ConcessionMasterForm
 
 admin.site.register(concession_master, ConcessionMasterAdmin)
@@ -2165,7 +2180,7 @@ class SpecialFeeMasterForm(forms.ModelForm):
 
 
 class SpecialFeeMasterAdmin(admin.ModelAdmin):
-    list_display = ("student_charge_id", "student_id", "student_class_id", "fee_type", "months_applicable_for", "year", "amount", "added_at", "updated_at")
+    list_display = ("get_adm_no", "get_stud_name", "get_class_no", "get_section", "fee_type", "months_applicable_for", "year", "amount", "added_at", "updated_at")
     # search_fields = ("student_charge_id", "student_id", "student_class_id", "fee_type", "months_applicable_for", "year", "amount", "added_at", "updated_at")
     list_filter = (FeeTypeFilter, MonthsApplFilter)
 
@@ -2193,6 +2208,26 @@ class SpecialFeeMasterAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context=extra_context)
 
     change_list_template = 'admin/specialfee_changelist.html'
+
+    def get_adm_no(self, obj):
+        student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-student_id').first()
+        return student_master_instance.addmission_no if student_master_instance else None
+    get_adm_no.short_description = 'Admission Number'
+
+    def get_stud_name(self, obj):
+        student_master_instance = student_master.objects.filter(student_id=obj.student_id).order_by('-student_id').first()
+        return student_master_instance.student_name if student_master_instance else None
+    get_stud_name.short_description = 'Student Name'
+
+    def get_class_no(self, obj):
+        student_class_instance = student_class.objects.filter(student_class_id=obj.student_class_id).order_by('-student_id').first()
+        return student_class_instance.class_no if student_class_instance else None
+    get_class_no.short_description = 'Class No'
+
+    def get_section(self, obj):
+        student_class_instance = student_class.objects.filter(student_class_id=obj.student_class_id).order_by('-student_id').first()
+        return student_class_instance.section if student_class_instance else None
+    get_section.short_description = 'Section'
 
     def get_urls(self):
         urls = super().get_urls()
