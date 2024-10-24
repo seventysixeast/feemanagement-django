@@ -15,11 +15,12 @@ from django.db.models.functions import Lower
 from datetime import datetime, timedelta
 from django.utils.dateparse import parse_date
 from django.db.models import Sum, F, Q
-
+from django.template.loader import render_to_string
 import os
 from io import BytesIO
 from django.conf import settings
 from reportlab.pdfgen import canvas
+from xhtml2pdf import pisa
 
 
 def last_payment_record( student_id=None):
@@ -357,7 +358,7 @@ def get_months_array(year):
 
 def generate_pdf2(request, student_fee_id):
     receipt_data = get_fee_receipt_details_common('student_fee_id', student_fee_id, is_txn=False)
-    return generate_pdf_common(receipt_data, student_fee_id, 'student_fee_id')
+    return generate_pdf_common(request,receipt_data, student_fee_id, 'student_fee_id')
 
 def get_fee_receipt_details_common(identifier_type, identifier_value, is_txn):
     # Set up the filter depending on whether we are using txn_id or student_fee_id
@@ -403,7 +404,8 @@ def get_fee_receipt_details_common(identifier_type, identifier_value, is_txn):
 
     return fee_receipt_details
 
-def generate_pdf_common(receipt_data, record_id, id_field):
+
+def generate_pdf_common(request,receipt_data, record_id, id_field):
     """
     Generates a PDF for the given record ID (either txn_id or student_fee_id) and updates the receipt URL in the database.
     
@@ -421,56 +423,31 @@ def generate_pdf_common(receipt_data, record_id, id_field):
     }
 
     if receipt_data:
-        # Create a new PDF in memory
-        buffer = BytesIO()
-        pdf = canvas.Canvas(buffer)
+        # Prepare HTML content with the receipt data
+        html_content = render_to_string('fee_receipt.html', receipt_data)
 
-        # Set PDF meta-data
-        pdf.setTitle('Invoice')
+        # Create a BytesIO stream to hold the generated PDF
+        pdf_file = BytesIO()
+        pisa_status = pisa.CreatePDF(html_content, dest=pdf_file)
 
-        # Define the content and structure for the PDF
-        pdf.drawString(100, 800, "Shishu Niketan Public School")
-        pdf.drawString(100, 780, "FEE RECEIPT")
-        pdf.drawString(100, 760, f"Year: {receipt_data['year']}")
-        pdf.drawString(100, 740, f"Receipt: {receipt_data['receipt_number']}")
-        pdf.drawString(100, 720, f"Transaction ID: {record_id}")
-        pdf.drawString(100, 700, f"Admission No.: {receipt_data['addmission_no']}")
-        pdf.drawString(100, 680, f"Student Name: {receipt_data['student_name']}")
-        pdf.drawString(100, 660, f"Father's Name: {receipt_data['father_name']}")
-        pdf.drawString(100, 640, f"Mother's Name: {receipt_data['mother_name']}")
-        pdf.drawString(100, 620, f"Class: {receipt_data['student_class']}")
-        pdf.drawString(100, 600, f"Payment Mode: {receipt_data['txn_payment_mode']}")
-        pdf.drawString(100, 580, f"Paid for Session (Months): {receipt_data['months_paid']}")
-        pdf.drawString(100, 560, f"Total Fees Paid: {receipt_data['total_amount_paid']}")
-        pdf.drawString(100, 540, f"Remarks: {receipt_data['remarks']}")
-
-        # Footer
-        pdf.drawString(100, 520, "Copyright © shishuniketanmohali.org.in - All Rights Reserved.")
-
-        # Save the PDF into the buffer
-        pdf.showPage()
-        pdf.save()
-
-        # Move buffer to the beginning
-        buffer.seek(0)
+        if pisa_status.err:
+            return JsonResponse({'success': False, 'message': 'Error generating PDF'})
 
         # Define the folder path where you want to store PDFs
         pdf_folder = os.path.join(settings.MEDIA_ROOT, 'pdfs')
-
-        # Create the folder if it does not exist
-        if not os.path.exists(pdf_folder):
-            os.makedirs(pdf_folder)
+        os.makedirs(pdf_folder, exist_ok=True)
 
         # File name and path
         pdf_filename = f'invoice_{record_id}.pdf'
         pdf_file_path = os.path.join(pdf_folder, pdf_filename)
 
-        # Write PDF data to the file
+        # Write the generated PDF to the file system
         with open(pdf_file_path, 'wb') as f:
-            f.write(buffer.read())
+            f.write(pdf_file.getvalue())
 
-        # Build the file URL (using MEDIA_URL for serving static media)
+        # Generate the public URL to the PDF file
         pdf_url = f"{settings.MEDIA_URL}pdfs/{pdf_filename}"
+        host_info = request.build_absolute_uri(settings.MEDIA_URL)
 
         # Update the `receipt_url` field in the database based on the id_field
         filter_params = {id_field: record_id}
@@ -481,7 +458,7 @@ def generate_pdf_common(receipt_data, record_id, id_field):
 
             response_data = {
                 'success': True,
-                'receiptUrl': pdf_url,
+                'receiptUrl': host_info + f'pdfs/{pdf_filename}',
                 'message': f"Receipt URL updated successfully for {id_field}: {record_id}"
             }
         else:
@@ -491,3 +468,162 @@ def generate_pdf_common(receipt_data, record_id, id_field):
             }
 
     return JsonResponse(response_data)
+
+
+# def generate_pdf_common(receipt_data, record_id, id_field):
+#     """
+#     Generates a PDF for the given record ID (either txn_id or student_fee_id) and updates the receipt URL in the database.
+    
+#     Args:
+#         receipt_data (dict): Data to be included in the PDF.
+#         record_id (str/int): ID of the record (either txn_id or student_fee_id).
+#         id_field (str): Field name to filter the database records ('txn_id' or 'student_fee_id').
+    
+#     Returns:
+#         JsonResponse: A response containing the success status and message.
+#     """
+#     response_data = {
+#         'success': False,
+#         'message': 'No records found for the given ID'
+#     }
+
+#     if receipt_data:
+#         # Create a new PDF in memory
+#         buffer = BytesIO()
+#         pdf = canvas.Canvas(buffer)
+
+#         # Set PDF meta-data
+#         pdf.setTitle('Invoice')
+
+#         # Define the content and structure for the PDF
+#         pdf.drawString(100, 800, "Shishu Niketan Public School")
+#         pdf.drawString(100, 780, "FEE RECEIPT")
+#         pdf.drawString(100, 760, f"Year: {receipt_data['year']}")
+#         pdf.drawString(100, 740, f"Receipt: {receipt_data['receipt_number']}")
+#         pdf.drawString(100, 720, f"Transaction ID: {record_id}")
+#         pdf.drawString(100, 700, f"Admission No.: {receipt_data['addmission_no']}")
+#         pdf.drawString(100, 680, f"Student Name: {receipt_data['student_name']}")
+#         pdf.drawString(100, 660, f"Father's Name: {receipt_data['father_name']}")
+#         pdf.drawString(100, 640, f"Mother's Name: {receipt_data['mother_name']}")
+#         pdf.drawString(100, 620, f"Class: {receipt_data['student_class']}")
+#         pdf.drawString(100, 600, f"Payment Mode: {receipt_data['txn_payment_mode']}")
+#         pdf.drawString(100, 580, f"Paid for Session (Months): {receipt_data['months_paid']}")
+#         pdf.drawString(100, 560, f"Total Fees Paid: {receipt_data['total_amount_paid']}")
+#         pdf.drawString(100, 540, f"Remarks: {receipt_data['remarks']}")
+
+#         # Footer
+#         pdf.drawString(100, 520, "Copyright © shishuniketanmohali.org.in - All Rights Reserved.")
+
+#         # Save the PDF into the buffer
+#         pdf.showPage()
+#         pdf.save()
+
+#         # Move buffer to the beginning
+#         buffer.seek(0)
+
+#         # Define the folder path where you want to store PDFs
+#         pdf_folder = os.path.join(settings.MEDIA_ROOT, 'pdfs')
+
+#         # Create the folder if it does not exist
+#         if not os.path.exists(pdf_folder):
+#             os.makedirs(pdf_folder)
+
+#         # File name and path
+#         pdf_filename = f'invoice_{record_id}.pdf'
+#         pdf_file_path = os.path.join(pdf_folder, pdf_filename)
+
+#         # Write PDF data to the file
+#         with open(pdf_file_path, 'wb') as f:
+#             f.write(buffer.read())
+
+#         # Build the file URL (using MEDIA_URL for serving static media)
+#         pdf_url = f"{settings.MEDIA_URL}pdfs/{pdf_filename}"
+
+#         # Update the `receipt_url` field in the database based on the id_field
+#         filter_params = {id_field: record_id}
+#         student_fees = student_fee.objects.filter(**filter_params)
+
+#         if student_fees.exists():
+#             student_fees.update(receipt_url=pdf_url)
+
+#             response_data = {
+#                 'success': True,
+#                 'receiptUrl': pdf_url,
+#                 'message': f"Receipt URL updated successfully for {id_field}: {record_id}"
+#             }
+#         else:
+#             response_data = {
+#                 'success': False,
+#                 'message': f"No records found for {id_field}: {record_id}"
+#             }
+
+#     return JsonResponse(response_data)
+
+
+
+
+# def action_generate_pdf(request, txn_id):
+#     # Fetch receipt data based on txn_id
+#     # receipt_data = get_fee_receipt_details(txn_id)  # Function to fetch the data
+#     receipt_data = get_fee_receipt_details(txn_id)
+
+#     if receipt_data:
+#         # Prepare HTML content with the receipt data
+#         html_content = render_to_string('fee_receipt.html', {
+#             'addmission_no': receipt_data['addmission_no'],
+#             'student_name': receipt_data['student_name'],
+#             'father_name': receipt_data['father_name'],
+#             'mother_name': receipt_data['mother_name'],
+#             'student_class': receipt_data['student_class'],
+#             'receipt_number': receipt_data['receipt_number'],
+#             'date_payment': receipt_data['date_payment'],
+#             'year': receipt_data['year'],
+#             'txn_id': receipt_data['txn_id'],
+#             'txn_payment_mode': receipt_data['txn_payment_mode'],
+#             'months_paid': receipt_data['months_paid'],
+#             'total_amount_paid': receipt_data['total_amount_paid'],
+#             'remarks': receipt_data['remarks'],
+#         })
+
+#         # Create a BytesIO stream to hold the generated PDF
+#         pdf_file = BytesIO()
+#         pisa_status = pisa.CreatePDF(html_content, dest=pdf_file)
+
+#         # Define the path to save the PDF
+#         pdf_folder_path = os.path.join(settings.MEDIA_ROOT, 'pdfs/')
+#         os.makedirs(pdf_folder_path, exist_ok=True)
+#         pdf_file_path = os.path.join(pdf_folder_path, f'invoice_{txn_id}.pdf')
+
+#         # Save the generated PDF to the specified path
+#         with open(pdf_file_path, 'wb') as f:
+#             f.write(pdf_file.getvalue())
+
+#         # Generate the public URL to the PDF file
+#         pdf_file_url = os.path.join(settings.MEDIA_URL, f'pdfs/invoice_{txn_id}.pdf')
+#         host_info = request.build_absolute_uri(settings.MEDIA_URL)
+
+#         # Find the student fee record and update the receipt_url field
+#         student_fees = student_fee.objects.filter(txn_id=txn_id)
+#         if student_fees.exists():
+#             for fee in student_fees:
+#                 fee.receipt_url = pdf_file_url
+#                 fee.save()
+
+#             # Return a success response with the PDF URL
+#             response = {
+#                 'success': True,
+#                 'receiptUrl': host_info + f'pdfs/invoice_{txn_id}.pdf',
+#                 'message': f"Receipt URL updated successfully for txn_id: {txn_id}",
+#             }
+#         else:
+#             response = {
+#                 'success': False,
+#                 'message': 'No records found for the given transaction id',
+#             }
+#     else:
+#         response = {
+#             'success': False,
+#             'message': 'No records found for the given transaction id',
+#         }
+
+#     return (response)

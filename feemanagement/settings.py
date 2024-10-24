@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'ckeditor',
     'Fees_Section',
     'Reports',
+    # 'django_extensions',
     # 'bootstrap5'
 ]
 
@@ -121,7 +122,7 @@ DATABASES = {
         'NAME': os.getenv("DB_NAME"),
         'PASSWORD':os.getenv("DB_PASSWORD"),
         'USER':os.getenv("DB_USER"),
-        'PORT':os.getenv("DB_PORT", "5432")
+        'PORT':os.getenv("DB_PORT", "5432"),
         # 'HOST':'66.235.194.119',
         # 'NAME': 'shishuniketanmoh_schoolmanagement',
         # 'PASSWORD':'Honda@76east',
