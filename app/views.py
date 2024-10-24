@@ -85,6 +85,8 @@ from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
 from django.core.mail import EmailMessage
+from django.contrib.auth.decorators import login_required
+
 # from .models import StudentMaster  # Assuming you have a StudentMaster model
 
 # Load the .env file
@@ -2618,6 +2620,19 @@ def otp_verification(request):
             return JsonResponse({'success': False, 'error': 'Invalid OTP'})
 
     return render(request, 'admin/otp_verification.html')
+
+
+def resend_otp(request):
+    user_id = request.session.get('user_id')  # Get user ID from session
+    if user_id:
+        try:
+            user = User.objects.get(pk=user_id)
+            send_otp(user)  # Function to send OTP to the user
+            return JsonResponse({'success': True, 'message': 'OTP resent successfully.'})
+        except User.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'User does not exist.'})
+    return JsonResponse({'success': False, 'error': 'User not logged in.'})
+
 
 
 # @require_GET

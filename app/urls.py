@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from .views import search_student
-from .views import custom_login, otp_verification
+from .views import custom_login, otp_verification, resend_otp
 from django.conf import settings
 from django.conf.urls.static import static
 # from .admin import section1_site, section2_site
@@ -12,6 +12,7 @@ urlpatterns = [
     # path('section1-admin/', section1_site.urls),
     # path('section2-admin/', section2_site.urls),
     # path('login/', views.custom_login, name='custom_login'),
+    # path('resend-otp/', resend_otp, name='resend_otp'),
     path('otp_verification/', otp_verification, name='otp_verification'),
     path('send-otp/', views.send_otp_verification, name='send_otp_verification'),
     path('send-otp-verification/', views.send_otp_verification_mobile_app, name='send_otp_verification_mobile_app'),

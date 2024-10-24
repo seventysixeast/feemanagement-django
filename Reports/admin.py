@@ -83,6 +83,9 @@ from datetime import datetime
 from openpyxl import Workbook
 
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+import json
+from decimal import Decimal
 
 # from .forms import DefaultersReportForm
 
@@ -1083,279 +1086,28 @@ class AdmissionReportAdmin(ExportMixin, admin.ModelAdmin):
 admin.site.register(admission_report, AdmissionReportAdmin)
 
 
- # Use obj as a dict because values() returns a dict
-
-
-# class FinalFeesReportAdmin(admin.ModelAdmin):
-#     model = final_fees_report
-
-#     list_display = (
-#         'student_class', 'total_annual_fees'
-#     )
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-    
-#     class MoneySerializer(serializers.ModelSerializer):
-#     total_annual_fees = serializers.IntegerField()
-
-#     class Meta:
-#         model =  final_fees_report
-#         fields = ('student_class', 'total_annual_fees')
-
-#     def get_queryset(self, request):
-#         # Extract parameters from request (you can modify this part as needed)
-#         year = "2024"  # Hardcoded for testing, adjust dynamically if needed
-
-#         try:
-#             year = int(year)
-#         except ValueError:
-#             year = datetime.now().year  # Fallback to current year if invalid
-
-#         # Calculate date range for the academic year
-#         from_year = f"{year}-04-01"
-#         to_year = f"{year + 1}-03-31"
-
-#         # Perform aggregation but still return the queryset as model instances
-#         queryset = student_fee.objects.filter(
-#             date_payment__range=[from_year, to_year]
-#         ).values('student_class').annotate(
-#             total_annual_fees=Sum('annual_fees_paid'),
-#             # total_tuition_fees=Sum('tuition_fees_paid'),
-#             # total_funds_fees=Sum('funds_fees_paid'),
-#             # total_sports_fees=Sum('sports_fees_paid'),
-#             # total_activity_fees=Sum('activity_fees'),
-#             # total_admission_fees=Sum('admission_fees_paid'),
-#             # total_security_fees=Sum('security_paid'),
-#             # total_late_fees=Sum('late_fees_paid'),
-#             # total_dayboarding_fees=Sum('dayboarding_fees_paid'),
-#             # total_bus_fees=Sum('bus_fees_paid'),
-#             # total_fees_amount=Sum('total_amount'),
-#             # total_amount_paid=Sum('amount_paid')
-#         ).order_by('student_class')
-
-#         return queryset
-
-    # Display method for total annual fees
-    # def total_annual_fees_display(self, obj):
-    #     return obj.total_annual_fees  # Access the annotated field directly
-
-
-# from rest_framework import serializers  # Importing serializers for the MoneySerializer
-
-# Serializer for handling data representation (useful for APIs or exporting data)
-# class MoneySerializer(serializers.ModelSerializer):
-#     total_annual_fees = serializers.IntegerField()
-
-#     class Meta:
-#         model = final_fees_report
-#         fields = ('student_class', 'total_annual_fees')
-
-# Django Admin class for displaying the data
-# class FinalFeesReportAdmin(admin.ModelAdmin):
-#     model = final_fees_report
-
-#     list_display = (
-#         'student_class','total_annual_fees_display',
-#     )
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     def get_queryset(self, request):
-#         # Extract parameters from request or hardcode for testing
-#         year = "2024"  # You can replace this with dynamic extraction from request if needed
-
-#         try:
-#             year = int(year)
-#         except ValueError:
-#             year = datetime.now().year  # Fallback to current year if the value is invalid
-
-#         # Calculate date range for the academic year
-#         from_year = f"{year}-04-01"
-#         to_year = f"{year + 1}-03-31"
-
-#         # Perform aggregation but return the queryset as model instances
-#         queryset = student_fee.objects.filter(
-#             date_payment__range=[from_year, to_year]
-#         ).values('student_class').annotate(
-#             total_annual_fees=Sum('annual_fees_paid'),
-#         ).order_by('student_class')
-
-#         print('queryset',queryset)
-
-#         # return queryset
-#         return list(queryset)
-    
-#     # Custom display for total_annual_fees in list_display
-#     def total_annual_fees_display(self, obj):
-#         # Access the 'total_annual_fees' from the dictionary returned by get_queryset
-#         return obj.get('total_annual_fees', 0)
-
-#     total_annual_fees_display.short_description = "Total Annual Fees"
-
-#     # Display the student class in the list
-#     def student_class(self, obj):
-#         return obj.get('student_class', 'Unknown')
-
-#     student_class.short_description = "Student Class"
-
-    # Custom display for total_annual_fees
-    # def total_annual_fees_display(self, obj):
-    #     print('Full object:', obj.__dict__)
-    #     return obj.student_class if obj.student_class else 0
-
-    # total_annual_fees_display.short_description = "Total Annual Fees"
-
-# Register the admin class with the model
-# admin.site.register(final_fees_report, FinalFeesReportAdmin)
-
-
-# Register the admin
-
-# from django.contrib import admin
-# from django.db.models import Sum
-# from .models import student_fee  # Ensure you import your model
-# working fine
-# class FinalFeesReportAdmin(admin.ModelAdmin):
-#     model = final_fees_report
-#     list_display = (
-#         'student_class', 'total_annual_fees_display',  # Add the display method for total fees
-#     )
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     def get_queryset(self, request):
-#         # Extract parameters from request or hardcode for testing
-#         year = "2024"  # You can replace this with dynamic extraction from request if needed
-
-#         try:
-#             year = int(year)
-#         except ValueError:
-#             year = datetime.now().year  # Fallback to current year if the value is invalid
-
-#         # Calculate date range for the academic year
-#         from_year = f"{year}-04-01"
-#         to_year = f"{year + 1}-03-31"
-
-#         # Perform aggregation
-#         queryset = student_fee.objects.filter(
-#             date_payment__range=[from_year, to_year]
-#         ).values('student_class').annotate(
-#             total_annual_fees=Sum('annual_fees_paid'),
-#             total_tuition_fees=Sum('tuition_fees_paid'),
-#             total_funds_fees=Sum('funds_fees_paid'),
-#             total_sports_fees=Sum('sports_fees_paid'),
-#             total_activity_fees=Sum('activity_fees'),
-#             total_admission_fees=Sum('admission_fees_paid'),
-#             total_security_fees=Sum('security_paid'),
-#             total_late_fees=Sum('late_fees_paid'),
-#             total_dayboarding_fees=Sum('dayboarding_fees_paid'),
-#             total_bus_fees=Sum('bus_fees_paid'),
-#             total_fees_amount=Sum('total_amount'),
-#             total_amount_paid=Sum('amount_paid')
-#         ).order_by('student_class')
-
-#         # Use list() to convert to a list of dictionaries
-#         return (queryset)
-
-#     # Custom display for total_annual_fees in list_display
-#     def total_annual_fees_display(self, obj):
-#         # Access the 'total_annual_fees' from the dictionary returned by get_queryset
-#         return obj.get('total_annual_fees', 0)
-
-#     total_annual_fees_display.short_description = "Total Annual Fees"
-
-#     # Display the student class in the list
-#     def student_class(self, obj):
-#         return obj.get('student_class', 'Unknown')
-
-#     student_class.short_description = "Student Class"
-# working fine
-
-
-# class FinalFeesReportAdmin(admin.ModelAdmin):
-#     model = final_fees_report
-
-#     list_display = (
-#         'student_class',
-#     )
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     def get_search_results(self, request, queryset, search_term):
-#         # Extract parameters from request
-#         reporttype = request.GET.get('reporttype')
-#         year = request.GET.get('year')
-
-#         if reporttype == "summaryreport" and year:
-#             try:
-#                 year = int(year)
-#             except ValueError:
-#                 year = datetime.now().year  # Fallback to current year if invalid
-
-#             # Calculate date range from the year
-#             from_year = f"{year}-04-01"
-#             to_year = f"{year + 1}-03-31"
-
-#             # Aggregate the data based on the class
-#             queryset = student_fee.objects.filter(
-#                 date_payment__range=[from_year, to_year]
-#             ).values('student_class').annotate(
-#                 total_annual_fees=Sum('annual_fees_paid'),
-#                 total_tuition_fees=Sum('tuition_fees_paid'),
-#                 total_funds_fees=Sum('funds_fees_paid'),
-#                 total_sports_fees=Sum('sports_fees_paid'),
-#                 total_activity_fees=Sum('activity_fees'),
-#                 total_admission_fees=Sum('admission_fees_paid'),
-#                 total_security_fees=Sum('security_paid'),
-#                 total_late_fees=Sum('late_fees_paid'),
-#                 total_dayboarding_fees=Sum('dayboarding_fees_paid'),
-#                 total_bus_fees=Sum('bus_fees_paid'),
-#                 total_amount=Sum('Total_amount'),
-#                 total_amount_paid=Sum('amount_paid'),
-#             ).order_by('student_class')
-
-#         return queryset, False
-
-# Register the admin
-# admin.site.register(final_fees_report, FinalFeesReportAdmin)
-
 from django.shortcuts import render
 from django.template.response import TemplateResponse
 from django.utils.datetime_safe import datetime
 
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return str(obj)  # Convert to string
+        return super().default(obj)
+    
 class FinalFeesReportAdmin(admin.ModelAdmin):
     model = student_fee
     change_list_template = "admin/final_fees_report_change_list.html"  # Custom template
     
-    list_display = ('student_class',)
+    # list_display = ('student_class',)
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('export-final-fees-report/', self.admin_site.admin_view(self.export_final_fees_report_to_excel), name='export_final_fees_report'),
+        ]
+        return custom_urls + urls
     
     # Permissions removed
     def has_add_permission(self, request):
@@ -1365,263 +1117,226 @@ class FinalFeesReportAdmin(admin.ModelAdmin):
         return False
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        return False  
+    
 
     def changelist_view(self, request, extra_context=None):
-        reporttype = request.GET.get('reporttype', 'summaryreport')  # Default to 'summaryreport'
-        year = request.GET.get('year', datetime.now().year)  # Default to current year
+        cheque_details = []
+        reporttype = ''
+        year = ''
+        total_annual_fees = 0
+        total_tuition_fees = 0
+        total_funds_fees = 0
+        total_sports_fees = 0
+        total_activity_fees = 0
+        total_admission_fees = 0
+        total_security_fees = 0
+        total_late_fees = 0
+        total_dayboarding_fees = 0
+        total_bus_fees = 0
+        total_fees_amount = 0
+        total_amount_paid = 0
+        if request.method == 'POST':
+            # reporttype = request.GET.get('reporttype', 'summaryreport')  # Default to 'summaryreport'
+            # year = request.GET.get('year', datetime.now().year)  # Default to current year
 
-        # Ensure year is valid
-        try:
-            year = int(year)
-        except ValueError:
-            year = datetime.now().year
+            reporttype = request.POST.get('reporttype')  # Default to 'summaryreport'
+            year = request.POST.get('year') 
+            print('reporttype',reporttype)
+            
+            extra_context = extra_context or {}
+            extra_context['reporttype'] = reporttype
+            extra_context['year'] = year
+            extra_context['years'] = list(range(2000, 2026))[::-1]  # Populate years 2000-2025
+            extra_context['report_types'] = ["Summary report","Actual report", "Advance report"]  # Populate report types
+            # extra_context['opts'] = self.model._meta
+            extra_context['cheque_details'] = cheque_details
+            extra_context['total_annual_fees'] = total_annual_fees
+            extra_context['total_tuition_fees'] = total_tuition_fees
+            extra_context['total_funds_fees'] = total_funds_fees
+            extra_context['total_sports_fees'] = total_sports_fees
+            extra_context['total_activity_fees'] = total_activity_fees
 
-        queryset = self.get_filtered_queryset(reporttype, year)
+
+            extra_context['total_admission_fees'] = total_admission_fees
+            extra_context['total_security_fees'] = total_security_fees
+            extra_context['total_late_fees'] = total_late_fees
+            extra_context['total_dayboarding_fees'] = total_dayboarding_fees
+            extra_context['total_bus_fees'] = total_bus_fees
+
+            extra_context['total_fees_amount'] = total_fees_amount
+            extra_context['total_amount_paid'] = total_amount_paid
+            extra_context['export_url'] = 'export-final-fees-report/'
+            if (reporttype == "") and not year:
+                messages.error(request, _("Both 'reporttype' and 'year' fields are required."))
+                return super().changelist_view(request, extra_context=extra_context) 
+            # Ensure year is valid
+            try:
+                year = int(year)
+            except ValueError:
+                # year = datetime.now().year
+                messages.error(request, _("Invalid year value provided."))
+                return super().changelist_view(request, extra_context=extra_context)
+
+           
+
+            if reporttype == "summary-report":
+                to_year = year + 1
+                from_date = f"{year}-04-01"
+                to_date = f"{to_year}-03-31"
+
+                # Write the raw SQL query
+                sql_query = f"""
+                    SELECT student_class,
+                        SUM(annual_fees_paid) AS sum_annual_fees_paid,
+                        SUM(tuition_fees_paid) AS sum_tuition_fees_paid,
+                        SUM(funds_fees_paid) AS sum_funds_fees_paid,
+                        SUM(sports_fees_paid) AS sum_sports_fees_paid,
+                        SUM(activity_fees) AS sum_activity_fees,
+                        SUM(admission_fees_paid) AS sum_admission_fees_paid,
+                        SUM(security_paid) AS sum_security_paid,
+                        SUM(late_fees_paid) AS sum_late_fees_paid,
+                        SUM(dayboarding_fees_paid) AS sum_dayboarding_fees_paid,
+                        SUM(bus_fees_paid) AS sum_bus_fees_paid,
+                        SUM(Total_amount) AS sum_total_amount,
+                        SUM(amount_paid) AS sum_amount_paid
+                    FROM student_fees
+                    WHERE date_payment BETWEEN '{from_date}' AND '{to_date}'
+                    GROUP BY student_class
+                    ORDER BY student_class + 0 ASC
+                """
+
+                # Execute the raw SQL query
+                with connection.cursor() as cursor:
+                    cursor.execute(sql_query)
+                    rows = cursor.fetchall()
+
+                print(f'Query Results: {rows}')
+
+                # Build the string output similar to the PHP loop
+
+                for row in rows:
+                    cheque_details.append({
+                        'student_class': row[0],
+                        'total_annual_fees': row[1],
+                        'total_tuition_fees': row[2],
+                        'total_funds_fees': row[3],
+                        'total_sports_fees': row[4],  # Corrected the mobile number index
+                        'total_activity_fees': row[5],
+                        'total_admission_fees': row[6],
+                        'total_security_fees': row[7],
+                        'total_late_fees': row[8],
+                        'total_dayboarding_fees': row[9],
+                        'total_bus_fees': row[10],
+                        'total_fees_amount': row[11],
+                        'total_amount_paid': row[12],
+                    })
+                    
+                    total_annual_fees += row[1] if row[1] else 0
+                    total_tuition_fees += row[2] if row[2] else 0
+                    total_funds_fees += row[3] if row[3] else 0
+                    total_sports_fees += row[4] if row[4] else 0
+                    total_activity_fees += row[5] if row[5] else 0
+                    total_admission_fees += row[6] if row[6] else 0
+                    total_security_fees += row[7] if row[7] else 0
+                    total_late_fees += row[8] if row[8] else 0
+                    total_dayboarding_fees += row[9] if row[9] else 0
+                    total_bus_fees += row[10] if row[10] else 0
+                    total_fees_amount += row[11] if row[11] else 0
+                    total_amount_paid += row[12] if row[12] else 0
+                    # sumdetails += ",".join([str(item) for item in row]) + "$"
+
+
+        # queryset = self.get_filtered_queryset(reporttype, year)
 
         extra_context = extra_context or {}
         extra_context['reporttype'] = reporttype
         extra_context['year'] = year
-        extra_context['years'] = list(range(2000, 2026))  # Populate years 2000-2025
-        extra_context['report_types'] = ["Summary report", "Advance report"]  # Populate report types
-        extra_context['opts'] = self.model._meta
+        extra_context['years'] = list(range(2000, 2026))[::-1]  # Populate years 2000-2025
+        extra_context['report_types'] = ["Summary report","Actual report", "Advance report"]  # Populate report types
+        # extra_context['opts'] = self.model._meta
+        request.session['cheque_details'] = json.dumps(cheque_details, cls=DecimalEncoder)
+        extra_context['cheque_details'] = cheque_details
+        extra_context['total_annual_fees'] = total_annual_fees
+        extra_context['total_tuition_fees'] = total_tuition_fees
+        extra_context['total_funds_fees'] = total_funds_fees
+        extra_context['total_sports_fees'] = total_sports_fees
+        extra_context['total_activity_fees'] = total_activity_fees
+
+
+        extra_context['total_admission_fees'] = total_admission_fees
+        extra_context['total_security_fees'] = total_security_fees
+        extra_context['total_late_fees'] = total_late_fees
+        extra_context['total_dayboarding_fees'] = total_dayboarding_fees
+        extra_context['total_bus_fees'] = total_bus_fees
+
+        extra_context['total_fees_amount'] = total_fees_amount
+        extra_context['total_amount_paid'] = total_amount_paid
+        extra_context['export_url'] = 'export-final-fees-report/'
 
         return super().changelist_view(request, extra_context=extra_context)
 
+    def export_final_fees_report_to_excel(self, request):
+        # Assuming `cheque_details` is the list of objects representing the table data
+        # cheque_details = request.session.get('cheque_details', [])
+        cheque_details = json.loads(request.session['cheque_details'])
 
-    def get_filtered_queryset(self, reporttype, year):
-        """
-        Return a filtered queryset based on report type and year.
-        """
-        from_year = f"{year}-04-01"
-        to_year = f"{year + 1}-03-31"
+        if not cheque_details:
+            # Handle the case where there is no data to export
+            messages.error(request, "No data available to export.")
+            return redirect('admin:final_fees_report_changelist')
 
-        # Modify queryset based on reporttype
-        if reporttype == "summaryreport":
-            queryset = student_fee.objects.filter(
-                date_payment__range=[from_year, to_year]
-            ).values(
-                'student_class'
-            ).annotate(
-                total_annual_fees=Sum('annual_fees_paid'),
-                total_tuition_fees=Sum('tuition_fees_paid'),
-                total_funds_fees=Sum('funds_fees_paid'),
-                total_sports_fees=Sum('sports_fees_paid'),
-                total_activity_fees=Sum('activity_fees'),
-                total_admission_fees=Sum('admission_fees_paid'),
-                total_security_fees=Sum('security_paid'),
-                total_late_fees=Sum('late_fees_paid'),
-                total_dayboarding_fees=Sum('dayboarding_fees_paid'),
-                total_bus_fees=Sum('bus_fees_paid'),
-                total_fees_amount=Sum('total_amount'),
-                total_amount_paid=Sum('amount_paid'),
-            ).order_by('student_class')
+        # Define the column headers as per the table in the image
+        # headers = [
+        #     'Student Class', 'Annual Fees', 'Tuition Fees', 'Funds Fees', 'Sports Fees', 
+        #     'Activity Fees', 'Admission Fees', 'Security Fees', 'Late Fees', 
+        #     'Miscellaneous Fees', 'Bus Fees', 'Total Fees', 'Amount Paid after Concession'
+        # ]
+        headers = [
+            'Class', 'Annual', 'Tuition', 'Funds', 'Sports', 
+            'Activity', 'Admission', 'Security', 'Late', 
+            'Dayboarding', 'Bus', 'Total', 'Total fees after concession'
+        ]
 
-            print("queryset",queryset)
-        else:
-            # Handle "Advance report" or any other type if needed
-            queryset = student_fee.objects.filter(
-                date_payment__range=[from_year, to_year]
-            ).values(
-                'student_class'
-            ).distinct().order_by('student_class')
+        # Convert the list of objects to a DataFrame for export
+        data = []
+        for obj in cheque_details:
+            data.append([
+                obj['student_class'], Decimal(obj['total_annual_fees']) if obj['total_annual_fees'] else 0, Decimal(obj['total_tuition_fees']) if obj['total_tuition_fees'] else 0,
+                Decimal(obj['total_funds_fees']) if obj['total_funds_fees'] else 0, Decimal(obj['total_sports_fees']) if obj['total_sports_fees'] else 0, Decimal(obj['total_activity_fees']) if obj['total_activity_fees'] else 0,
+                Decimal(obj['total_admission_fees']) if obj['total_admission_fees'] else 0, Decimal(obj['total_security_fees']) if obj['total_security_fees'] else 0, Decimal(obj['total_late_fees']) if obj['total_late_fees'] else 0,
+                Decimal(obj['total_dayboarding_fees']) if obj['total_dayboarding_fees'] else 0, Decimal(obj['total_bus_fees']) if obj['total_bus_fees'] else 0, Decimal(obj['total_fees_amount']),
+                Decimal(obj['total_amount_paid'])
+            ])
 
-        return list(queryset)
+        # Create DataFrame from data
+        df = pd.DataFrame(data, columns=headers)
 
+        # Add a total row at the end if necessary
+        total_row = [
+            'Total', sum(df['Annual Fees']), sum(df['Tuition Fees']), sum(df['Funds Fees']),
+            sum(df['Sports Fees']), sum(df['Activity Fees']), sum(df['Admission Fees']),
+            sum(df['Security Fees']), sum(df['Late Fees']), sum(df['Miscellaneous Fees']),
+            sum(df['Bus Fees']), sum(df['Total Fees']), sum(df['Amount Paid after Concession'])
+        ]
+        df.loc[len(df.index)] = total_row
 
+        # Create a BytesIO stream to hold the Excel data
+        excel_file = BytesIO()
+        with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Final Fees Report')
 
-# from django.db.models import Sum
-# from django.utils.html import format_html
-# from django.db.models import Sum
-# from django.db.models import Sum
+        # Rewind the buffer
+        excel_file.seek(0)
 
-# class FinalFeesReportAdmin(admin.ModelAdmin):
-#     model = student_fee  # Ensure this is the correct model
+        # Create the HTTP response to download the file
+        response = HttpResponse(
+            excel_file.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename=final_fees_report.xlsx'
 
-#     # Display the student class and total fees
-#     list_display = ('student_class', 'total_annual_fees')
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     def get_queryset(self, request):
-#         """
-#         Return the normal queryset with all model instances.
-#         We'll handle aggregation separately to keep model instances in the admin.
-#         """
-#         year = "2024"  # Static for now, but you can dynamically adjust
-#         try:
-#             year = int(year)
-#         except ValueError:
-#             year = datetime.now().year
-
-#         # Define date range for the academic year
-#         from_year = f"{year}-04-01"
-#         to_year = f"{year + 1}-03-31"
-
-#         # Return the standard model instances queryset
-#         return student_fee.objects.filter(date_payment__range=[from_year, to_year]).order_by('student_class').order_by('student_class').distinct()
-
-#     def total_annual_fees(self, obj):
-#         """
-#         Calculate the total annual fees for each student_class and return.
-#         This method performs aggregation on model instances.
-#         """
-#         year = "2024"  # Ensure year matches, or make this dynamic based on user input
-#         try:
-#             year = int(year)
-#         except ValueError:
-#             year = datetime.now().year
-
-#         # Calculate date range for the academic year
-#         from_year = f"{year}-04-01"
-#         to_year = f"{year + 1}-03-31"
-
-#         # Aggregate total fees paid for this specific student class
-#         total_fees = student_fee.objects.filter(
-#             date_payment__range=[from_year, to_year],
-#             student_class=obj.student_class
-#         ).aggregate(total_annual_fees=Sum('annual_fees_paid'))['total_annual_fees']
-
-#         # Return the calculated total fees, or 0 if there's no data
-#         return total_fees or 0
-
-#     # Set the display name for the custom method in the list display
-#     total_annual_fees.short_description = 'Total Annual Fees'
-
-# from django.db.models import Sum
-
-# class FinalFeesReportAdmin(admin.ModelAdmin):
-#     model = student_fee  # Make sure this is the correct model
-
-#     # Display the student class and total fees
-#     list_display = ('student_class_display', 'total_annual_fees_display')
-
-#     def has_add_permission(self, request):
-#         return False
-
-#     def has_change_permission(self, request, obj=None):
-#         return False
-
-#     def has_delete_permission(self, request, obj=None):
-#         return False
-
-#     # def get_queryset(self, request):
-#     #     """
-#     #     Return a queryset with distinct student_class and annotate the total fees.
-#     #     """
-#     #     year = "2024"  # Static for now, adjust dynamically if needed
-#     #     try:
-#     #         year = int(year)
-#     #     except ValueError:
-#     #         year = datetime.now().year
-
-#     #     # Define date range for the academic year
-#     #     from_year = f"{year}-04-01"
-#     #     to_year = f"{year + 1}-03-31"
-
-#     #     # Perform aggregation while returning model instances
-#     #     queryset = student_fee.objects.filter(
-#     #         date_payment__range=[from_year, to_year]
-#     #     ).values(
-#     #         'student_class'
-#     #     ).annotate(
-#     #         total_annual_fees=Sum('annual_fees_paid')
-#     #     ).order_by('student_class')
-
-#     #     # Convert the values() queryset into a list of model instances
-#     #     # using distinct values for 'student_class' and returning model instances
-#     #     return student_fee.objects.values(
-#     #         'student_class'
-#     #     ).distinct()
-
-#     def get_queryset(self, request):
-#         """
-#         Return a queryset with distinct student_class values without aggregation.
-#         """
-#         year = "2024"  # Static for now, adjust dynamically if needed
-#         try:
-#             year = int(year)
-#         except ValueError:
-#             year = datetime.now().year
-
-#         # Define date range for the academic year
-#         from_year = f"{year}-04-01"
-#         to_year = f"{year + 1}-03-31"
-
-#         # Fetch distinct student_class values without aggregation
-#         queryset = student_fee.objects.filter(
-#             date_payment__range=[from_year, to_year]
-#         ).values(
-#             'student_class'
-#         ).distinct().order_by('student_class')  # Ensure distinct and ordered by student_class
-
-#         return queryset
-    
-#     def total_annual_fees_display(self, obj):
-#         """
-#         Calculate total fees for the given student class.
-#         """
-#         year = "2024"  # Static, adjust dynamically if needed
-#         try:
-#             year = int(year)
-#         except ValueError:
-#             year = datetime.now().year
-
-#         # Define date range for the academic year
-#         from_year = f"{year}-04-01"
-#         to_year = f"{year + 1}-03-31"
-
-#         # Calculate total fees for each student_class
-#         total_fees = student_fee.objects.filter(
-#             date_payment__range=[from_year, to_year],
-#             student_class=obj['student_class']
-#         ).aggregate(total_fees=Sum('annual_fees_paid'))['total_fees']
-
-#         return total_fees or 0  # Return total fees, or 0 if none
-
-#     def student_class_display(self, obj):
-#         return obj['student_class']
-
-#     # def total_annual_fees_display(self, obj):
-#     #     """
-#     #     Display total annual fees for each student_class by aggregating in the queryset.
-#     #     """
-#     #     year = "2024"  # Make this dynamic as necessary
-#     #     try:
-#     #         year = int(year)
-#     #     except ValueError:
-#     #         year = datetime.now().year
-
-#     #     # Define date range for the academic year
-#     #     from_year = f"{year}-04-01"
-#     #     to_year = f"{year + 1}-03-31"
-
-#     #     # Calculate total fees for each student_class
-#     #     total_fees = student_fee.objects.filter(
-#     #         date_payment__range=[from_year, to_year],
-#     #         student_class=obj.student_class
-#     #     ).aggregate(total_annual_fees=Sum('annual_fees_paid'))['total_annual_fees']
-
-#     #     return total_fees or 0
-
-#     # # Set the display name for the custom method in the list display
-#     # total_annual_fees_display.short_description = 'Total Annual Fees'
-
-
-
-
-# Register the admin class with the model
-# admin.site.register(student_fee, FinalFeesReportAdmin)
-
-# admin.site.register(final_fees_report, FinalFeesReportAdmin)
-
+        return response
 
 admin.site.register(final_fees_report, FinalFeesReportAdmin)
 
@@ -1880,9 +1595,6 @@ class TransportDefaulterReportAdmin(ExportMixin, admin.ModelAdmin):
     
 
 admin.site.register(transport_defaulter, TransportDefaulterReportAdmin)
-
-    
-
 
 
 class chequedepositreportAdmin(admin.ModelAdmin):
