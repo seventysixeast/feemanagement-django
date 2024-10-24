@@ -186,9 +186,26 @@
 
             // Resend OTP click handler (optional)
             $("#resendLink").click(function () {
-                // Logic for resending the OTP can be implemented here
-                alert("OTP resend functionality is not implemented yet.");
+                $.ajax({
+                    type: "POST",
+                    // url: "{% url 'resend_otp' %}",  // URL for the resend OTP view
+                    url: `/resend-otp/`,
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token }}",  // Include CSRF token for security
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(response.message);
+                        } else {
+                            alert(response.error);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        alert("An error occurred: " + error);
+                    }
+                });
             });
+            
         });
     </script>
 

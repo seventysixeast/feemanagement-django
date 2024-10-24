@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib import admin
 from django.urls import path
-from app.views import custom_login, otp_verification
+from app.views import custom_login, otp_verification, resend_otp
 from django.views.generic import RedirectView
 # from app.admin import section1_site, section2_site
 # from app.admin import custom_admin_site  # Import the custom admin site
@@ -32,6 +32,7 @@ from django.views.generic import RedirectView
 
 urlpatterns = [
     path('school-admin/login/', custom_login, name='custom_login'),
+    path('resend-otp/', resend_otp, name='resend_otp'),
     # path('otp_verification/', otp_verification, name='otp_verification'),
     path('school-admin/', admin.site.urls),
     # path('school-admin/login/', custom_login, name='admin_login'),

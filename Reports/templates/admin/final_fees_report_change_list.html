@@ -1,19 +1,42 @@
 {% extends "admin/change_list.html" %}
 
 {% block content %}
-    <div class="form-inline">
-        <form method="get">
+    <head>
+        <style>
+            .alert.alert-danger {
+                display: none;
+            }
+           
+        </style>
+    </head>
+
+    <!-- Display error messages -->
+    {% if messages %}
+        <div class="alert alert-danger">
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <!-- <div class="form-inline">
+        <form method="post">
+            {% csrf_token %}
             <div class="form-group">
                 <label for="reporttype">Report Type:</label>
                 <select name="reporttype" id="reporttype" class="form-control">
+                    <option value="">Please select a report type</option>
                     {% for report in report_types %}
-                        <option value="{{ report|slugify }}" {% if report == reporttype %}selected{% endif %}>{{ report }}</option>
+                        <option value="{{ report|slugify }}" {% if report|slugify == reporttype %}selected{% endif %}>{{ report }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="form-group">
                 <label for="year">Year:</label>
                 <select name="year" id="year" class="form-control">
+                    <option value="">Please select a year</option>
                     {% for y in years %}
                         <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
                     {% endfor %}
@@ -21,30 +44,69 @@
             </div>
             <button type="submit" class="btn btn-primary">Filter</button>
         </form>
+        <a href="{{ export_url }}" class="export_link" style="margin-left: 10px;">Export to Excel</a>
+        <form action="{{ export_url }}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-lg" style="margin-left: 10px;">
+                <i class="fas fa-file-excel"></i> Export to Excel
+            </button>
+        </form>
+    </div> -->
+    <div class="form-inline">
+        <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <div class="form-group" style="margin-right: 10px;">
+                <label for="reporttype">Select report type:</label>
+                <select name="reporttype" id="reporttype" class="form-control">
+                    {% for report in report_types %}
+                        <option value="{{ report|slugify }}" {% if report == reporttype %}selected{% endif %}>{{ report }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+    
+            <div class="form-group" style="margin-right: 10px;">
+                <label for="year">Select year:</label>
+                <select name="year" id="year" class="form-control">
+                    {% for y in years %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+    
+            <button type="submit" class="btn btn-default">Search</button> <!-- Disabled button -->
+    
+        </form>
+    
+        <form action="{{ export_url }}" method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">
+                Export to excel
+            </button>
+        </form>
     </div>
-
+    
     <h3>Final Fees Report for {{ year }}</h3>
 
     <table class="table table-bordered">
         <thead>
             <tr>
                 <th>Student Class</th>
-                <th>Total Annual Fees</th>
-                <th>Total Tuition Fees</th>
-                <th>Total Funds Fees</th>
-                <th>Total Sports Fees</th>
-                <th>Total Activity Fees</th>
-                <th>Total Admission Fees</th>
-                <th>Total Security Fees</th>
-                <th>Total Late Fees</th>
-                <th>Total Dayboarding Fees</th>
-                <th>Total Bus Fees</th>
-                <th>Total Amount</th>
-                <th>Total Amount Paid</th>
+                <th>Annual Fees</th>
+                <th>Tuition Fees</th>
+                <th>Funds Fees</th>
+                <th>Sports Fees</th>
+                <th>Activity Fees</th>
+                <th>Admission Fees</th>
+                <th>Security Fees</th>
+                <th>Late Fees</th>
+                <th>Miscellaneous fees</th>
+                <th>Bus Fees</th>
+                <th>Total Fees</th>
+                <th>Amount paid after concession</th>
             </tr>
         </thead>
         <tbody>
-            {% for obj in cl.result_list %}
+            {% for obj in cheque_details %}
             <tr>
                 <td>{{ obj.student_class }}</td>
                 <td>{{ obj.total_annual_fees }}</td>
@@ -61,6 +123,22 @@
                 <td>{{ obj.total_amount_paid }}</td>
             </tr>
             {% endfor %}
+            <tr>
+                <td>Total</td>
+                <td>{{ total_annual_fees }}</td>
+                <td>{{ total_tuition_fees }}</td>
+                <td>{{ total_funds_fees }}</td>
+                <td>{{ total_sports_fees }}</td>
+                <td>{{ total_activity_fees }}</td>
+                <td>{{ total_admission_fees }}</td>
+                <td>{{ total_security_fees }}</td>
+                <td>{{ total_late_fees }}</td>
+                <td>{{ total_dayboarding_fees }}</td>
+                <td>{{ total_bus_fees }}</td>
+                <td>{{ total_fees_amount }}</td>
+                <td>{{ total_amount_paid }}</td>
+            </tr>
         </tbody>
     </table>
+
 {% endblock %}
