@@ -200,7 +200,7 @@ Month_CHOICES = [
 ]
 
 # Define a list of months
-FEE_MONTHS_CHOICES = [
+FEE_MONTHS_CHOICESFEES_NOT_APPLICABLE = [
     ('1', 'January'),
     ('2', 'February'),
     ('3', 'March'),
@@ -846,7 +846,7 @@ class FeesMasterAdmin(admin.ModelAdmin):
 # Define the form for selecting multiple months
 class FeeNotApplicableForm(forms.Form):
     fee_not_applicable_in_months = forms.MultipleChoiceField(
-        choices=FEE_MONTHS_CHOICES,
+        choices=FEE_MONTHS_CHOICESFEES_NOT_APPLICABLE,
         widget=forms.CheckboxSelectMultiple,
         label="Select months where fees are not applicable",
     )
